@@ -1,6 +1,7 @@
 <script>
   import { enhance } from '$app/forms';
   import { onMount } from 'svelte';
+  import { flip } from 'svelte/animate';
   import Cover from './Cover.svelte';
   import Faceoff from './Faceoff.svelte';
   import { normTag, MAX_TAGS, KIND, KIND_PLURAL } from '$lib/tags.js';
@@ -134,11 +135,37 @@
   }
   function remove(i) { entries = entries.filter((_, k) => k !== i); }
 
+  // ---- drag to reorder ----
+  let listEl = $state(null);
+  let dragKey = $state(null);
+  function startDrag(e, key) {
+    e.preventDefault();
+    dragKey = key;
+  }
+  function onDrag(e) {
+    if (!dragKey || !listEl) return;
+    const rows = [...listEl.querySelectorAll('li[data-key]')].filter((r) => r.dataset.key !== dragKey);
+    const to = rows.filter((r) => { const b = r.getBoundingClientRect(); return b.top + b.height / 2 < e.clientY; }).length;
+    const from = entries.findIndex((x) => keyOf(x.item) === dragKey);
+    if (from < 0 || to === from) return;
+    const copy = [...entries];
+    const [moved] = copy.splice(from, 1);
+    copy.splice(to, 0, moved);
+    entries = copy;
+  }
+  function endDrag() { if (dragKey) { flashRow(entries.find((x) => keyOf(x.item) === dragKey).item); dragKey = null; } }
+  function keyMove(e, i) {
+    if (e.key === 'ArrowUp') { e.preventDefault(); move(i, -1); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); move(i, 1); }
+  }
+
   let payload = $derived(JSON.stringify({ category_id: catId, custom_subtitle: customSub, kind, title, tags, entries }));
   const extraLabel = { restaurant: 'City (optional)', recipe: 'Recipe link (optional)', audiobook: 'Narrator', book: 'Year (optional)', movie: 'Year (optional)', tv: 'Year it started (optional)' };
   const creatorLabel = { restaurant: 'Type of food', recipe: 'Whose recipe, or where it is from', audiobook: 'Author', book: 'Author', movie: 'Director', tv: 'Network or service' };
   const DONE_WORD = { restaurant: 'place', recipe: 'recipe' };
 </script>
+
+<svelte:window onpointermove={onDrag} onpointerup={endDrag} onpointercancel={endDrag} />
 
 <div class="editor">
   <div class="main">
@@ -231,10 +258,15 @@
     <section class="field">
       <div class="between"><span class="label" style="margin:0">Your ranking</span><span class="small muted">{top.length} of 10</span></div>
       {#if entries.length}
-        <ol class="ranks">
+        <p class="small muted" style="margin:0 0 8px">Drag the handle to reorder. On a keyboard, focus the handle and use the up and down arrows.</p>
+        <ol class="ranks" class:isdragging={dragKey} bind:this={listEl}>
           {#each entries as e, i (keyOf(e.item))}
-            {#if i === 10}<li class="benchhead"><span class="h2" style="font-size:22px">Honorable mentions</span></li>{/if}
-            <li class:fresh={fresh === keyOf(e.item)} class:bench={i >= 10}>
+            <li data-key={keyOf(e.item)} animate:flip={{ duration: 160 }} class:fresh={fresh === keyOf(e.item)} class:bench={i >= 10} class:benchstart={i === 10} class:dragging={dragKey === keyOf(e.item)}>
+              <button type="button" class="handle" aria-label="Drag to move {e.item.title}, now number {i + 1}"
+                onpointerdown={(ev) => startDrag(ev, keyOf(e.item))}
+                onkeydown={(ev) => keyMove(ev, i)}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+              </button>
               <span class="slab num">{i < 10 ? i + 1 : '·'}</span>
               <Cover title={e.item.title} kind={e.item.kind} image={e.item.image_url} w={40} />
               <div class="info">
@@ -243,11 +275,7 @@
                 {#if e.item.kind === 'restaurant'}<input class="mini" aria-label="What to order at {e.item.title}" placeholder="What to order" bind:value={e.dish} maxlength="60" />{/if}
                 {#if i < 10}<input class="mini why" aria-label="Why {e.item.title} is here" placeholder="One line on why it's here (optional)" bind:value={e.why} maxlength="140" />{/if}
               </div>
-              <div class="acts">
-                <button type="button" class="icon" aria-label="Move {e.item.title} up" disabled={i === 0} onclick={() => move(i, -1)}>↑</button>
-                <button type="button" class="icon" aria-label="Move {e.item.title} down" disabled={i === entries.length - 1} onclick={() => move(i, 1)}>↓</button>
-                <button type="button" class="icon" aria-label="Remove {e.item.title}" onclick={() => remove(i)}>×</button>
-              </div>
+              <button type="button" class="icon" aria-label="Remove {e.item.title}" onclick={() => remove(i)}>×</button>
             </li>
           {/each}
         </ol>
@@ -269,7 +297,7 @@
   <aside class="side">
     <div class="panel">
       <h3 class="serif">How the ranking works</h3>
-      <p class="small">Your first pick goes straight in. Each new one faces off against the middle of your list and narrows down from there, so even a full list takes about four matchups. On a full list, a new pick has to beat your No. 10 first to get in. Use the arrows to fix anything later.</p>
+      <p class="small">Your first pick goes straight in. Each new one faces off against the middle of your list and narrows down from there, so even a full list takes about four matchups. On a full list, a new pick has to beat your No. 10 first to get in. Drag the handle to fix anything later.</p>
     </div>
   </aside>
 </div>
@@ -314,7 +342,13 @@
   .ranks li { display: flex; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); transition: background 1s; }
   .ranks li.fresh { background: #FBF3CF; }
   .ranks li.bench { opacity: .8; }
-  .benchhead { border-bottom: 0 !important; padding-top: 22px !important; }
+  .benchstart { margin-top: 46px; border-top: 1px solid var(--ink); position: relative; }
+  .benchstart::before { content: 'Honorable mentions'; position: absolute; top: -36px; left: 0; font: italic 22px var(--serif); color: var(--green); }
+  .isdragging { user-select: none; -webkit-user-select: none; }
+  .dragging { background: #F4F3EE; box-shadow: 0 8px 24px rgba(0,0,0,.14); position: relative; z-index: 2; }
+  .handle { width: 40px; height: 44px; border: 0; background: transparent; color: var(--ink-3); cursor: grab; touch-action: none; border-radius: 6px; flex: none; display: flex; align-items: center; justify-content: center; }
+  .handle:hover { color: var(--ink); background: #F4F3EE; }
+  .dragging .handle { cursor: grabbing; color: var(--ink); }
   .num { width: 40px; text-align: center; font-size: 28px; flex: none; }
   .info { flex: 1; min-width: 0; }
   .it { font-weight: 700; font-size: 17px; }
@@ -330,5 +364,5 @@
   .toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--slate); color: var(--chalk); padding: 10px 18px; border-radius: 10px; font-weight: 600; z-index: 70; max-width: 90vw; text-align: center; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   @media (max-width: 900px) { .editor { grid-template-columns: 1fr; } .side { display: none; } }
-  @media (max-width: 640px) { .acts { flex-direction: column; } .icon { width: 36px; height: 32px; } }
+  @media (max-width: 640px) { .icon { width: 36px; height: 36px; } .num { width: 28px; font-size: 22px; } }
 </style>
