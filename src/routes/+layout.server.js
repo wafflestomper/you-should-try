@@ -1,10 +1,19 @@
 export async function load({ locals, platform }) {
   const db = platform?.env?.DB;
-  if (!db || !locals.user) return { user: null, counts: { tries: 0, unread: 0 }, demoPeople: [], dbMissing: !db };
+  if (!db) return { user: null, dbMissing: true };
+  if (!locals.user) return { user: null, dbMissing: false };
   const [tries, unread, people] = await Promise.all([
     db.prepare("SELECT COUNT(*) AS n FROM try_items WHERE user_id = ? AND status = 'open'").bind(locals.user.id).first(),
     db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND read_at IS NULL').bind(locals.user.id).first(),
-    db.prepare("SELECT id, name FROM users WHERE status = 'active' ORDER BY is_admin DESC, name").all()
+    locals.realUser?.is_admin
+      ? db.prepare("SELECT id, name FROM users WHERE status = 'active' ORDER BY name").all()
+      : Promise.resolve({ results: [] })
   ]);
-  return { user: locals.user, counts: { tries: tries.n, unread: unread.n }, demoPeople: people.results, dbMissing: false };
+  return {
+    user: locals.user,
+    realUser: locals.realUser,
+    counts: { tries: tries.n, unread: unread.n },
+    viewAsPeople: people.results,
+    dbMissing: false
+  };
 }

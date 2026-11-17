@@ -13,7 +13,16 @@
 
 {#if data.dbMissing}
   <div class="wrap"><h1 class="h2">The database isn't connected yet</h1><p>Follow step 2 in the README to create the database and paste its ID into <code>wrangler.jsonc</code>.</p></div>
+{:else if !data.user}
+  <div class="wrap">{@render children()}</div>
 {:else}
+  {#if data.realUser?.is_guest}
+    <div class="banner"><span>You're in as a guest, invited by a friend. Everything works on this device. Sign in with Google to keep your lists everywhere.</span><a class="gb" href="/auth/google">Sign in with Google</a></div>
+  {/if}
+  {#if data.realUser && data.user.id !== data.realUser.id}
+    <div class="banner viewing"><span>You're seeing the site as <b>{data.user.name}</b>.</span>
+      <form method="POST" action="/view-as"><input type="hidden" name="user" value="" /><button class="gb">Back to me</button></form></div>
+  {/if}
   <div class="wrap">
     {#if path !== '/'}
       <div class="frame"><div class="board strip"><Corners size={56} /><div class="inner"><Nav {path} user={data.user} counts={data.counts} /></div></div></div>
@@ -21,14 +30,17 @@
     {@render children()}
 
     <footer class="foot">
-      <form method="POST" action="/demo?/switch" class="demo">
-        <label for="demo-user">Demo: viewing as</label>
-        <select id="demo-user" name="user" onchange={(e) => e.currentTarget.form.requestSubmit()}>
-          {#each data.demoPeople as p}<option value={p.id} selected={p.id === data.user?.id}>{p.name}</option>{/each}
-        </select>
-        <noscript><button class="btn sm">Switch</button></noscript>
-      </form>
-      <span>You Should Try… · invite only · sign-in comes next</span>
+      {#if data.realUser?.is_admin}
+        <form method="POST" action="/view-as" class="demo">
+          <label for="view-as">Admin: view as</label>
+          <select id="view-as" name="user" onchange={(e) => e.currentTarget.form.requestSubmit()}>
+            {#each data.viewAsPeople as p}<option value={p.id} selected={p.id === data.user.id}>{p.name}</option>{/each}
+          </select>
+          <a href="/admin" class="small">Admin page</a>
+        </form>
+      {/if}
+      <form method="POST" action="/signout"><button class="linkish">Sign out</button></form>
+      <span>You Should Try… · invite only</span>
     </footer>
   </div>
 
@@ -49,6 +61,11 @@
   .demo { display: flex; gap: 8px; align-items: center; font-family: var(--body); font-style: normal; }
   .demo select { min-height: 36px; border: 1.5px solid #CFCDC4; border-radius: 6px; padding: 0 8px; font: 14px var(--body); background: #fff; }
   .tabbar { display: none; }
+  .banner { background: var(--slate); color: var(--chalk); display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 10px 16px; font-size: 14.5px; }
+  .banner.viewing { background: #7A5C00; }
+  .banner form { margin: 0; }
+  .gb { background: #fff; color: #1f1f1f; border: 0; border-radius: 18px; padding: 7px 14px; font: 700 14px var(--body); text-decoration: none; cursor: pointer; }
+  .linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--green); text-decoration: underline; cursor: pointer; }
   @media (max-width: 640px) {
     .strip { padding: 8px 12px 10px; }
     .inner { padding: 0; }

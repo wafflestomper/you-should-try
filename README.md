@@ -24,6 +24,16 @@ Sign-in with Google comes next.
 4. **Deploy.** Every push to `main` rebuilds and redeploys the site. The first deploy also fills the database with demo data.
 5. **Your address (optional).** In the Worker's **Settings → Domains & Routes**, add a custom domain such as `try.zollinhofer.com`, then follow Cloudflare's instructions for the DNS record at DreamHost.
 
+## Google sign-in
+
+1. Go to console.cloud.google.com and sign in with your personal Gmail. Create a project named `You Should Try`.
+2. **APIs & Services → OAuth consent screen** (Google Auth Platform): app name `You Should Try`, your email as support and contact, audience **External**. Then **Publish app** so friends can sign in without being added one by one. Only basic scopes are used (name, email), so no review is needed.
+3. **Clients → Create client**, type **Web application**. Under **Authorized redirect URIs** add `https://you-should-try.brian-zollinhofer.workers.dev/auth/google/callback` (and later the same path on your own domain).
+4. In Cloudflare, open the Worker → **Settings → Variables and Secrets** and add:
+   - `GOOGLE_CLIENT_ID` (Secret): the client ID
+   - `GOOGLE_CLIENT_SECRET` (Secret): the client secret
+   - `ADMIN_EMAILS` (Text): your Gmail address. The first time this address signs in, it takes over the demo "Z" account and its lists.
+
 ## The TMDB key (movies and TV search)
 
 1. Make a free account at themoviedb.org, then go to **Settings → API** and request an API key (choose Developer, personal use).
