@@ -13,7 +13,7 @@
       "binding": "DB",
       "database_name": "you-should-try",
       // Paste the Database ID from the Cloudflare dashboard here (see README step 2).
-      "database_id": "PASTE-DATABASE-ID-HERE",
+      "database_id": "26f46a52-8c78-481e-a3d2-f82a81f38e30",
       "migrations_dir": "migrations"
     }
   ]
