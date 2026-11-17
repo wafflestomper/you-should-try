@@ -9,9 +9,10 @@ Built with SvelteKit, hosted free on Cloudflare Workers, with a Cloudflare D1 da
 - Home page with the chalkboard board, "For you" feed, taste matches, "Something different," and your try list
 - List pages, category pages with the group's consensus top 10, item pages, people pages, notifications
 - **Try it** saves something to your try list and notifies the person whose list it came from
+- **Make and edit lists:** pick a main top ten or write your own, clever title, tags with suggestions, search Open Library for books and audiobooks, TMDB for movies and TV (needs the free `TMDB_KEY`), add restaurants and recipes by hand, and face-offs to place every new pick
 - Demo data, plus a "Demo: viewing as" menu at the bottom to see the site as different people
 
-Sign-in with Google, making new lists, and face-offs come in the next updates.
+Sign-in with Google comes next.
 
 ## Setup on Cloudflare (one time)
 
@@ -22,6 +23,12 @@ Sign-in with Google, making new lists, and face-offs come in the next updates.
    - Deploy command: `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`
 4. **Deploy.** Every push to `main` rebuilds and redeploys the site. The first deploy also fills the database with demo data.
 5. **Your address (optional).** In the Worker's **Settings → Domains & Routes**, add a custom domain such as `try.zollinhofer.com`, then follow Cloudflare's instructions for the DNS record at DreamHost.
+
+## The TMDB key (movies and TV search)
+
+1. Make a free account at themoviedb.org, then go to **Settings → API** and request an API key (choose Developer, personal use).
+2. Copy the **API Key** (the shorter one, not the long Read Access Token).
+3. In Cloudflare, open the `you-should-try` Worker → **Settings → Variables and Secrets → Add**, choose **Secret**, name it `TMDB_KEY`, paste the key, and save. Never paste it into the chat or the code.
 
 ## Running it on a computer (optional)
 

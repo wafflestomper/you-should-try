@@ -11,9 +11,10 @@
 {#each data.consensus as c, i}
   <div class="item"><span class="slab" style="width:34px">{i + 1}</span><a href="/item/{c.id}" style="color:var(--ink);text-decoration:none">{c.title}</a><span class="fill"></span><span class="no">{c.pts} pts · {c.lists} list{c.lists > 1 ? 's' : ''}</span></div>
 {:else}
-  <p class="muted">No lists here yet. <a href="/new">Make the first one.</a></p>
+  <p class="muted">No lists here yet. <a href="/new?category={data.category.id}">Make the first one.</a></p>
 {/each}
 
+<div style="margin-top:20px"><a class="btn dark" href="/new?category={data.category.id}">Make your own</a></div>
 <h2 class="h2" style="margin-top:44px">The lists</h2><div class="rule"></div>
 <div class="grid">{#each data.lists as l}<ListCard {l} />{/each}</div>
 

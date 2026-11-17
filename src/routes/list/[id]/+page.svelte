@@ -20,7 +20,7 @@
       <div class="tags">{#each data.tags as t}<span class="tag">{t}</span>{/each}</div>
     </div>
   </div>
-  {#if mine}<a class="btn dark" href="/new">Add a title</a>{/if}
+  {#if mine}<a class="btn dark" href="/list/{data.list.id}/edit">Edit or add picks</a>{/if}
 </header>
 
 <div class="rule"></div>

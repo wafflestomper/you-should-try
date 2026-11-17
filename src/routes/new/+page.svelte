@@ -1,4 +1,8 @@
-<svelte:head><title>Coming soon · You Should Try</title></svelte:head>
-<h1 class="slab" style="font-size:44px;margin:32px 0 0">Coming in the next update</h1>
-<p class="muted">Making a new top 10 with face-offs is the next thing being built.</p>
-<a class="btn" href="/">Back home</a>
+<script>
+  import Editor from '$lib/components/Editor.svelte';
+  let { data, form } = $props();
+</script>
+
+<svelte:head><title>New top 10 · You Should Try</title></svelte:head>
+<h1 style="margin:32px 0 0;font-weight:400"><span class="script" style="font-size:40px">make a new</span> <span class="slab" style="font-size:48px">TOP 10</span></h1>
+<Editor categories={data.categories} preset={data.preset} {form} />
