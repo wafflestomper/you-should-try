@@ -4,7 +4,7 @@
   import Avatar from './Avatar.svelte';
   let { path = '/', user, counts, showLogo = true } = $props();
   const links = [
-    ['/', 'Home'], ['/lists', 'Lists'], ['/people', 'People'], ['/try', 'Try list'], ['/charts', 'The Hot 40']
+    ['/', 'Home'], ['/lists', 'Lists'], ['/people', 'People'], ['/try', 'Try list']
   ];
   const on = (href) => (href === '/' ? path === '/' : path.startsWith(href));
 </script>

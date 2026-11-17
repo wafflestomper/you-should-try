@@ -1,6 +1,8 @@
 import { error, fail } from '@sveltejs/kit';
 import { getItem } from '$lib/server/data.js';
 import { saveToTry, removeFromTry, sendRecommendation } from '$lib/server/actions.js';
+import { myLibraries, libraryActions } from '$lib/server/libs.js';
+import { streaming, library, libbySearchUrl } from '$lib/server/where.js';
 
 export async function load({ params, platform, locals }) {
   const db = platform.env.DB;
@@ -15,10 +17,23 @@ export async function load({ params, platform, locals }) {
       `SELECT r.to_user_id, u.name FROM recommendations r JOIN users u ON u.id = r.to_user_id
         WHERE r.from_user_id = ? AND r.item_id = ? ORDER BY r.created_at`).bind(me, params.id).all()
   ]);
-  return { ...data, saved: !!saved, done: done?.reaction ?? null, people: people.results, sentTo: sent.results };
+  const item = data.item;
+  const libs = await myLibraries(db, me);
+  const env = platform.env;
+  // Not awaited: the page shows first and this fills in.
+  const where = (async () => {
+    if (['movie', 'tv'].includes(item.kind)) return { stream: await streaming(db, env, item) };
+    if (['book', 'audiobook'].includes(item.kind)) {
+      const rows = await library(db, item, libs);
+      return { libs: rows.map((r) => ({ ...r, search: libbySearchUrl(r.lib.key, item) })) };
+    }
+    return null;
+  })();
+  return { ...data, saved: !!saved, done: done?.reaction ?? null, people: people.results, sentTo: sent.results, libs, where, hasTmdb: !!env.TMDB_KEY };
 }
 
 export const actions = {
+  ...libraryActions,
   try: async ({ request, platform, locals, params }) => {
     const f = await request.formData();
     if (f.get('saved') === '1') await removeFromTry(platform.env.DB, locals.user, params.id);

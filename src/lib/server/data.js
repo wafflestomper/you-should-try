@@ -107,7 +107,7 @@ export async function getHome(db, me) {
 
 export async function getTryList(db, uid) {
   return all(db,
-    `SELECT t.*, i.title, i.kind, i.creator, i.narrator, i.image_url, u.name AS from_name, u.color AS from_color,
+    `SELECT t.*, i.title, i.kind, i.creator, i.narrator, i.image_url, i.year, i.source, i.source_id, i.tmdb_ref, u.name AS from_name, u.color AS from_color,
             l.title AS from_list_title, e.dish
        FROM try_items t JOIN items i ON i.id = t.item_id
        LEFT JOIN users u ON u.id = t.from_user_id
