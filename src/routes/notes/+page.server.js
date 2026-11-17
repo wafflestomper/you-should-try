@@ -1,8 +1,8 @@
 export async function load({ platform, locals }) {
   const db = platform.env.DB;
   const notes = (await db.prepare(
-    `SELECT n.*, a.name AS actor_name, i.title AS item_title, l.title AS list_title
-       FROM notifications n LEFT JOIN users a ON a.id = n.actor_id LEFT JOIN items i ON i.id = n.item_id LEFT JOIN lists l ON l.id = n.list_id
+    `SELECT n.*, a.name AS actor_name, i.title AS item_title, l.title AS list_title, r.note AS rec_note
+       FROM notifications n LEFT JOIN users a ON a.id = n.actor_id LEFT JOIN items i ON i.id = n.item_id LEFT JOIN lists l ON l.id = n.list_id LEFT JOIN recommendations r ON r.id = json_extract(n.data, '$.rec')
       WHERE n.user_id = ? ORDER BY n.created_at DESC LIMIT 50`).bind(locals.user.id).all()).results;
   for (const n of notes) n.data = n.data ? JSON.parse(n.data) : {};
   return { notes };

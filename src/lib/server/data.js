@@ -70,7 +70,8 @@ export async function getHome(db, me) {
     listsWithTop(db, 'WHERE l.owner_id != ?', [me.id], 3),
     all(db,
       `SELECT n.*, a.name AS actor_name, a.color AS actor_color, i.title AS item_title, i.kind AS item_kind,
-              l.title AS list_title, r.note AS rec_note
+              l.title AS list_title, r.note AS rec_note,
+              (SELECT t.status FROM try_items t WHERE t.user_id = n.user_id AND t.item_id = n.item_id) AS my_status
          FROM notifications n
          LEFT JOIN users a ON a.id = n.actor_id
          LEFT JOIN items i ON i.id = n.item_id

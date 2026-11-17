@@ -11,9 +11,9 @@
 <div class="rule" style="margin-top:14px"></div>
 {#each data.notes as n}
   <div class="n" class:new={!n.read_at}>
-    {#if n.type === 'saved_your_pick'}<b>{first(n.actor_name)}</b> saved <a href="/item/{n.item_id}">{n.item_title}</a> from your {n.list_title}.
-    {:else if n.type === 'tried_your_pick'}<b>{first(n.actor_name)}</b> tried your pick <a href="/item/{n.item_id}">{n.item_title}</a> and ranked it No. {n.data.rank}.
-    {:else if n.type === 'sent_you'}<b>{first(n.actor_name)}</b> says you should try <a href="/item/{n.item_id}">{n.item_title}</a>.
+    {#if n.type === 'saved_your_pick'}<b>{first(n.actor_name)}</b> saved <a href="/item/{n.item_id}">{n.item_title}</a>{n.list_title ? ` from your ${n.list_title}` : ', the one you sent them'}.
+    {:else if n.type === 'tried_your_pick'}<b>{first(n.actor_name)}</b> tried <a href="/item/{n.item_id}">{n.item_title}</a> and put it at No. {n.data.rank}{n.list_title ? ` on ${n.list_title}` : ''}.
+    {:else if n.type === 'sent_you'}<b>{first(n.actor_name)}</b> says you should try <a href="/item/{n.item_id}">{n.item_title}</a>.{#if n.rec_note} <i>“{n.rec_note}”</i>{/if}
     {:else if n.type === 'new_list'}<b>{first(n.actor_name)}</b> started a new list, <a href="/list/{n.list_id}">{n.list_title}</a>.{/if}
   </div>
 {:else}<p class="muted">No notifications yet.</p>{/each}

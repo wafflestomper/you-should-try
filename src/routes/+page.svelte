@@ -1,4 +1,5 @@
 <script>
+  import { enhance } from '$app/forms';
   import { page } from '$app/state';
   import Nav from '$lib/components/Nav.svelte';
   import Corners from '$lib/components/Corners.svelte';
@@ -7,6 +8,7 @@
   import Cover from '$lib/components/Cover.svelte';
   let { data } = $props();
   const KIND = { book: 'Book', audiobook: 'Audiobook', movie: 'Movie', tv: 'TV', restaurant: 'Restaurant', recipe: 'Recipe' };
+  const HAD = { book: 'Already read it', audiobook: 'Already heard it', movie: 'Already seen it', tv: 'Already seen it', restaurant: 'Already been', recipe: 'Already made it' };
   const first = (n) => (n || '').split(' ')[0];
   const label = (e) => (e.dish ? `${e.dish[0].toUpperCase()}${e.dish.slice(1)}, ${e.title}` : e.title);
   const ago = (ts) => {
@@ -48,12 +50,20 @@
         <Avatar name={n.actor_name} color={n.actor_color} />
         <div style="flex:1;min-width:0">
           <p>
-            {#if n.type === 'saved_your_pick'}<b>{first(n.actor_name)}</b> saved <a href="/item/{n.item_id}"><b>{n.item_title}</b></a> from your {n.list_title}. It's on their try list now.
-            {:else if n.type === 'tried_your_pick'}<b>{first(n.actor_name)}</b> tried your pick <a href="/item/{n.item_id}"><b>{n.item_title}</b></a> and ranked it <b>No. {n.data.rank}</b>.
+            {#if n.type === 'saved_your_pick'}<b>{first(n.actor_name)}</b> saved <a href="/item/{n.item_id}"><b>{n.item_title}</b></a>{n.list_title ? ` from your ${n.list_title}` : ', the one you sent them'}. It's on their try list now.
+            {:else if n.type === 'tried_your_pick'}<b>{first(n.actor_name)}</b> tried <a href="/item/{n.item_id}"><b>{n.item_title}</b></a> and put it at <b>No. {n.data.rank}</b>{n.list_title ? ` on ${n.list_title}` : ''}.{#if n.data.their_rank}{' '}{n.data.their_rank === n.data.rank ? 'Same spot as yours.' : `You have it at No. ${n.data.their_rank}.`}{/if}
             {:else if n.type === 'sent_you'}<b>{first(n.actor_name)}</b> says you should try <a href="/item/{n.item_id}"><b>{n.item_title}</b></a>.{#if n.rec_note} <span class="serif" style="font-style:italic">“{n.rec_note}”</span>{/if}
             {:else if n.type === 'new_list'}<b>{first(n.actor_name)}</b> started a new list, <a href="/list/{n.list_id}"><b>{n.list_title}</b></a>.
             {/if}
           </p>
+          {#if n.type === 'sent_you'}
+            {#if !n.my_status}
+              <div class="feed-acts">
+                <form method="POST" action="?/accept" use:enhance><input type="hidden" name="item" value={n.item_id} /><input type="hidden" name="from" value={n.actor_id} /><button class="btn sm dark">Add to try list</button></form>
+                <a class="btn sm" href="/try/{n.item_id}/done?from={n.actor_id}">{HAD[n.item_kind] ?? 'Already tried it'}</a>
+              </div>
+            {:else}<div class="small muted">{n.my_status === 'open' ? 'On your try list.' : 'You marked it done.'}</div>{/if}
+          {/if}
           <div class="when">{ago(n.created_at)}</div>
         </div>
       </div>
@@ -137,4 +147,5 @@
     .bcol { padding: 14px 0 4px; border-left: 0; border-top: 3px dotted rgba(241,240,234,.5); flex-basis: 100%; }
     .bcol:first-child { border-top: 0; }
   }
+  .feed-acts { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 4px; }
 </style>

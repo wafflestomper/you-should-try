@@ -5,7 +5,7 @@
   import Faceoff from './Faceoff.svelte';
   import { normTag, MAX_TAGS, KIND, KIND_PLURAL } from '$lib/tags.js';
 
-  let { categories, initial = null, form = null, preset = null } = $props();
+  let { categories, initial = null, form = null, preset = null, action = '?/save' } = $props();
 
   const start = initial ?? { category_id: preset ?? categories[0]?.id ?? null, custom_subtitle: '', kind: 'book', title: '', tags: [], entries: [] };
   let catId = $state(start.category_id);
@@ -334,7 +334,7 @@
       {/if}
     </section>
 
-    <form method="POST" action="?/save" use:enhance={() => { saving = true; return async ({ update }) => { await update({ reset: false }); saving = false; }; }}>
+    <form method="POST" {action} use:enhance={() => { saving = true; return async ({ update }) => { await update({ reset: false }); saving = false; }; }}>
       <input type="hidden" name="payload" value={payload} />
       {#if form?.message}<p class="err" role="alert">{form.message}</p>{/if}
       <div class="row">

@@ -6,7 +6,10 @@
   const KIND = { book: 'Book', audiobook: 'Audiobook', movie: 'Movie', tv: 'TV', restaurant: 'Restaurant', recipe: 'Recipe' };
   const DONE = { book: 'Finished it', audiobook: 'Listened', movie: 'Watched it', tv: 'Watched it', restaurant: 'Been there', recipe: 'Made it' };
   const filters = [['all', 'All'], ['book', 'Books'], ['audiobook', 'Audiobooks'], ['movie', 'Movies'], ['tv', 'TV'], ['restaurant', 'Restaurants'], ['recipe', 'Recipes']];
+  import { page } from '$app/state';
   let kind = $state('all');
+  const doneMsg = { loved: 'Glad it was a good one. Marked done.', fine: 'Marked done.', not_for_me: 'Marked done. Only you can see how it went.' };
+  let toast = $derived(page.url.searchParams.get('done') ? doneMsg[page.url.searchParams.get('r')] ?? 'Marked done.' : null);
   let shown = $derived(kind === 'all' ? data.items : data.items.filter((i) => i.kind === kind));
   const cap = (s) => s[0].toUpperCase() + s.slice(1);
 </script>
@@ -22,6 +25,7 @@
   {/each}
 </div>
 
+{#if toast}<p class="toast-line" role="status">{toast}</p>{/if}
 <div class="rule"></div>
 <ul class="rows">
   {#each shown as t (t.item_id)}
@@ -30,9 +34,9 @@
       <div class="info"><div class="kind">{KIND[t.kind]}</div>
         <a class="serif it" href="/item/{t.item_id}">{t.dish ? `${cap(t.dish)}, ${t.title}` : t.title}</a>
         <div class="small muted">{t.creator ?? ''}{t.narrator ? ` · read by ${t.narrator}` : ''}</div></div>
-      {#if t.from_name}<div class="from"><Avatar name={t.from_name} color={t.from_color} size={28} /><span class="small">{t.from_name.split(' ')[0]}'s <b>No. {t.from_rank}</b></span></div>{/if}
+      {#if t.from_name}<div class="from"><Avatar name={t.from_name} color={t.from_color} size={28} /><span class="small">{#if t.from_rank}{t.from_name.split(' ')[0]}'s <b>No. {t.from_rank}</b>{:else}{t.from_name.split(' ')[0]} <b>sent it to you</b>{/if}</span></div>{/if}
       <div class="acts">
-        <button type="button" class="btn sm" disabled title="Coming in the next update">{DONE[t.kind]}</button>
+        <a class="btn sm dark" href="/try/{t.item_id}/done">{DONE[t.kind]}</a>
         <form method="POST" action="?/remove" use:enhance><input type="hidden" name="item" value={t.item_id} /><button class="btn sm" style="border-color:#CFCDC4">Remove</button></form>
       </div>
     </li>
@@ -51,5 +55,6 @@
   .it { font-size: 19px; font-weight: 700; color: var(--ink); text-decoration: none; }
   .from { flex: 1 1 160px; display: flex; align-items: center; gap: 8px; }
   .acts { display: flex; gap: 8px; }
+  .toast-line { margin: 0 0 8px; font-weight: 600; color: var(--ok); }
   .btn[disabled] { opacity: .5; cursor: not-allowed; }
 </style>

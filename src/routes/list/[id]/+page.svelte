@@ -6,6 +6,9 @@
   let { data } = $props();
   let mine = $derived(data.list.owner_id === data.user?.id);
   const cap = (s) => s[0].toUpperCase() + s.slice(1);
+  import { page } from '$app/state';
+  let added = $derived(page.url.searchParams.get('added'));
+  let addedAt = $derived(added ? [...data.top, ...data.bench].find((e) => e.item_id === added) : null);
 </script>
 
 <svelte:head><title>{data.list.title} · You Should Try</title></svelte:head>
@@ -23,10 +26,11 @@
   {#if mine}<a class="btn dark" href="/list/{data.list.id}/edit">Edit or add picks</a>{/if}
 </header>
 
+{#if addedAt}<p class="added" role="status"><b>{addedAt.title}</b> is in at {addedAt.position <= 10 ? `No. ${addedAt.position}` : 'honorable mention'}.</p>{/if}
 <div class="rule"></div>
 <ol class="ranks">
   {#each data.top as e}
-    <li>
+    <li class:fresh={e.item_id === added}>
       <span class="slab num">{e.position}</span>
       <Cover title={e.title} kind={e.kind} image={e.image_url} w={44} />
       <div class="info">
@@ -55,6 +59,8 @@
 {/if}
 
 <style>
+  .added { margin: 14px 0 0; color: var(--ok); }
+  .fresh { background: #FBF8EC; }
   .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-top: 32px; }
   .title { font-size: clamp(36px, 5vw, 60px); line-height: 1.02; margin: 0; }
   .sub2 { font-size: 13px; color: var(--ink-2); margin-top: 8px; }
