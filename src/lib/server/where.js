@@ -2,7 +2,11 @@
 // and Libby availability for books and audiobooks (through the Shelf Check worker).
 // Results are cached in where_cache so page loads stay quick and the free APIs stay happy.
 
-const SHELF_API = 'https://shelfcheck-api.lets-hit.com';
+// Shelf Check's worker. Override with a SHELFCHECK_URL variable in Cloudflare if it ever moves.
+const SHELF_DEFAULT = 'https://books.lets-hit.com';
+const shelfApi = (env) => (env?.SHELFCHECK_URL || SHELF_DEFAULT).replace(/\/+$/, '');
+// Shelf Check's page lives here; sent along in case the worker only answers its own page.
+const SHELF_HEADERS = { Origin: 'https://brian.zollinhofer.com', Referer: 'https://brian.zollinhofer.com/shelfcheck/' };
 const STREAM_HOURS = 24;
 const LIB_HOURS = 12;
 const TMDB = 'https://api.themoviedb.org/3';
@@ -27,8 +31,9 @@ async function store(db, itemId, scope, data) {
 
 async function getJson(url, opts = {}) {
   const r = await fetch(url, { ...opts, signal: AbortSignal.timeout(8000) });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${new URL(url).host} answered ${r.status}`);
+  const text = await r.text();
+  try { return JSON.parse(text); } catch { throw new Error(`${new URL(url).host} sent back something that isn't data`); }
 }
 
 /* ---------- Streaming ---------- */
@@ -84,8 +89,8 @@ export async function streaming(db, env, item, b = budget()) {
 
 /* ---------- Libby, through Shelf Check ---------- */
 
-export async function searchLibraries(q) {
-  const d = await getJson(`${SHELF_API}/libraries?q=${encodeURIComponent(q)}`);
+export async function searchLibraries(env, q) {
+  const d = await getJson(`${shelfApi(env)}/libraries?q=${encodeURIComponent(q)}`, { headers: SHELF_HEADERS });
   return (d.libraries || []).slice(0, 12).map((l) => ({ key: l.key, name: l.name }));
 }
 
@@ -94,7 +99,7 @@ export async function searchLibraries(q) {
  * Returns [{ lib:{key,name}, hits:[{format, available, availableCopies, copies, holds, waitDays, url}] | null }]
  * (hits null means it couldn't be checked this time).
  */
-export async function library(db, item, libs, b = budget()) {
+export async function library(db, env, item, libs, b = budget()) {
   if (!['book', 'audiobook'].includes(item.kind) || !libs.length) return [];
   const out = [];
   for (const lib of libs) {
@@ -103,9 +108,9 @@ export async function library(db, item, libs, b = budget()) {
     let hits = c.fresh ? c.data : null;
     if (!c.fresh && b.take()) {
       try {
-        const d = await getJson(`${SHELF_API}/check`, {
+        const d = await getJson(`${shelfApi(env)}/check`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...SHELF_HEADERS },
           body: JSON.stringify({ library: lib.key, books: [{ title: item.title, author: item.creator || '' }] })
         });
         const raw = d.results?.[0];

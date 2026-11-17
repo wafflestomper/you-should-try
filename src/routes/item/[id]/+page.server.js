@@ -24,7 +24,7 @@ export async function load({ params, platform, locals }) {
   const where = (async () => {
     if (['movie', 'tv'].includes(item.kind)) return { stream: await streaming(db, env, item) };
     if (['book', 'audiobook'].includes(item.kind)) {
-      const rows = await library(db, item, libs);
+      const rows = await library(db, env, item, libs);
       return { libs: rows.map((r) => ({ ...r, search: libbySearchUrl(r.lib.key, item) })) };
     }
     return null;

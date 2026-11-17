@@ -16,7 +16,7 @@ export async function load({ platform, locals }) {
       const it = { ...t, id: t.item_id };
       let w = null;
       if (['movie', 'tv'].includes(t.kind)) w = { stream: await streaming(db, env, it, b) };
-      else if (['book', 'audiobook'].includes(t.kind) && libs.length) w = { libs: await library(db, it, libs, b) };
+      else if (['book', 'audiobook'].includes(t.kind) && libs.length) w = { libs: await library(db, env, it, libs, b) };
       const line = bestLine(it, w);
       if (line) lines[t.item_id] = line;
     }));
