@@ -4,6 +4,8 @@
   "main": ".svelte-kit/cloudflare/_worker.js",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_als"],
+  // Keep variables set in the Cloudflare dashboard (like ADMIN_EMAILS) when deploying
+  "keep_vars": true,
   "assets": {
     "binding": "ASSETS",
     "directory": ".svelte-kit/cloudflare"
