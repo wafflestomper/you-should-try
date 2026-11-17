@@ -26,7 +26,7 @@
 <ul class="rows">
   {#each shown as t (t.item_id)}
     <li>
-      <Cover title={t.title} kind={t.kind} w={52} />
+      <Cover title={t.title} kind={t.kind} image={t.image_url} w={52} />
       <div class="info"><div class="kind">{KIND[t.kind]}</div>
         <a class="serif it" href="/item/{t.item_id}">{t.dish ? `${cap(t.dish)}, ${t.title}` : t.title}</a>
         <div class="small muted">{t.creator ?? ''}{t.narrator ? ` · read by ${t.narrator}` : ''}</div></div>

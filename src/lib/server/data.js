@@ -53,7 +53,7 @@ export async function listsWithTop(db, where = '', args = [], limit = 50) {
   const ids = lists.map((l) => l.id);
   const marks = ids.map(() => '?').join(',');
   const entries = await all(db,
-    `SELECT e.list_id, e.position, e.why, e.dish, i.id, i.title, i.kind, i.creator
+    `SELECT e.list_id, e.position, e.why, e.dish, i.id, i.title, i.kind, i.creator, i.image_url
        FROM list_entries e JOIN items i ON i.id = e.item_id
       WHERE e.list_id IN (${marks}) AND e.position <= 3 ORDER BY e.position`, ...ids);
   const tags = await all(db, `SELECT * FROM list_tags WHERE list_id IN (${marks})`, ...ids);
@@ -106,7 +106,7 @@ export async function getHome(db, me) {
 
 export async function getTryList(db, uid) {
   return all(db,
-    `SELECT t.*, i.title, i.kind, i.creator, i.narrator, u.name AS from_name, u.color AS from_color,
+    `SELECT t.*, i.title, i.kind, i.creator, i.narrator, i.image_url, u.name AS from_name, u.color AS from_color,
             l.title AS from_list_title, e.dish
        FROM try_items t JOIN items i ON i.id = t.item_id
        LEFT JOIN users u ON u.id = t.from_user_id
@@ -124,7 +124,7 @@ export async function getList(db, id, me) {
   list.subtitle = subtitle(list);
   const [entries, tags, saved, ranks] = await Promise.all([
     all(db,
-      `SELECT e.*, i.title, i.kind, i.creator, i.year, i.narrator,
+      `SELECT e.*, i.title, i.kind, i.creator, i.year, i.narrator, i.image_url,
               (SELECT COUNT(DISTINCT e2.list_id) FROM list_entries e2 WHERE e2.item_id = i.id) AS on_lists
          FROM list_entries e JOIN items i ON i.id = e.item_id
         WHERE e.list_id = ? ORDER BY e.position`, id),
@@ -148,7 +148,7 @@ export async function getCategory(db, id) {
   if (!category) return null;
   const lists = await listsWithTop(db, 'WHERE l.category_id = ?', [id], 100);
   const consensus = await all(db,
-    `SELECT i.id, i.title, i.kind, i.creator, i.narrator,
+    `SELECT i.id, i.title, i.kind, i.creator, i.narrator, i.image_url,
             SUM(CASE WHEN e.position <= 10 THEN 11 - e.position ELSE 0 END) AS pts,
             COUNT(*) AS lists
        FROM list_entries e JOIN lists l ON l.id = e.list_id JOIN items i ON i.id = e.item_id

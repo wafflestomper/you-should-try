@@ -13,7 +13,7 @@
 <svelte:head><title>{data.item.title} · You Should Try</title></svelte:head>
 
 <div class="head">
-  <Cover title={data.item.title} kind={data.item.kind} w={180} />
+  <Cover title={data.item.title} kind={data.item.kind} image={data.item.image_url} w={180} />
   <div>
     <div class="cap" style="font-size:12px;color:var(--ink-2)">{KIND[data.item.kind]}{data.item.year ? ` · ${data.item.year}` : ''}</div>
     <h1 class="slab" style="font-size:clamp(34px,5vw,56px);margin:6px 0 0;line-height:1.05">{data.item.title}</h1>

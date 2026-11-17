@@ -72,7 +72,7 @@
     {#if data.different}
       <h2 class="h2" style="margin-top:34px">Something different</h2><div class="sub">From someone who rarely agrees with you</div><div class="rule"></div>
       <a class="diff" href="/item/{data.different.item.id}">
-        <Cover title={data.different.item.title} kind={data.different.item.kind} w={64} />
+        <Cover title={data.different.item.title} kind={data.different.item.kind} image={data.different.item.image_url} w={64} />
         <div><div class="kind">{KIND[data.different.item.kind]}</div><div style="font-weight:700;font-size:16px">{data.different.item.title}</div>
           <div class="small muted">{first(data.different.person.name)}'s No. {data.different.rank}. You two match {data.different.person.pct}%.</div></div>
       </a>

@@ -28,7 +28,7 @@
   {#each data.top as e}
     <li>
       <span class="slab num">{e.position}</span>
-      <Cover title={e.title} kind={e.kind} w={44} />
+      <Cover title={e.title} kind={e.kind} image={e.image_url} w={44} />
       <div class="info">
         <a class="serif it" href="/item/{e.item_id}">{e.dish ? `${cap(e.dish)}, ${e.title}` : e.title}</a>
         <div class="small muted">{e.creator ?? ''}{e.narrator ? ` · read by ${e.narrator}` : ''}{e.year ? ` · ${e.year}` : ''}</div>
