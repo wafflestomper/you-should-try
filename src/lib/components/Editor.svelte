@@ -1,7 +1,6 @@
 <script>
   import { enhance } from '$app/forms';
   import { onMount } from 'svelte';
-  import { flip } from 'svelte/animate';
   import Cover from './Cover.svelte';
   import Faceoff from './Faceoff.svelte';
   import { normTag, MAX_TAGS, KIND, KIND_PLURAL } from '$lib/tags.js';
@@ -136,24 +135,75 @@
   function remove(i) { entries = entries.filter((_, k) => k !== i); }
 
   // ---- drag to reorder ----
+  // The grabbed pick follows the pointer; the others glide aside. The list order only changes on drop.
   let listEl = $state(null);
   let dragKey = $state(null);
+  let drag = null;
   function startDrag(e, key) {
     e.preventDefault();
+    const rows = [...listEl.querySelectorAll('li[data-key]')];
+    const from = rows.findIndex((r) => r.dataset.key === key);
+    if (from < 0) return;
+    const y0 = window.scrollY;
+    const rects = rows.map((r) => { const b = r.getBoundingClientRect(); return { top: b.top + y0, h: b.height, mid: b.top + y0 + b.height / 2 }; });
+    drag = { rows, from, target: from, rects, startY: e.clientY + y0, lastY: e.clientY, h: rects[from].h, raf: 0 };
     dragKey = key;
+    rows[from].style.transition = 'none';
+    rows.forEach((r, i) => { if (i !== from) r.style.transition = 'transform 180ms cubic-bezier(.2,.8,.2,1)'; });
+    drag.raf = requestAnimationFrame(tick);
   }
-  function onDrag(e) {
-    if (!dragKey || !listEl) return;
-    const rows = [...listEl.querySelectorAll('li[data-key]')].filter((r) => r.dataset.key !== dragKey);
-    const to = rows.filter((r) => { const b = r.getBoundingClientRect(); return b.top + b.height / 2 < e.clientY; }).length;
-    const from = entries.findIndex((x) => keyOf(x.item) === dragKey);
-    if (from < 0 || to === from) return;
-    const copy = [...entries];
-    const [moved] = copy.splice(from, 1);
-    copy.splice(to, 0, moved);
-    entries = copy;
+  function layout() {
+    const d = drag;
+    const dy = d.lastY + window.scrollY - d.startY;
+    d.rows[d.from].style.transform = `translateY(${dy}px)`;
+    const center = d.rects[d.from].mid + dy;
+    let target = d.from;
+    for (let i = 0; i < d.rows.length; i++) {
+      if (i < d.from && center < d.rects[i].mid) { target = i; break; }
+    }
+    for (let i = d.rows.length - 1; i > d.from; i--) {
+      if (center > d.rects[i].mid) { target = i; break; }
+    }
+    d.target = target;
+    d.rows.forEach((r, i) => {
+      if (i === d.from) return;
+      let shift = 0;
+      if (target > d.from && i > d.from && i <= target) shift = -d.h;
+      if (target < d.from && i >= target && i < d.from) shift = d.h;
+      r.style.transform = shift ? `translateY(${shift}px)` : '';
+    });
   }
-  function endDrag() { if (dragKey) { flashRow(entries.find((x) => keyOf(x.item) === dragKey).item); dragKey = null; } }
+  function tick() {
+    if (!drag) return;
+    const edge = 70;
+    if (drag.lastY < edge) window.scrollBy(0, -Math.ceil((edge - drag.lastY) / 6));
+    else if (drag.lastY > window.innerHeight - edge) window.scrollBy(0, Math.ceil((drag.lastY - (window.innerHeight - edge)) / 6));
+    layout();
+    drag.raf = requestAnimationFrame(tick);
+  }
+  function onDrag(e) { if (drag) drag.lastY = e.clientY; }
+  function endDrag() {
+    if (!drag) return;
+    const d = drag;
+    drag = null;
+    cancelAnimationFrame(d.raf);
+    const { from, target, rects, h } = d;
+    const slotTop = target > from ? rects[target].top + rects[target].h - h : rects[target].top;
+    const el = d.rows[from];
+    el.style.transition = 'transform 150ms cubic-bezier(.2,.8,.2,1)';
+    el.style.transform = `translateY(${slotTop - rects[from].top}px)`;
+    setTimeout(() => {
+      d.rows.forEach((r) => { r.style.transition = 'none'; r.style.transform = ''; });
+      if (target !== from) {
+        const copy = [...entries];
+        const [moved] = copy.splice(from, 1);
+        copy.splice(target, 0, moved);
+        entries = copy;
+      }
+      dragKey = null;
+      requestAnimationFrame(() => d.rows.forEach((r) => (r.style.transition = '')));
+    }, 155);
+  }
   function keyMove(e, i) {
     if (e.key === 'ArrowUp') { e.preventDefault(); move(i, -1); }
     if (e.key === 'ArrowDown') { e.preventDefault(); move(i, 1); }
@@ -261,7 +311,7 @@
         <p class="small muted" style="margin:0 0 8px">Drag the handle to reorder. On a keyboard, focus the handle and use the up and down arrows.</p>
         <ol class="ranks" class:isdragging={dragKey} bind:this={listEl}>
           {#each entries as e, i (keyOf(e.item))}
-            <li data-key={keyOf(e.item)} animate:flip={{ duration: 160 }} class:fresh={fresh === keyOf(e.item)} class:bench={i >= 10} class:benchstart={i === 10} class:dragging={dragKey === keyOf(e.item)}>
+            <li data-key={keyOf(e.item)} class:fresh={fresh === keyOf(e.item)} class:bench={i >= 10} class:benchstart={i === 10} class:dragging={dragKey === keyOf(e.item)}>
               <button type="button" class="handle" aria-label="Drag to move {e.item.title}, now number {i + 1}"
                 onpointerdown={(ev) => startDrag(ev, keyOf(e.item))}
                 onkeydown={(ev) => keyMove(ev, i)}>
@@ -345,7 +395,8 @@
   .benchstart { margin-top: 46px; border-top: 1px solid var(--ink); position: relative; }
   .benchstart::before { content: 'Honorable mentions'; position: absolute; top: -36px; left: 0; font: italic 22px var(--serif); color: var(--green); }
   .isdragging { user-select: none; -webkit-user-select: none; }
-  .dragging { background: #F4F3EE; box-shadow: 0 8px 24px rgba(0,0,0,.14); position: relative; z-index: 2; }
+  .dragging { background: #FBFAF6; box-shadow: 0 12px 30px rgba(0,0,0,.18); position: relative; z-index: 5; border-radius: 6px; }
+  .ranks li { will-change: transform; background: #fff; }
   .handle { width: 40px; height: 44px; border: 0; background: transparent; color: var(--ink-3); cursor: grab; touch-action: none; border-radius: 6px; flex: none; display: flex; align-items: center; justify-content: center; }
   .handle:hover { color: var(--ink); background: #F4F3EE; }
   .dragging .handle { cursor: grabbing; color: var(--ink); }
