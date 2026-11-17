@@ -23,7 +23,11 @@ export async function handle({ event, resolve }) {
   // While an admin is viewing as someone else, block changes so nothing is made in their name
   if (event.locals.user && event.locals.realUser && event.locals.user.id !== event.locals.realUser.id
       && event.request.method !== 'GET' && !['/view-as', '/signout'].includes(path)) {
-    return new Response('Switch back to yourself before making changes.', { status: 403 });
+    const message = `You're viewing the site as ${event.locals.user.name}. Use "Back to me" at the top before making changes.`;
+    // Buttons on the page expect a JSON answer; plain form posts get the text.
+    if (event.request.headers.get('x-sveltekit-action') === 'true')
+      return new Response(JSON.stringify({ type: 'error', status: 403, error: { message } }), { status: 403, headers: { 'content-type': 'application/json' } });
+    return new Response(message, { status: 403 });
   }
   if (db && !event.locals.user && !PUBLIC.some((p) => path.startsWith(p))) {
     if (path.startsWith('/api/')) return new Response('Sign in first.', { status: 401 });
