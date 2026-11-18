@@ -47,11 +47,8 @@
         {/each}
         <button class="lnk" onclick={() => (open = false)}>Cancel</button>
       {:else}
-        <form method="POST" {action} use:enhance>
-          <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value={mine?.state === 'saved' ? 'clear' : 'saved'} />
-          <button class="btn sm" class:on={mine?.state === 'saved'}>{mine?.state === 'saved' ? '✓ On my list' : '+ My list'}</button>
-        </form>
-        <button class="btn sm" onclick={() => (open = true)}>{DONE[it.kind] ?? 'Tried it'}</button>
+
+        <button class="btn sm dark" onclick={() => (open = true)}>{DONE[it.kind] ?? 'Tried it'}</button>
         <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="hidden" /><button class="lnk" title="Hide it for you. Everyone else still sees it.">Hide</button></form>
       {/if}
     </div>
@@ -71,7 +68,6 @@
   .match { margin-left: 6px; font-size: 12px; font-weight: 700; color: var(--accent); background: #E4F0EA; border-radius: 10px; padding: 1px 8px; white-space: nowrap; }
   .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
   .acts form { margin: 0; }
-  .btn.on { background: #E4F0EA; border-color: var(--accent); color: var(--accent); }
   .lnk { background: none; border: 0; color: var(--ink-2); text-decoration: underline; font: inherit; font-size: 14px; cursor: pointer; padding: 6px 4px; }
   .state { font-weight: 600; font-size: 14.5px; }
   .q { font-weight: 600; font-size: 14.5px; margin-right: 2px; }

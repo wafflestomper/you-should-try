@@ -42,7 +42,6 @@ INSERT INTO recs (id, item_id, by_user_id, by_guest_id, added_by, note, created_
 INSERT INTO recs (id, item_id, by_user_id, by_guest_id, added_by, note, created_at) SELECT 'rc27', 't10', 'u-amy', NULL, 'u-amy', NULL, datetime('now','-12 days','-64 minutes') WHERE EXISTS (SELECT 1 FROM users WHERE id='u-amy') AND EXISTS (SELECT 1 FROM items WHERE id='t10') AND EXISTS (SELECT 1 FROM users WHERE id='u-amy');
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-sarah', 't11', 'done', 'loved' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-sarah') AND EXISTS (SELECT 1 FROM items WHERE id='t11');
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-amy', 't11', 'done', 'loved' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-amy') AND EXISTS (SELECT 1 FROM items WHERE id='t11');
-INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-will', 't11', 'saved', NULL WHERE EXISTS (SELECT 1 FROM users WHERE id='u-will') AND EXISTS (SELECT 1 FROM items WHERE id='t11');
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-dana', 'b16', 'done', 'loved' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-dana') AND EXISTS (SELECT 1 FROM items WHERE id='b16');
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-sarah', 'b16', 'done', 'loved' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-sarah') AND EXISTS (SELECT 1 FROM items WHERE id='b16');
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-priya', 'b16', 'done', 'liked' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-priya') AND EXISTS (SELECT 1 FROM items WHERE id='b16');
@@ -56,7 +55,6 @@ INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-to
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-ethan', 't7', 'done', 'not_for_me' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-ethan') AND EXISTS (SELECT 1 FROM items WHERE id='t7');
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-sarah', 'c4', 'done', 'loved' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-sarah') AND EXISTS (SELECT 1 FROM items WHERE id='c4');
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-jen', 'c4', 'done', 'liked' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-jen') AND EXISTS (SELECT 1 FROM items WHERE id='c4');
-INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-z', 'b9', 'saved', NULL WHERE EXISTS (SELECT 1 FROM users WHERE id='u-z') AND EXISTS (SELECT 1 FROM items WHERE id='b9');
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-liz', 'b9', 'done', 'liked' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-liz') AND EXISTS (SELECT 1 FROM items WHERE id='b9');
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-amy', 't13', 'done', 'loved' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-amy') AND EXISTS (SELECT 1 FROM items WHERE id='t13');
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-liz', 't13', 'done', 'loved' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-liz') AND EXISTS (SELECT 1 FROM items WHERE id='t13');
@@ -72,5 +70,3 @@ INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-z'
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-rob', 'm15', 'done', 'loved' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-rob') AND EXISTS (SELECT 1 FROM items WHERE id='m15');
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-z', 't1', 'done', 'loved' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-z') AND EXISTS (SELECT 1 FROM items WHERE id='t1');
 INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-sarah', 't1', 'done', 'liked' WHERE EXISTS (SELECT 1 FROM users WHERE id='u-sarah') AND EXISTS (SELECT 1 FROM items WHERE id='t1');
-INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-z', 'b22', 'saved', NULL WHERE EXISTS (SELECT 1 FROM users WHERE id='u-z') AND EXISTS (SELECT 1 FROM items WHERE id='b22');
-INSERT OR IGNORE INTO reactions (user_id, item_id, state, reaction) SELECT 'u-z', 'r3', 'saved', NULL WHERE EXISTS (SELECT 1 FROM users WHERE id='u-z') AND EXISTS (SELECT 1 FROM items WHERE id='r3');

@@ -2,7 +2,7 @@ import { fail } from '@sveltejs/kit';
 import { getBoard, react } from '$lib/server/board.js';
 
 export async function load({ platform, locals, url }) {
-  const view = ['saved', 'done', 'hidden'].includes(url.searchParams.get('v')) ? url.searchParams.get('v') : 'saved';
+  const view = url.searchParams.get('v') === 'hidden' ? 'hidden' : 'done';
   const db = platform.env.DB;
   const [cards, counts] = await Promise.all([
     getBoard(db, locals.user.id, { view, sort: 'new' }),

@@ -1,4 +1,5 @@
 // The shared board: every "you should try" recommendation, ranked.
+// Each person's board is everything except what they've finished or hidden.
 //
 // Points: +3 per person recommending it, +2 per "loved it", +1 per "liked it",
 // -1 per "not for me" (private, and never below a fresh recommendation's 3).
@@ -154,7 +155,7 @@ export async function react(db, me, itemId, state, reaction = null) {
     await db.prepare('DELETE FROM reactions WHERE user_id = ? AND item_id = ?').bind(me, itemId).run();
     return;
   }
-  if (!['saved', 'hidden', 'done'].includes(state)) throw new Error('Unknown choice.');
+  if (!['hidden', 'done'].includes(state)) throw new Error('Unknown choice.');
   if (reaction && !VALUE[reaction]) throw new Error('Unknown rating.');
   await db.prepare(
     `INSERT INTO reactions (user_id, item_id, state, reaction) VALUES (?, ?, ?, ?)

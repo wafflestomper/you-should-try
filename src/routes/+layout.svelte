@@ -8,7 +8,7 @@
   import Icon from '$lib/components/Icon.svelte';
   let { data, children } = $props();
   let path = $derived(page.url.pathname);
-  const tabs = [['/', 'home', 'Board'], ['/add', 'plus', 'Add'], ['/mine', 'mark', 'My list']];
+  const tabs = [['/', 'home', 'Board'], ['/add', 'plus', 'Add'], ['/mine', 'check', 'History']];
 </script>
 
 <svelte:head><title>You Should Try</title></svelte:head>

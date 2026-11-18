@@ -1,13 +1,13 @@
 <script>
   let { path = '/', counts = {} } = $props();
-  const links = [['/', 'Board'], ['/mine', 'My list'], ['/people', 'People']];
+  const links = [['/', 'Board'], ['/mine', 'History'], ['/people', 'People']];
   const on = (h) => (h === '/' ? path === '/' : path.startsWith(h));
 </script>
 
 <header class="top">
   <a href="/" class="brand">You Should Try…</a>
   <nav aria-label="Main" class="links">
-    {#each links as [href, label]}<a {href} aria-current={on(href) ? 'page' : undefined}>{label}{#if href === '/mine' && counts.saved} ({counts.saved}){/if}</a>{/each}
+    {#each links as [href, label]}<a {href} aria-current={on(href) ? 'page' : undefined}>{label}</a>{/each}
   </nav>
   <a href="/notes" class="bell" aria-label="Notifications, {counts.unread || 0} new">🔔{#if counts.unread}<span class="badge">{counts.unread}</span>{/if}</a>
   <a href="/add" class="btn dark add">+ You should try</a>
