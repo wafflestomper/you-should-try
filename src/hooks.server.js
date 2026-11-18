@@ -35,3 +35,15 @@ export async function handle({ event, resolve }) {
   }
   return resolve(event);
 }
+
+/** Any crash: log the details for the Observability tab and show a short code the person can pass along. */
+export function handleError({ error, event, status, message }) {
+  const id = crypto.randomUUID().slice(0, 8);
+  console.error(JSON.stringify({
+    errorId: id, status, method: event.request.method, path: event.url.pathname,
+    action: [...event.url.searchParams.keys()].find((k) => k.startsWith('/')) || null,
+    user: event.locals?.user?.id ?? null, viewingAs: event.locals?.realUser && event.locals.user?.id !== event.locals.realUser.id,
+    message: error?.message ?? String(error), stack: error?.stack?.split('\n').slice(0, 6).join(' | ')
+  }));
+  return { message: status === 404 ? message : `Something broke on our end (code ${id}). Tell Z this code.` };
+}

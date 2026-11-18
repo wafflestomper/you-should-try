@@ -11,6 +11,8 @@
     "directory": ".svelte-kit/cloudflare"
   },
   "ai": { "binding": "AI" },
+  // Keep error logs so problems on the live site can be traced (Workers & Pages > you-should-try > Observability)
+  "observability": { "enabled": true },
   "d1_databases": [
     {
       "binding": "DB",
