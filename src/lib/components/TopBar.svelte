@@ -19,6 +19,13 @@
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z"/></svg>
       </button>
     </div>
+    <button class="bell looktoggle" onclick={() => setLook(look === 'dark' ? 'light' : 'dark')} aria-label={look === 'dark' ? 'Switch to light look' : 'Switch to dark look'} title="Light or dark">
+      {#if look === 'dark'}<svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      {:else}<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z"/></svg>{/if}
+    </button>
+    <a href="/people#invite" class="bell" aria-label="Invite someone" title="Invite someone">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="8" r="3.8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M2.5 20c.6-3.6 3.5-5.6 7-5.6s6.4 2 7 5.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M19 7.5v6M16 10.5h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </a>
     <a href="/notes" class="bell" aria-label="Notifications, {counts.unread || 0} new">
       <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9Z M10 19a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
       {#if counts.unread}<span class="badge">{counts.unread}</span>{/if}
@@ -42,5 +49,7 @@
   .bell { position: relative; width: 40px; height: 40px; display: grid; place-items: center; color: var(--ink); }
   .badge { position: absolute; top: 3px; right: 2px; background: #E23A5F; color: #fff; border-radius: 9px; font-size: 11px; font-weight: 800; padding: 0 5px; }
   .mic { width: 44px; height: 44px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; }
-  @media (max-width: 700px) { .links { display: none; } .top { gap: 10px; } .brand :global(.w) { font-size: 17.5px; } .lookset button { width: 30px; } }
+  .looktoggle { display: none; border: 0; background: none; cursor: pointer; padding: 0; }
+  @media (max-width: 700px) { .links { display: none; } .top { gap: 8px; padding: 10px 12px; } .brand :global(.w) { font-size: 17.5px; }
+    .lookset { display: none; } .looktoggle { display: grid; } .right { gap: 2px; } .bell { width: 38px; } .mic { margin-left: 4px; } }
 </style>

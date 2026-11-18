@@ -3,10 +3,11 @@
   import { inviteBody, inviteSubject } from '$lib/inviteText.js';
   let { data, form } = $props();
 
-  let name = $state(form?.name ?? data.req?.name ?? '');
-  let knows = $state(form?.knows ?? data.req?.knows ?? '');
-  let email = $state(form?.email ?? data.req?.email ?? '');
-  let guest = $state(form?.guest ?? '');
+  let name = $state(form?.name ?? data.req?.name ?? data.prefill?.name ?? '');
+  let email = $state(form?.email ?? data.req?.email ?? data.prefill?.email ?? '');
+  let guest = $state(form?.guest ?? data.prefill?.id ?? '');
+  // Arriving from "Invite Warren": go straight to the email box
+  $effect(() => { if (data.prefill && !form) document.getElementById('inv-email')?.focus(); });
   let formEl;
 
   let link = $derived(form?.code ? `${data.origin}/invite/${form.code}` : null);
@@ -23,7 +24,7 @@
   $effect(() => { canShare = !!navigator.share; });
   async function copy() { try { await navigator.clipboard.writeText(link); copied = true; setTimeout(() => (copied = false), 2000); } catch {} }
   async function share() { try { await navigator.share({ title: subject, text: body.replace(link, '').trim(), url: link }); } catch {} }
-  function inviteGuest(g) { name = g.name; guest = g.id; knows = ''; email = ''; document.getElementById('inv-knows')?.focus(); document.getElementById('invite')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  function inviteGuest(g) { name = g.name; guest = g.id; email = ''; document.getElementById('inv-email')?.focus(); document.getElementById('invite')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 </script>
 
 <svelte:head><title>People · You Should Try</title></svelte:head>
@@ -60,13 +61,11 @@
   {:else}
     <form method="POST" action="?/invite" use:enhance={() => async ({ update }) => update({ reset: false })} bind:this={formEl} class="f">
       <input type="hidden" name="guest" value={guest} />
-      {#if data.req}<input type="hidden" name="req" value={data.req.id} /><p class="hint">From {data.req.name}'s request. Check the "how do you know them" line, since it's in their words.</p>{/if}
+      {#if data.req}<input type="hidden" name="req" value={data.req.id} /><input type="hidden" name="knows" value={data.req.knows} /><p class="hint">From {data.req.name}'s request: “{data.req.knows}”</p>{/if}
       <label for="inv-name">Their name</label>
       <input id="inv-name" name="name" bind:value={name} maxlength="60" required autocomplete="off" oninput={() => (guest = '')} />
       {#if guest}<p class="hint">Their picks already on the board will move to their account when they join.</p>{/if}
-      <label for="inv-knows">How do you know them?</label>
-      <input id="inv-knows" name="knows" bind:value={knows} maxlength="140" placeholder="Teaches 7th grade with me" required />
-      <label for="inv-email">Their email <span class="opt">(so the email is addressed for you)</span></label>
+      <label for="inv-email">Their email <span class="opt">(optional)</span></label>
       <input id="inv-email" name="email" type="email" bind:value={email} maxlength="120" autocomplete="off" />
       {#if form?.message}<p class="err" role="alert">{form.message}</p>{/if}
       <button class="btn dark">Make the invite</button>

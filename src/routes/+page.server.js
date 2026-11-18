@@ -16,7 +16,11 @@ export async function load({ platform, locals, url }) {
   };
   const [cards, people] = await Promise.all([getBoard(db, locals.user.id, opts), boardPeople(db)]);
   const added = q.get('added') ? await db.prepare('SELECT title FROM items WHERE id = ?').bind(q.get('added')).first() : null;
-  return { cards, people, opts, addedTitle: added?.title ?? null };
+  // They credited someone who isn't on the site yet: offer to invite them
+  const invitee = q.get('guest') ? await db.prepare(
+    `SELECT g.id, g.name, (SELECT COUNT(*) FROM invites i WHERE i.guest_id = g.id AND i.used_by IS NULL AND i.expires_at > datetime('now')) AS invited
+       FROM guests g WHERE g.id = ? AND g.user_id IS NULL`).bind(q.get('guest')).first() : null;
+  return { cards, people, opts, addedTitle: added?.title ?? null, invitee };
 }
 
 export const actions = {

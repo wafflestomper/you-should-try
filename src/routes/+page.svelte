@@ -52,6 +52,13 @@
   </aside>
 {/if}
 
+{#if data.invitee}
+  {@const f = data.invitee.name.split(' ')[0]}
+  <p class="toast invitee" role="status">
+    <span>{f} isn't on here yet.{data.invitee.invited ? ' You already sent an invite.' : ''}</span>
+    <a class="btn dark sm" href="/people?guest={data.invitee.id}#invite">{data.invitee.invited ? 'Invite again' : `Invite ${f}`}</a>
+  </p>
+{/if}
 {#if page.url.searchParams.get('removed')}<p class="toast" role="status">Removed from the board.</p>{/if}
 
 <div class="filters" role="group" aria-label="Show">
@@ -104,6 +111,8 @@
   .hometip span { color: var(--ink-2); font-size: 14px; }
   .ht-acts { display: flex; gap: 10px; align-items: center; }
   .ht-x { background: none; border: 0; font: 700 14px Manrope, sans-serif; color: var(--ink-2); cursor: pointer; min-height: 40px; }
+  .invitee { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .invitee .btn { text-decoration: none; min-height: 38px; display: inline-flex; align-items: center; padding: 0 14px; }
   .toast { background: var(--surface); padding: 10px 14px; border-radius: 12px; margin: 4px 0 10px; font-weight: 600; }
   .filters { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 2px; scrollbar-width: none; margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
   .filters::-webkit-scrollbar { display: none; }

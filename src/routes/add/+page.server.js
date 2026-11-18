@@ -80,6 +80,6 @@ export const actions = {
       // Same person again: keep their newest note
       await db.prepare('UPDATE recs SET note = ? WHERE id = ?').bind(note, dup.id).run();
     }
-    redirect(303, `/?added=${itemId}&how=${dup ? 'dup' : before.n ? 'joined' : 'new'}`);
+    redirect(303, `/?added=${itemId}&how=${dup ? 'dup' : before.n ? 'joined' : 'new'}${who.guest ? `&guest=${who.guest}` : ''}`);
   }
 };

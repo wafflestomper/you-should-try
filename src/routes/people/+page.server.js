@@ -21,7 +21,9 @@ export async function load({ platform, locals, url }) {
   const req = reqId && locals.realUser?.is_admin
     ? await db.prepare("SELECT id, name, email, knows FROM invite_requests WHERE id = ? AND status = 'new'").bind(reqId).first()
     : null;
-  return { people, guests: guests.results, origin: url.origin, myName: locals.user.name, canSend: canSend(platform.env), req };
+  const gid = url.searchParams.get('guest');
+  const prefill = gid ? await db.prepare('SELECT id, name, email FROM guests WHERE id = ? AND user_id IS NULL').bind(gid).first() : null;
+  return { people, guests: guests.results, origin: url.origin, myName: locals.user.name, canSend: canSend(platform.env), req, prefill };
 }
 
 const text = (f, k, n) => String(f.get(k) || '').trim().slice(0, n);
@@ -29,9 +31,10 @@ const text = (f, k, n) => String(f.get(k) || '').trim().slice(0, n);
 export const actions = {
   invite: async ({ request, platform, locals }) => {
     const f = await request.formData();
-    const name = text(f, 'name', 60), knows = text(f, 'knows', 140), email = text(f, 'email', 120);
+    const name = text(f, 'name', 60), email = text(f, 'email', 120);
+    const knows = text(f, 'knows', 140) || null;
     const guest = text(f, 'guest', 60) || null;
-    if (!name || !knows) return fail(400, { message: 'Add their name and how you know them. The admin sees that line when new people join.', name, knows, email, guest });
+    if (!name) return fail(400, { message: 'Add their name.', name, email, guest });
     if (email && !/^\S+@\S+\.\S+$/.test(email)) return fail(400, { message: "That email doesn't look right. Fix it or leave it blank.", name, knows, email, guest });
     if (guest) {
       const g = await platform.env.DB.prepare('SELECT id FROM guests WHERE id = ? AND user_id IS NULL').bind(guest).first();
