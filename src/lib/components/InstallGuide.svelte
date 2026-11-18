@@ -7,8 +7,7 @@
   const GUIDES = {
     'ios-safari': { title: 'iPhone, in Safari', steps: [
       `Tap the <b>Share</b> button ${SHARE}. It's at the bottom of the screen (on some newer iPhones, tap <b>•••</b> first, then Share).`,
-      'Tap <b>View More</b> to open the full list.',
-      'Scroll down and tap <b>Add to Home Screen</b>.',
+      'Scroll down the list and tap <b>Add to Home Screen</b>. If it isn\'t there, tap <b>View More</b> first.',
       'Tap <b>Add</b> in the top right corner.' ] },
     'ios-chrome': { title: 'iPhone, in Chrome', steps: [
       `Tap the <b>Share</b> button ${SHARE} at the top right, next to the address.`,
