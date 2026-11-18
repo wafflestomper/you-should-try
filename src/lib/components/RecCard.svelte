@@ -26,7 +26,7 @@
   style="--kc:{kindColor(it.kind)};--kd:{kindDeep(it.kind)}">
   {#if collapsed}
     <button class="strip" onclick={() => (open = true)} aria-expanded="false" aria-label="{it.title}, {KI[it.kind]?.label}. Open">
-      <span class="st-txt"><span class="k">{KI[it.kind]?.label ?? it.kind}</span><span class="st-title">{it.title}</span><span class="st-who">{whoLine}</span></span>
+      <span class="st-txt"><span class="k">{KI[it.kind]?.label ?? it.kind}</span><span class="st-title" class:long={it.title.length > 28}>{it.title}</span><span class="st-who">{whoLine}</span></span>
       {#if mine?.state === 'starred'}<span class="star-dot" aria-label="Starred"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8Z"/></svg></span>{/if}
       <span class="st-cov"><Cover title={it.title} kind={it.kind} image={it.image_url} w={42} /></span>
     </button>
@@ -37,7 +37,7 @@
       <a href="/item/{it.id}" class="cov" tabindex="-1" aria-hidden="true"><Cover title={it.title} kind={it.kind} image={it.image_url} w={96} /></a>
       <div class="ht">
         <span class="k"><i aria-hidden="true"></i>{KI[it.kind]?.label ?? it.kind}</span>
-        <h3><a href="/item/{it.id}">{it.title}</a></h3>
+        <h3 class:long={it.title.length > 32}><a href="/item/{it.id}">{it.title}</a></h3>
         {#if it.creator}<div class="sub">{it.creator}</div>{/if}
       </div>
       {#if mine?.state === 'starred'}<span class="starbadge" title="Starred" aria-label="Starred"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8Z"/></svg></span>{/if}
@@ -95,7 +95,7 @@
   .hero.tap { cursor: pointer; }
   .k { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
   .k i { width: 9px; height: 9px; border-radius: 3px; background: var(--kc); }
-  h3 { margin: 4px 0 2px; line-height: 1.02; }
+  h3 { margin: 4px 0 2px; line-height: 1.02; overflow-wrap: anywhere; }
   h3 a { color: inherit; text-decoration: none; }
   .sub { font-size: 13px; font-weight: 600; }
   .q { margin: 0 0 6px; }
@@ -123,7 +123,8 @@
     background: linear-gradient(150deg, var(--kc), var(--kd)); box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 -6px 18px rgba(0,0,0,.16); }
   .st-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .strip .k { opacity: .85; }
-  .st-title { font-size: 20px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; font-size: 20px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+  .st-title.long { font-size: 17px; }
   .st-who { font-size: 12.5px; font-weight: 600; opacity: .85; }
   .st-cov { flex: none; transform: rotate(4deg); }
   .star-dot { width: 24px; height: 24px; border-radius: 50%; background: #F5C518; color: #fff; display: grid; place-items: center; flex: none; }
@@ -135,6 +136,7 @@
   :global(.look-light) .blur { display: none; }
   :global(.look-light) .cov { position: absolute; top: -46px; right: 0; transform: rotate(3deg); z-index: 2; }
   :global(.look-light) .k { color: var(--kd); }
+  :global(.look-light) h3.long { font-size: 28px !important; }
   :global(.look-light) h3 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 36px; letter-spacing: -.01em; color: #111113; }
   :global(.look-light) .sub { color: #6B6B73; }
   :global(.look-light) .q { font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-size: 20px; line-height: 1.28; color: #111113; margin-top: 8px; }
@@ -158,6 +160,7 @@
   :global(.look-light) .strip .k { color: var(--kd); opacity: 1; }
   :global(.look-light) .strip .k::before { content: ''; width: 9px; height: 9px; border-radius: 3px; background: var(--kc); }
   :global(.look-light) .st-title { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 25px; letter-spacing: -.005em; line-height: 1.05; }
+  :global(.look-light) .st-title.long { font-size: 21px; }
   :global(.look-light) .st-who { color: #6B6B73; opacity: 1; }
 
   /* ---------- Look: dark / blurred cover ---------- */
@@ -170,6 +173,7 @@
   :global(.look-dark) .hero .k { background: var(--kc); color: #fff; padding: 3px 9px; border-radius: 8px; opacity: 1; }
   :global(.look-dark) .hero .k i { display: none; }
   .strip .k { align-self: flex-start; }
+  :global(.look-dark) h3.long { font-size: 21px; }
   :global(.look-dark) h3 { font-size: 26px; font-weight: 800; letter-spacing: -.03em; }
   :global(.look-dark) .sub { opacity: .75; }
   :global(.look-dark) .body { margin: 6px 8px 8px; padding: 12px; border-radius: 18px; background: rgba(255,255,255,.1); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.12); }
