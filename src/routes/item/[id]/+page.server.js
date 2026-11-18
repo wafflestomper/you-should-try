@@ -98,7 +98,7 @@ export const actions = {
   },
   react: async ({ request, platform, locals, params }) => {
     const f = await request.formData();
-    try { await react(platform.env.DB, locals.user.id, params.id, String(f.get('state')), f.get('reaction') ? String(f.get('reaction')) : null); }
+    try { await react(platform.env.DB, locals.user.id, params.id, String(f.get('state')), f.get('reaction') ? String(f.get('reaction')) : null, f.get('share') === '1'); }
     catch (e) { return fail(400, { error: e.message }); }
   },
   ...libraryActions,

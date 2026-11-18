@@ -17,6 +17,7 @@
   let kind = $state('');
   let title = $state('');
   let by = $state('');
+  let mode = $state('someone'); // someone | me | mine (just for my list)
   let note = $state('');
   let matches = $state([]);
   let pick = $state(null);
@@ -35,7 +36,7 @@
   let existing = $derived(pick?.onBoard ?? null);
   let sameAgain = $derived.by(() => {
     if (!existing) return false;
-    const n = by.trim().toLowerCase() || data.me.toLowerCase();
+    const n = (mode === 'someone' ? by.trim() : '').toLowerCase() || data.me.toLowerCase();
     return existing.some((e) => e.name.toLowerCase() === n || e.name.toLowerCase().split(' ')[0] === n.split(' ')[0]);
   });
   const firstName = (n) => n.split(' ')[0];
@@ -133,6 +134,7 @@
       kind = p.kind || j.matches[0]?.kind || '';
       title = p.title || said;
       by = p.by ? (p.by.type === 'me' ? '' : p.by.name) : '';
+      mode = p.by ? (p.by.type === 'me' ? 'me' : 'someone') : 'mine';
       note = p.note || '';
       matches = j.matches;
       searchNote = j.note || '';
@@ -159,7 +161,7 @@
     }, 350);
   }
 
-  function reset() { step = 'start'; said = ''; matches = []; pick = null; kind = title = by = note = ''; err = ''; }
+  function reset() { step = 'start'; said = ''; matches = []; pick = null; kind = title = by = note = ''; err = ''; mode = 'someone'; }
   onDestroy(cleanup);
 </script>
 
@@ -220,10 +222,22 @@
       </div>
     {:else if searchNote}<p class="m2">{searchNote}</p>{/if}
 
-    <label class="f" for="by">Who recommended it?</label>
-    <input id="by" name="by" bind:value={by} list="people" placeholder="Leave blank if it's you" autocomplete="off" />
-    <datalist id="people">{#each known as n}<option value={n}></option>{/each}</datalist>
-    {#if byStatus}<p class="m2">{byStatus}</p>{/if}
+    <fieldset>
+      <legend>Where's it from?</legend>
+      <div class="modes">
+        <label class="mchip"><input type="radio" name="mode" value="someone" bind:group={mode} />Someone told me</label>
+        <label class="mchip"><input type="radio" name="mode" value="me" bind:group={mode} />I'm recommending it</label>
+        <label class="mchip"><input type="radio" name="mode" value="mine" bind:group={mode} />Just for my list</label>
+      </div>
+    </fieldset>
+    {#if mode === 'someone'}
+      <label class="f" for="by">Who recommended it?</label>
+      <input id="by" name="by" bind:value={by} list="people" placeholder="Their name" autocomplete="off" />
+      <datalist id="people">{#each known as n}<option value={n}></option>{/each}</datalist>
+      {#if byStatus && by.trim()}<p class="m2">{byStatus}</p>{/if}
+    {:else if mode === 'mine'}
+      <p class="m2">Only you will see it, with a ? at the top of your board. When you've tried it and liked it, you can recommend it to everyone.</p>
+    {/if}
 
     {#if ['recipe', 'restaurant', 'place', 'podcast', 'other'].includes(kind)}
       <label class="f" for="link">{kind === 'recipe' ? 'Link to the recipe' : 'Website or map link'} <span class="m2">(optional, you can add it later)</span></label>
@@ -233,7 +247,7 @@
     <label class="f" for="note">Anything to remember? <span class="m2">(optional)</span></label>
     <input id="note" name="note" bind:value={note} placeholder="Get the mole enchiladas. Skip season 1." maxlength="300" />
 
-    {#if existing}
+    {#if existing && mode !== 'mine'}
       <div class="already" role="status">
         {#if sameAgain}
           <b>{by.trim() || 'You'} already recommended this</b> ({ago(existing.find((e) => e.name.toLowerCase().split(' ')[0] === (by.trim() || data.me).toLowerCase().split(' ')[0])?.at ?? existing[0].at)}). Saving just updates the note.
@@ -245,7 +259,7 @@
 
     <input type="hidden" name="pick" value={pick ? JSON.stringify(pick) : '{}'} />
     <div class="row">
-      <button class="btn dark big">{existing ? (sameAgain ? 'Update the note' : `Add ${by.trim() ? firstName(by.trim()) : 'me'} to it`) : 'Put it on the board'}</button>
+      <button class="btn dark big">{mode === 'mine' ? 'Add to my list' : existing ? (sameAgain ? 'Update the note' : `Add ${mode === 'someone' && by.trim() ? firstName(by.trim()) : 'me'} to it`) : 'Put it on the board'}</button>
       <button type="button" class="lnk" onclick={reset}>Start over</button>
     </div>
   </form>
@@ -273,6 +287,11 @@
   fieldset { border: 0; padding: 0; margin: 0; }
   legend { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
   .kinds { display: flex; flex-wrap: wrap; gap: 6px; }
+  .modes { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mchip { display: inline-flex; align-items: center; min-height: 40px; padding: 0 13px; border-radius: 20px; background: var(--surface); font-weight: 700; font-size: 14.5px; cursor: pointer; }
+  .mchip input { position: absolute; opacity: 0; pointer-events: none; }
+  .mchip:has(input:checked) { background: var(--ink); color: var(--bg); }
+  .mchip:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 2px; }
   .kchip { display: inline-flex; align-items: center; min-height: 38px; padding: 0 12px; border-radius: 19px; border: 1.5px solid var(--line); background: var(--surface-2); font-weight: 600; font-size: 14.5px; cursor: pointer; }
   .kchip input { position: absolute; opacity: 0; pointer-events: none; }
   .kchip { border-color: color-mix(in srgb, var(--c) 45%, var(--line)); color: var(--c); }

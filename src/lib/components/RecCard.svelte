@@ -18,7 +18,10 @@
   let it = $derived(card.item);
   let mine = $derived(card.mine);
   let names = $derived([...new Set(card.recs.map((r) => first(r.by_name)))]);
-  let whoLine = $derived(names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(' and '));
+  let whoLine = $derived(card.private ? 'Just for you' : names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(' and '));
+  let shareStep = $state(null); // 'loved' | 'liked' while asking whether to recommend a private pick
+  // Clearing a private pick would make it vanish, so it goes back to "just for me" instead
+  let backTo = $derived(card.private ? 'wanted' : 'clear');
   let collapsed = $derived(stacked && !open);
 </script>
 
@@ -27,6 +30,7 @@
   {#if collapsed}
     <button class="strip" onclick={() => (open = true)} aria-expanded="false" aria-label="{it.title}, {KI[it.kind]?.label}. Open">
       <span class="st-txt"><span class="k">{KI[it.kind]?.label ?? it.kind}</span><span class="st-title" class:long={it.title.length > 28}>{it.title}</span><span class="st-who">{whoLine}</span></span>
+      {#if mine?.state === 'wanted'}<span class="star-dot qm" aria-label="Just for you">?</span>{/if}
       {#if mine?.state === 'starred'}<span class="star-dot" aria-label="Starred"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8Z"/></svg></span>{/if}
       <span class="st-cov"><Cover title={it.title} kind={it.kind} image={it.image_url} w={42} /></span>
     </button>
@@ -40,6 +44,7 @@
         <h3 class:long={it.title.length > 32}><a href="/item/{it.id}">{it.title}</a></h3>
         {#if it.creator}<div class="sub">{it.creator}</div>{/if}
       </div>
+      {#if mine?.state === 'wanted'}<span class="starbadge qm" title="Just for you" aria-label="Just for you">?</span>{/if}
       {#if mine?.state === 'starred'}<span class="starbadge" title="Starred" aria-label="Starred"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8Z"/></svg></span>{/if}
       {#if stacked}<button class="close" onclick={() => (open = false)} aria-label="Close {it.title}"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>{/if}
     </div>
@@ -50,7 +55,7 @@
         <p class="rlink">{#if it.url}<a href={it.url} target="_blank" rel="noopener">Open the recipe ↗</a>{:else if it.has_details}<a href="/item/{it.id}#details">See the recipe</a>{:else}<a href="/item/{it.id}#details">+ Add the recipe</a>{/if}</p>
       {/if}
       <div class="meta">
-        <span><b>{whoLine}</b> · {ago(card.newest)}{#if card.boosted}<span class="match" title="People with taste like yours are behind this one">your kind of thing</span>{/if}</span>
+        <span><b>{whoLine}</b>{card.private ? ', nobody else sees it yet' : ''} · {ago(card.newest)}{#if card.boosted}<span class="match" title="People with taste like yours are behind this one">your kind of thing</span>{/if}</span>
         {#if card.loved.length || card.liked.length}
           <span class="lv"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21s-7.5-4.6-10-9.3C.4 8.4 2.4 4.5 6.1 4.5c2.2 0 3.6 1.2 4.4 2.4h3c.8-1.2 2.2-2.4 4.4-2.4 3.7 0 5.7 3.9 4.1 7.2C19.5 16.4 12 21 12 21Z"/></svg>{[...card.loved, ...card.liked].map(first).join(', ')}</span>
         {/if}
@@ -59,25 +64,41 @@
       <div class="acts">
         {#if mine?.state === 'done'}
           <span class="state">{mine.reaction === 'loved' ? 'You loved it' : mine.reaction === 'liked' ? 'You liked it' : "You didn't like it"}</span>
-          <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="clear" /><button class="g">Undo</button></form>
+          <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value={backTo} /><button class="g">Undo</button></form>
         {:else if mine?.state === 'hidden'}
           <span class="state">Marked not for you</span>
-          <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="clear" /><button class="g">Put it back</button></form>
+          <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value={backTo} /><button class="g">Put it back</button></form>
+        {:else if shareStep}
+          <span class="state">Put it on the board for everyone?</span>
+          <div class="rate">
+            <form method="POST" {action} use:enhance={() => async ({ update }) => { shareStep = null; rating = false; await update(); }}>
+              <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="done" /><input type="hidden" name="reaction" value={shareStep} /><input type="hidden" name="share" value="1" />
+              <button class="p sm">Yes, recommend it</button>
+            </form>
+            <form method="POST" {action} use:enhance={() => async ({ update }) => { shareStep = null; rating = false; await update(); }}>
+              <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="done" /><input type="hidden" name="reaction" value={shareStep} />
+              <button class="g">No, just mark it done</button>
+            </form>
+          </div>
         {:else if rating}
           <span class="state">How was it?</span>
           <div class="rate">
             {#each [['loved', 'Loved it'], ['liked', 'Liked it'], ['not_for_me', "Didn't like it"]] as [r, label]}
-              <form method="POST" {action} use:enhance={() => async ({ update }) => { rating = false; await update(); }}>
-                <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="done" /><input type="hidden" name="reaction" value={r} />
-                <button class="p sm">{label}</button>
-              </form>
+              {#if card.private && r !== 'not_for_me'}
+                <button class="p sm" onclick={() => (shareStep = r)}>{label}</button>
+              {:else}
+                <form method="POST" {action} use:enhance={() => async ({ update }) => { rating = false; await update(); }}>
+                  <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="done" /><input type="hidden" name="reaction" value={r} />
+                  <button class="p sm">{label}</button>
+                </form>
+              {/if}
             {/each}
             <button class="g" onclick={() => (rating = false)}>Cancel</button>
           </div>
         {:else}
           <button class="p" onclick={() => (rating = true)}>{DONE[it.kind] ?? 'Tried it'}</button>
           <form method="POST" {action} use:enhance>
-            <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value={mine?.state === 'starred' ? 'clear' : 'starred'} />
+            <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value={mine?.state === 'starred' ? backTo : 'starred'} />
             <button class="s" aria-pressed={mine?.state === 'starred'} aria-label={mine?.state === 'starred' ? 'Unstar' : 'Star it to keep it at the top of your board'}><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill={mine?.state === 'starred' ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8Z"/></svg></button>
           </form>
           <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="hidden" /><button class="g" title="Takes it off your board. Everyone else still sees it.">Not for me</button></form>
@@ -115,6 +136,8 @@
   .g { background: none; padding: 0 6px; }
   .state { font-weight: 800; font-size: 14px; }
   .starbadge { position: absolute; top: 12px; right: 12px; z-index: 3; width: 32px; height: 32px; border-radius: 50%; background: #F5C518; color: #fff; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  .starbadge.qm, .star-dot.qm { background: #2563EB; color: #fff; font: 800 17px Manrope, sans-serif; }
+  .star-dot.qm { font-size: 14px; }
   .close { position: absolute; top: 10px; left: 10px; z-index: 3; width: 36px; height: 36px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; }
 
   /* ---------- Stack (wallet) ---------- */
@@ -152,8 +175,8 @@
   :global(.look-light) .state { color: #111113; }
   :global(.look-light) .close { background: #fff; color: #111113; }
   :global(.look-light) .stacked .close { top: -4px; left: auto; right: 124px; }
-  :global(.look-light) .starbadge { top: -2px; right: 124px; }
-  :global(.look-light) .stacked .starbadge { right: 168px; }
+  :global(.look-light) .starbadge { top: -30px; right: auto; left: -2px; }
+  :global(.look-light) .stacked .starbadge { top: -30px; left: -2px; right: auto; }
   /* Light stack: same calm tinted card as the full cards, not the bold gradient */
   :global(.look-light) .strip { background: color-mix(in srgb, var(--kc) 9%, #E9E9E4); color: #111113;
     box-shadow: 0 -1px 0 rgba(255,255,255,.9) inset, 0 -8px 18px rgba(17,17,19,.08); border: 1px solid color-mix(in srgb, var(--kc) 14%, #DCDCD6); padding-top: 13px; }

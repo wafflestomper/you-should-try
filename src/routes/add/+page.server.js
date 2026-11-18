@@ -51,7 +51,15 @@ export const actions = {
     } catch (e) {
       return fail(400, { error: e.message });
     }
-    const who = await resolvePerson(db, locals.user, f.get('by'));
+    const mode = String(f.get('mode') || 'someone');
+    if (mode === 'mine') {
+      // Only on my board until I try it
+      await db.prepare(`INSERT INTO reactions (user_id, item_id, state) VALUES (?, ?, 'wanted')
+        ON CONFLICT (user_id, item_id) DO UPDATE SET state = CASE WHEN reactions.state IN ('done','hidden') THEN reactions.state ELSE 'wanted' END, updated_at = datetime('now')`)
+        .bind(locals.user.id, itemId).run();
+      redirect(303, `/?added=${itemId}&how=mine`);
+    }
+    const who = await resolvePerson(db, locals.user, mode === 'me' ? '' : f.get('by'));
     // Same person, same thing: don't double count
     const dup = await db.prepare('SELECT id FROM recs WHERE item_id = ? AND (by_user_id = ? OR by_guest_id = ?)')
       .bind(itemId, who.user ?? '', who.guest ?? '').first();

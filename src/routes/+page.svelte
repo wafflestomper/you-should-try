@@ -26,7 +26,7 @@
 {#if addedCard}
   {@const how = page.url.searchParams.get('how')}
   <p class="toast" role="status">
-    {#if how === 'dup'}<b>{addedCard.item.title}</b> was already on the board from them.{:else if how === 'joined'}Added to <b>{addedCard.item.title}</b>. It's one card now with everyone who recommended it.{:else}On the board: <b>{addedCard.item.title}</b>{/if}
+    {#if how === 'mine'}<b>{addedCard.item.title}</b> is on your list. Only you can see it.{:else if how === 'dup'}<b>{addedCard.item.title}</b> was already on the board from them.{:else if how === 'joined'}Added to <b>{addedCard.item.title}</b>. It's one card now with everyone who recommended it.{:else}On the board: <b>{addedCard.item.title}</b>{/if}
   </p>
 {/if}
 

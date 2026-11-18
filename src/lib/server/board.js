@@ -62,8 +62,12 @@ export async function getBoard(db, me, opts = {}) {
      LEFT JOIN guests g ON g.id = r.by_guest_id
      LEFT JOIN users a ON a.id = r.added_by
      WHERE r.realm_id = ? ORDER BY r.created_at DESC`).bind(realm).all()).results;
-  if (!recs.length) return [];
-  const ids = [...new Set(recs.map((r) => r.item_id))];
+  // Plus things only I have: my "just for me" picks (and ones I've finished privately)
+  const privateRows = (await db.prepare(
+    `SELECT x.item_id, x.updated_at FROM reactions x WHERE x.user_id = ? AND NOT EXISTS (SELECT 1 FROM recs r WHERE r.item_id = x.item_id)`).bind(me).all()).results;
+  const privateAt = Object.fromEntries(privateRows.map((r) => [r.item_id, r.updated_at]));
+  if (!recs.length && !privateRows.length) return [];
+  const ids = [...new Set([...recs.map((r) => r.item_id), ...privateRows.map((r) => r.item_id)])];
   const ph = ids.map(() => '?').join(',');
   const [items, reacts] = await Promise.all([
     db.prepare(`SELECT id, kind, title, creator, year, narrator, city, url, image_url, details IS NOT NULL AS has_details FROM items WHERE id IN (${ph})`).bind(...ids).all(),
@@ -89,7 +93,8 @@ export async function getBoard(db, me, opts = {}) {
     const people = new Set(c.recs.map((r) => r.by_user_id ? `u:${r.by_user_id}` : `g:${r.by_guest_id}`));
     const pos = 3 * people.size + 2 * c.loved.length + c.liked.length;
     const points = Math.max(3, pos - c.notForMe);
-    c.newest = c.recs[0].created_at;
+    c.newest = c.recs[0]?.created_at ?? privateAt[c.item.id] ?? new Date().toISOString().slice(0, 19).replace('T', ' ');
+    c.private = !c.recs.length;
     c.age = days(c.newest);
     c.base = points / (c.age + 7);
 
@@ -130,7 +135,8 @@ export async function getBoard(db, me, opts = {}) {
   else if (sort === 'loved') list.sort((a, b) => b.lovedCount - a.lovedCount || b.score - a.score);
   else list.sort((a, b) => b.score - a.score);
   // Your starred ones always go first (only for you)
-  const st = (c) => (c.mine?.state === 'starred' ? 1 : 0);
+  // Your starred ones first, then your "just for me" ones (only for you)
+  const st = (c) => (c.mine?.state === 'starred' ? 2 : c.mine?.state === 'wanted' ? 1 : 0);
   list.sort((a, b) => st(b) - st(a));
 
   // Trim what goes to the page
@@ -141,6 +147,7 @@ export async function getBoard(db, me, opts = {}) {
     liked: c.liked.map((l) => l.name),
     mine: c.mine,
     newest: c.newest,
+    private: c.private,
     boosted: c.boost > 1.05
   }));
 }
@@ -154,18 +161,23 @@ export async function boardPeople(db) {
      ORDER BY name`).all()).results;
 }
 
-export async function react(db, me, itemId, state, reaction = null) {
+export async function react(db, me, itemId, state, reaction = null, share = false) {
   if (state === 'clear') {
     await db.prepare('DELETE FROM reactions WHERE user_id = ? AND item_id = ?').bind(me, itemId).run();
     return;
   }
-  if (!['hidden', 'done', 'starred'].includes(state)) throw new Error('Unknown choice.');
+  if (!['hidden', 'done', 'starred', 'wanted'].includes(state)) throw new Error('Unknown choice.');
   if (reaction && !VALUE[reaction]) throw new Error('Unknown rating.');
   await db.prepare(
     `INSERT INTO reactions (user_id, item_id, state, reaction) VALUES (?, ?, ?, ?)
      ON CONFLICT (user_id, item_id) DO UPDATE SET state = excluded.state,
        reaction = COALESCE(excluded.reaction, CASE WHEN excluded.state = 'done' THEN reactions.reaction ELSE reactions.reaction END),
        updated_at = datetime('now')`).bind(me, itemId, state, reaction).run();
+  // Finished a "just for me" one and chose to recommend it: it goes on the board under my name
+  if (share && state === 'done' && (reaction === 'loved' || reaction === 'liked')) {
+    const has = await db.prepare('SELECT 1 FROM recs WHERE item_id = ? AND by_user_id = ?').bind(itemId, me).first();
+    if (!has) await db.prepare('INSERT INTO recs (id, item_id, by_user_id, added_by) VALUES (?, ?, ?, ?)').bind(crypto.randomUUID(), itemId, me, me).run();
+  }
   if (state === 'done' && (reaction === 'loved' || reaction === 'liked')) {
     const owners = (await db.prepare('SELECT DISTINCT by_user_id FROM recs WHERE item_id = ? AND by_user_id IS NOT NULL AND by_user_id != ?').bind(itemId, me).all()).results;
     if (owners.length) await db.batch(owners.map((o) => db.prepare(
