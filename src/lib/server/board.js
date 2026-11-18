@@ -27,10 +27,11 @@ async function setting(db, key, fallback) {
 
 /** First names, plus a last initial (or more) wherever two people share a first name. */
 export async function shortNames(db) {
-  const people = [
-    ...(await db.prepare("SELECT 'u:' || id AS key, name FROM users WHERE status = 'active'").all()).results,
-    ...(await db.prepare("SELECT 'g:' || id AS key, name FROM guests WHERE user_id IS NULL").all()).results
-  ];
+  const [u, g] = await db.batch([
+    db.prepare("SELECT 'u:' || id AS key, name FROM users WHERE status = 'active'"),
+    db.prepare("SELECT 'g:' || id AS key, name FROM guests WHERE user_id IS NULL")
+  ]);
+  const people = [...u.results, ...g.results];
   const first = (n) => n.trim().split(/\s+/)[0];
   const byFirst = {};
   for (const p of people) (byFirst[first(p.name).toLowerCase()] ??= []).push(p);
@@ -51,13 +52,14 @@ export async function shortNames(db) {
 
 /** How each other member's taste lines up with mine: -1..1, only with enough overlap. */
 export async function tasteMatches(db, me, realm = 'main') {
-  const min = Number(await setting(db, 'match_min_shared', '5')) || 5;
-  // Reactions, plus "I recommended it" counting as loved.
-  const rows = (await db.prepare(
+  // Reactions, plus "I recommended it" counting as loved (asked alongside the threshold setting)
+  const [minSetting, rowsRes] = await Promise.all([setting(db, 'match_min_shared', '5'), db.prepare(
     `SELECT user_id, item_id, reaction FROM reactions WHERE reaction IS NOT NULL
      UNION ALL
      SELECT r.by_user_id AS user_id, r.item_id, 'loved' AS reaction FROM recs r WHERE r.by_user_id IS NOT NULL AND r.realm_id = ?`)
-    .bind(realm).all()).results;
+    .bind(realm).all()]);
+  const min = Number(minSetting) || 5;
+  const rows = rowsRes.results;
   const by = {};
   for (const r of rows) (by[r.user_id] ??= {})[r.item_id] = Math.max(by[r.user_id]?.[r.item_id] ?? -9, VALUE[r.reaction]);
   const mine = by[me] || {};
@@ -78,26 +80,31 @@ export async function tasteMatches(db, me, realm = 'main') {
  */
 export async function getBoard(db, me, opts = {}) {
   const realm = 'main';
-  const recs = (await db.prepare(
-    `SELECT r.id, r.item_id, r.note, r.rating, r.created_at, r.by_user_id, r.by_guest_id, r.added_by,
-            COALESCE(u.name, g.name) AS by_name, u.color AS by_color, a.name AS added_name
-     FROM recs r
-     LEFT JOIN users u ON u.id = r.by_user_id
-     LEFT JOIN guests g ON g.id = r.by_guest_id
-     LEFT JOIN users a ON a.id = r.added_by
-     WHERE r.realm_id = ? ORDER BY r.created_at DESC`).bind(realm).all()).results;
-  // Plus things only I have: my "just for me" picks (and ones I've finished privately)
-  const privateRows = (await db.prepare(
-    `SELECT x.item_id, x.updated_at FROM reactions x WHERE x.user_id = ? AND NOT EXISTS (SELECT 1 FROM recs r WHERE r.item_id = x.item_id)`).bind(me).all()).results;
+  // Everything the board needs, asked together in one trip to the database (no long ID lists, so it
+  // keeps working however big the board gets)
+  const onMyBoard = `SELECT item_id FROM recs WHERE realm_id = ?1
+     UNION SELECT x.item_id FROM reactions x WHERE x.user_id = ?2 AND NOT EXISTS (SELECT 1 FROM recs r WHERE r.item_id = x.item_id)`;
+  const [batch, matches, shorts] = await Promise.all([
+    db.batch([
+      db.prepare(
+        `SELECT r.id, r.item_id, r.note, r.rating, r.created_at, r.by_user_id, r.by_guest_id, r.added_by,
+                COALESCE(u.name, g.name) AS by_name, u.color AS by_color, a.name AS added_name
+         FROM recs r
+         LEFT JOIN users u ON u.id = r.by_user_id
+         LEFT JOIN guests g ON g.id = r.by_guest_id
+         LEFT JOIN users a ON a.id = r.added_by
+         WHERE r.realm_id = ? ORDER BY r.created_at DESC`).bind(realm),
+      // Plus things only I have: my "just for me" picks (and ones I've finished privately)
+      db.prepare(`SELECT x.item_id, x.updated_at FROM reactions x WHERE x.user_id = ? AND NOT EXISTS (SELECT 1 FROM recs r WHERE r.item_id = x.item_id)`).bind(me),
+      db.prepare(`SELECT id, kind, title, creator, year, narrator, city, url, image_url, details IS NOT NULL AS has_details FROM items WHERE id IN (${onMyBoard})`).bind(realm, me),
+      db.prepare(`SELECT x.user_id, x.item_id, x.state, x.reaction, u.name FROM reactions x JOIN users u ON u.id = x.user_id WHERE x.item_id IN (${onMyBoard})`).bind(realm, me)
+    ]),
+    tasteMatches(db, me, realm),
+    shortNames(db)
+  ]);
+  const recs = batch[0].results, privateRows = batch[1].results, items = batch[2], reacts = batch[3];
   const privateAt = Object.fromEntries(privateRows.map((r) => [r.item_id, r.updated_at]));
   if (!recs.length && !privateRows.length) return [];
-  const ids = [...new Set([...recs.map((r) => r.item_id), ...privateRows.map((r) => r.item_id)])];
-  const ph = ids.map(() => '?').join(',');
-  const [items, reacts] = await Promise.all([
-    db.prepare(`SELECT id, kind, title, creator, year, narrator, city, url, image_url, details IS NOT NULL AS has_details FROM items WHERE id IN (${ph})`).bind(...ids).all(),
-    db.prepare(`SELECT x.user_id, x.item_id, x.state, x.reaction, u.name FROM reactions x JOIN users u ON u.id = x.user_id WHERE x.item_id IN (${ph})`).bind(...ids).all()
-  ]);
-  const [matches, shorts] = await Promise.all([tasteMatches(db, me, realm), shortNames(db)]);
 
   const cards = new Map();
   for (const it of items.results) cards.set(it.id, { item: it, recs: [], loved: [], liked: [], notForMe: 0, mine: null });

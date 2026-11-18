@@ -4,6 +4,7 @@
   import { page } from '$app/state';
   import { onMount } from 'svelte';
   import RecCard from '$lib/components/RecCard.svelte';
+  import { toast } from '$lib/toast.svelte.js';
   import { KIND_INFO } from '$lib/kinds.js';
   let { data, form } = $props();
 
@@ -60,10 +61,12 @@
     <a class="btn dark sm" href="/people?guest={data.invitee.id}#invite">{data.invitee.invited ? 'Invite again' : `Invite ${f}`}</a>
   </p>
 {/if}
-{#if form?.removed}
-  <div class="toast invitee" role="status"><span>Deleted <b>{form.removed}</b>.</span>
-    <form method="POST" action="?/undoRemove" use:enhance><input type="hidden" name="undo" value={form.undo} /><button class="btn sm">Undo</button></form></div>
-{:else if form?.restored}<p class="toast" role="status">Put back.</p>{/if}
+{#if toast.text}
+  {#key toast.id}
+    <div class="toast invitee quick" role="status"><span>{toast.text}</span>
+      {#if toast.undo}<button class="btn sm" onclick={() => { const u = toast.undo; toast.undo = null; u(); }}>Undo</button>{/if}</div>
+  {/key}
+{/if}
 {#if page.url.searchParams.get('removed')}<p class="toast" role="status">Removed from the board.</p>{/if}
 
 <div class="filters" role="group" aria-label="Show">
@@ -116,6 +119,7 @@
   .hometip span { color: var(--ink-2); font-size: 14px; }
   .ht-acts { display: flex; gap: 10px; align-items: center; }
   .ht-x { background: none; border: 0; font: 700 14px Manrope, sans-serif; color: var(--ink-2); cursor: pointer; min-height: 40px; }
+  .quick { position: sticky; top: 72px; z-index: 20; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
   .invitee { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .invitee .btn { text-decoration: none; min-height: 38px; display: inline-flex; align-items: center; padding: 0 14px; }
   .toast { background: var(--surface); padding: 10px 14px; border-radius: 12px; margin: 4px 0 10px; font-weight: 600; }

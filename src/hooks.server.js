@@ -33,7 +33,12 @@ export async function handle({ event, resolve }) {
     if (path.startsWith('/api/')) return new Response('Sign in first.', { status: 401 });
     redirect(303, '/signin');
   }
-  return resolve(event);
+  const t0 = Date.now();
+  const res = await resolve(event);
+  const ms = Date.now() - t0;
+  // Anything slow gets noted in the Observability logs so it can be tracked down
+  if (ms > 1500) console.warn(JSON.stringify({ slow: true, ms, method: event.request.method, path, action: [...event.url.searchParams.keys()].find((k) => k.startsWith('/')) || null }));
+  return res;
 }
 
 /** Any crash: log the details for the Observability tab and show a short code the person can pass along. */

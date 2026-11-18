@@ -4,6 +4,8 @@
   import { enhance } from '$app/forms';
   import Cover from './Cover.svelte';
   import { KIND as KI, kindColor, kindDeep } from '$lib/kinds.js';
+  import { invalidateAll } from '$app/navigation';
+  import { showToast, postAction } from '$lib/toast.svelte.js';
   let { card, action = '?/react', stacked = false, swipe = false } = $props();
 
   // Swipe left to reveal Delete (things I entered) or Not for me (everyone else's)
@@ -11,6 +13,39 @@
   let dx = $state(0), dragging = $state(false);
   let sx = 0, sy = 0, base = 0, axis = null, pid = null, moved = false;
   let canDelete = $derived(card.iAdded || card.private);
+  // On the board, Delete and Not for me take the card away instantly; the save happens behind it
+  let gone = $state(false);
+  function deleteNow() {
+    gone = true; dx = 0;
+    let undoData = null;
+    const title = it.title;
+    showToast(`Deleted ${title}.`, async () => {
+      gone = false;
+      showToast(`Put back ${title}.`);
+      const data = await waiting;
+      if (data) { await postAction('undoRemove', { undo: data }); await invalidateAll(); }
+    });
+    let done; const waiting = new Promise((r) => (done = r));
+    return async ({ result, update }) => {
+      if (result.type === 'success') { done(result.data?.undo ?? null); await update({ reset: false }); }
+      else { done(null); gone = false; showToast(`Couldn't delete ${title}. Try again.`); }
+    };
+  }
+  function hideNow() {
+    if (!swipe) return async ({ update }) => update();
+    gone = true; dx = 0;
+    const title = it.title, item = it.id, before = mine?.state ?? 'clear';
+    showToast(`${title} is off your board.`, async () => {
+      gone = false;
+      showToast(`Put back ${title}.`);
+      await postAction('react', { item, state: before === 'hidden' ? 'clear' : before });
+      await invalidateAll();
+    });
+    return async ({ result, update }) => {
+      if (result.type === 'success') await update({ reset: false });
+      else { gone = false; showToast(`Couldn't change ${title}. Try again.`); }
+    };
+  }
   function down(e) {
     if (!swipe || e.button > 0) return;
     sx = e.clientX; sy = e.clientY; base = dx; axis = null; pid = e.pointerId; moved = false;
@@ -59,11 +94,11 @@
   let collapsed = $derived(stacked && !open);
 </script>
 
-<div class="rcw" class:collapsed><div class="swbox">
+<div class="rcw" class:collapsed class:gone><div class="swbox">
 {#if swipe}
   <div class="swact" class:del={canDelete} aria-hidden={dx === 0}>
     {#if canDelete}
-      <form method="POST" action="?/removeMine" use:enhance={() => async ({ update }) => { dx = 0; await update(); }}>
+      <form method="POST" action="?/removeMine" use:enhance={deleteNow}>
         <input type="hidden" name="item" value={it.id} />
         <button tabindex={dx ? 0 : -1} aria-label="Delete {it.title}">
           <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -71,7 +106,7 @@
         </button>
       </form>
     {:else}
-      <form method="POST" {action} use:enhance={() => async ({ update }) => { dx = 0; await update(); }}>
+      <form method="POST" {action} use:enhance={hideNow}>
         <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="hidden" />
         <button tabindex={dx ? 0 : -1} aria-label="Not for me: {it.title}">
           <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6.1A9.9 9.9 0 0 1 12 6c5 0 9 4.5 10 6-.5.8-1.6 2.2-3.2 3.5M6.3 7.6C4.4 8.9 2.9 10.7 2 12c1 1.5 5 6 10 6 1.5 0 2.9-.4 4.1-1M9.9 10a3 3 0 0 0 4.1 4.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -158,7 +193,7 @@
             <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value={mine?.state === 'starred' ? backTo : 'starred'} />
             <button class="s" aria-pressed={mine?.state === 'starred'} aria-label={mine?.state === 'starred' ? 'Unstar' : 'Star it to keep it at the top of your board'}><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill={mine?.state === 'starred' ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8Z"/></svg></button>
           </form>
-          <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="hidden" /><button class="g" title="Takes it off your board. Everyone else still sees it.">Not for me</button></form>
+          <form method="POST" {action} use:enhance={hideNow}><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="hidden" /><button class="g" title="Takes it off your board. Everyone else still sees it.">Not for me</button></form>
         {/if}
       </div>
     </div>
@@ -169,6 +204,7 @@
 <style>
   .rc { position: relative; border-radius: 22px; isolation: isolate; }
   .swbox { position: relative; }
+  .rcw.gone { display: none; }
   .rc.swipe :global(img), .rc.swipe a { -webkit-user-drag: none; user-select: none; -webkit-touch-callout: none; }
   .rc.swipe { touch-action: pan-y; transition: transform .22s ease; z-index: 1; }
   .rc.swipe.dragging { transition: none; }
