@@ -7,7 +7,8 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 
 export async function sendEmail(env, { to, subject, text, html, replyTo, fromName }) {
   const domain = env.MAIL_DOMAIN || 'try.zollinhofer.com';
-  const from = `${String(fromName || 'You Should Try').replace(/[<>"]/g, '')} via You Should Try <invites@${domain}>`;
+  const who = String(fromName || '').replace(/[<>"]/g, '').trim();
+  const from = `${who && who !== 'You Should Try' ? `${who} via You Should Try` : 'You Should Try'} <invites@${domain}>`;
   if (env.MAIL_DRY_RUN) {
     console.log('[email dry run]', JSON.stringify({ from, to, replyTo, subject }), '\n' + text);
     return { ok: true, id: 'dry-run' };

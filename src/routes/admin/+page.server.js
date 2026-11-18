@@ -7,7 +7,8 @@ const all = async (db, sql, ...a) => (await db.prepare(sql).bind(...a).all()).re
 export async function load({ locals, platform, url }) {
   if (!locals.realUser?.is_admin) error(403, 'Admins only.');
   const db = platform.env.DB;
-  const [newbies, invites, circles, demo] = await Promise.all([
+  const [requests, newbies, invites, circles, demo] = await Promise.all([
+    all(db, `SELECT * FROM invite_requests WHERE status = 'new' ORDER BY created_at DESC LIMIT 50`),
     all(db, `SELECT u.id, u.name, u.color, u.is_guest, u.knows_note, u.joined_at, i.name AS invited_by_name,
                     (SELECT GROUP_CONCAT(c.name, ', ') FROM circle_members m JOIN circles c ON c.id = m.circle_id WHERE m.user_id = u.id) AS circles
                FROM users u LEFT JOIN users i ON i.id = u.invited_by
@@ -20,7 +21,7 @@ export async function load({ locals, platform, url }) {
   const dups = await possibleDups(platform.env.DB);
   const defaultLibs = await defaultLibraries(platform.env.DB);
   const mm = await platform.env.DB.prepare("SELECT value FROM settings WHERE key = 'match_min_shared'").first();
-  return { newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups, defaultLibs };
+  return { requests, newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups, defaultLibs };
 }
 
 const guard = (locals) => { if (!locals.realUser?.is_admin) error(403, 'Admins only.'); };
@@ -44,6 +45,10 @@ export const actions = {
     if (!locals.realUser?.is_admin) return;
     const n = Math.round(Number((await request.formData()).get('n')));
     if (n >= 1 && n <= 50) await platform.env.DB.prepare("INSERT INTO settings (key, value) VALUES ('match_min_shared', ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value").bind(String(n)).run();
+  },
+  dismissRequest: async ({ request, platform, locals }) => {
+    guard(locals);
+    await platform.env.DB.prepare("UPDATE invite_requests SET status = 'dismissed' WHERE id = ?").bind(await field(request, 'id')).run();
   },
   keep: async ({ request, platform, locals }) => {
     guard(locals);

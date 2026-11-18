@@ -44,6 +44,22 @@
 <p class="muted" style="margin:6px 0 0">New people get full access right away. Check them here and keep or revoke.</p>
 {#if form?.message}<p class="err" role="alert">{form.message}</p>{/if}
 
+<section id="requests">
+<h2 class="h2" style="margin-top:28px">Invite requests {#if data.requests.length}<span class="cnt">{data.requests.length}</span>{/if}</h2><div class="rule"></div>
+{#each data.requests as r (r.id)}
+  <div class="row">
+    <div style="flex:1;min-width:220px"><b>{r.name}</b> <span class="small muted">{r.email}</span>
+      <div class="small">Knows: “{r.knows}”</div>
+      {#if r.note}<div class="small muted">{r.note}</div>{/if}
+      <div class="small muted">Asked {r.created_at.slice(5, 10).replace('-', '/')}</div></div>
+    <div class="reqbtns">
+      <a class="btn sm dark" href="/people?req={r.id}">Invite</a>
+      <form method="POST" action="?/dismissRequest" use:enhance><input type="hidden" name="id" value={r.id} /><button class="btn sm">Dismiss</button></form>
+    </div>
+  </div>
+{:else}<p class="muted">No requests right now.</p>{/each}
+</section>
+
 <h2 class="h2" style="margin-top:34px">New members</h2><div class="rule"></div>
 {#each data.newbies as u}
   <div class="row">
@@ -87,6 +103,10 @@
 
 <style>
   .deflibs { margin: 16px 0 24px; }
+  #requests .row { flex-wrap: wrap; }
+  .reqbtns { display: flex; gap: 8px; align-items: center; }
+  .reqbtns .btn { text-decoration: none; min-height: 40px; display: inline-flex; align-items: center; padding: 0 16px; }
+  .reqbtns form { margin: 0; }
   .dups { margin: 16px 0 24px; }
   .cnt { background: #C2410C; color: #fff; border-radius: 10px; font-size: 13px; padding: 1px 8px; vertical-align: middle; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #fff; border: 1px solid #E6E5E0; border-radius: 12px; padding: 12px; margin-top: 10px; }

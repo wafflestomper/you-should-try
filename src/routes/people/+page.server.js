@@ -17,7 +17,11 @@ export async function load({ platform, locals, url }) {
   ]);
   const people = members.results.map((m) => ({ ...m, short: shorts[`u:${m.id}`] ?? m.name, match: matches[m.id] ? Math.round(50 + 50 * matches[m.id].score) : null }))
     .sort((a, b) => (b.match ?? -1) - (a.match ?? -1) || a.name.localeCompare(b.name));
-  return { people, guests: guests.results, origin: url.origin, myName: locals.user.name, canSend: canSend(platform.env) };
+  const reqId = url.searchParams.get('req');
+  const req = reqId && locals.realUser?.is_admin
+    ? await db.prepare("SELECT id, name, email, knows FROM invite_requests WHERE id = ? AND status = 'new'").bind(reqId).first()
+    : null;
+  return { people, guests: guests.results, origin: url.origin, myName: locals.user.name, canSend: canSend(platform.env), req };
 }
 
 const text = (f, k, n) => String(f.get(k) || '').trim().slice(0, n);
@@ -35,6 +39,8 @@ export const actions = {
       if (email) await platform.env.DB.prepare('UPDATE guests SET email = ? WHERE id = ?').bind(email, guest).run();
     }
     const code = await createInvite(platform.env.DB, locals.user, { name, email, knows_note: knows, guest_id: guest });
+    const req = text(f, 'req', 60);
+    if (req && locals.realUser?.is_admin) await platform.env.DB.prepare("UPDATE invite_requests SET status = 'invited' WHERE id = ?").bind(req).run();
     const picks = guest ? (await platform.env.DB.prepare('SELECT COUNT(*) AS n FROM recs WHERE by_guest_id = ?').bind(guest).first()).n : 0;
     return { code, name, email, picks };
   },

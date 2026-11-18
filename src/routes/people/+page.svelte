@@ -3,9 +3,9 @@
   import { inviteBody, inviteSubject } from '$lib/inviteText.js';
   let { data, form } = $props();
 
-  let name = $state(form?.name ?? '');
-  let knows = $state(form?.knows ?? '');
-  let email = $state(form?.email ?? '');
+  let name = $state(form?.name ?? data.req?.name ?? '');
+  let knows = $state(form?.knows ?? data.req?.knows ?? '');
+  let email = $state(form?.email ?? data.req?.email ?? '');
   let guest = $state(form?.guest ?? '');
   let formEl;
 
@@ -60,6 +60,7 @@
   {:else}
     <form method="POST" action="?/invite" use:enhance={() => async ({ update }) => update({ reset: false })} bind:this={formEl} class="f">
       <input type="hidden" name="guest" value={guest} />
+      {#if data.req}<input type="hidden" name="req" value={data.req.id} /><p class="hint">From {data.req.name}'s request. Check the "how do you know them" line, since it's in their words.</p>{/if}
       <label for="inv-name">Their name</label>
       <input id="inv-name" name="name" bind:value={name} maxlength="60" required autocomplete="off" oninput={() => (guest = '')} />
       {#if guest}<p class="hint">Their picks already on the board will move to their account when they join.</p>{/if}

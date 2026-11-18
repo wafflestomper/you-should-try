@@ -37,8 +37,8 @@
   {:else}
     <p class="note">Google sign-in isn't switched on yet.</p>
   {/if}
-  <p class="note">It's invite only. New here? Open the invite link a friend sent you.</p>
-  <p class="note"><a href="/privacy">Privacy</a></p>
+  <p class="note">It's invite only. New here? Open the invite link a friend sent you, or <a href="/request">request an invite</a>.</p>
+  <p class="note small"><a href="/privacy">Privacy</a></p>
   {#if data.dev}
     <p class="note">Local testing: <a href="/auth/dev?user=u-z">sign in as Z</a> · <a href="/auth/dev?user=u-sarah">as Sarah</a></p>
   {/if}
@@ -73,6 +73,8 @@
   .gbtn:focus-visible { outline: 3px solid #2563EB; outline-offset: 3px; }
   .note { color: var(--ink-2); font-size: 14px; margin: 14px 0 0; text-align: center; }
   .note a { color: var(--ink); font-weight: 700; }
+  .note.small { font-size: 13px; margin-top: 22px; }
+  .note.small a { font-weight: 600; color: var(--ink-2); }
   .err { background: #FBE9E7; color: #8C1D18; padding: 12px 14px; border-radius: 12px; margin: 0 0 14px; font-weight: 600; }
   @media (max-width: 360px) { h1 { font-size: 44px; } }
 </style>
