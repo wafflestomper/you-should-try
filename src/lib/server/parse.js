@@ -14,7 +14,13 @@ const KIND_WORDS = [
 const SAY = '(?:just\\s+)?(?:recommended|recommends|suggested|suggests|said|says|told me|loves|loved|swears by|raved about|mentioned)';
 
 export function rulesParse(text, members = []) {
-  let t = ` ${text.trim()} `;
+  // Split off the extra commentary: everything after the first sentence, or after "she/he/they said"
+  const raw = text.trim();
+  const cut = raw.search(/[.?!]\s|\s(?:she|he|they)\s+(?:said|says|thinks|thought)\b/i);
+  let rest = cut > 0 ? raw.slice(cut).replace(/^[.?!\s]+/, '') : '';
+  let t = ` ${cut > 0 ? raw.slice(0, cut) : raw} `;
+  // A kind word in the commentary still counts ("...She said the book is great")
+  const kindText = raw;
   let by = null;
   // Members first: full name, then first name
   const lower = t.toLowerCase();
@@ -43,6 +49,7 @@ export function rulesParse(text, members = []) {
 
   let kind = null;
   for (const [k, re] of KIND_WORDS) if (re.test(t)) { kind = k; break; }
+  if (!kind) for (const [k, re] of KIND_WORDS) if (re.test(kindText)) { kind = k; break; }
 
   // Title: strip the "who said it" part and filler
   let title = t;
@@ -56,10 +63,16 @@ export function rulesParse(text, members = []) {
     .replace(/\b(called|named|it's|its|a|an|was|is|were|that|which)\b\s*$/i, ' ')
     .replace(/\b(called|named|it's|its|a|an|was|is|were|that|which)\b\s*$/i, ' ')
     .replace(/^[\s,.:;-]*(that|the one|is|was)?\s*/i, '')
+    .replace(/^(?:go\s+)?(?:watch|read|try|listen to|check out|see|visit|make|eat at)\s+/i, '')
     .replace(/[\s,.:;!?-]+$/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
-  return { kind, title, by, note: null };
+  const note = rest
+    .replace(/[.,;]?\s*\b(?:she|he|they)\s+(?:said|says|thinks|thought)\s*(?:that\s+)?,?\s*/gi, '|')
+    .replace(/\s{2,}/g, ' ')
+    .split(/\||(?<=[.?!])\s+/).map((x) => x.trim().replace(/[.,\s]+$/, '')).filter(Boolean)
+    .map((x) => x[0].toUpperCase() + x.slice(1)).join('. ');
+  return { kind, title, by, note: note ? note + '.' : null };
 }
 
 export async function aiParse(env, text, members = []) {
@@ -80,6 +93,8 @@ Note: "Amy says we have to watch Slow Horses, start with season two"
 {"kind":"tv","title":"Slow Horses","creator":null,"recommender":"Amy","note":"Start with season two"}
 Note: "Casa Luna in Richmond, get the mole, from Dana"
 {"kind":"restaurant","title":"Casa Luna","creator":"Richmond","recommender":"Dana","note":"Get the mole"}
+Note: "Amy recommends Dungeon Crawler Carl book? She said it's fantastic She said, stick with it through the first book"
+{"kind":"book","title":"Dungeon Crawler Carl","creator":"Matt Dinniman","recommender":"Amy","note":"It's fantastic. Stick with it through the first book."}
 Note: "the pound cake recipe Liz makes"
 {"kind":"recipe","title":"Pound cake","creator":null,"recommender":"Liz","note":null}
 
