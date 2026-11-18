@@ -55,7 +55,7 @@ export async function tasteMatches(db, me, realm = 'main') {
 export async function getBoard(db, me, opts = {}) {
   const realm = 'main';
   const recs = (await db.prepare(
-    `SELECT r.id, r.item_id, r.note, r.created_at, r.by_user_id, r.by_guest_id, r.added_by,
+    `SELECT r.id, r.item_id, r.note, r.rating, r.created_at, r.by_user_id, r.by_guest_id, r.added_by,
             COALESCE(u.name, g.name) AS by_name, u.color AS by_color, a.name AS added_name
      FROM recs r
      LEFT JOIN users u ON u.id = r.by_user_id
@@ -142,7 +142,7 @@ export async function getBoard(db, me, opts = {}) {
   // Trim what goes to the page
   return list.map((c) => ({
     item: c.item,
-    recs: c.recs.map((r) => ({ id: r.id, by_user_id: r.by_user_id, by_guest_id: r.by_guest_id, by_name: r.by_name, by_color: r.by_color, note: r.note, created_at: r.created_at, added_name: r.added_by !== r.by_user_id ? r.added_name : null })),
+    recs: c.recs.map((r) => ({ id: r.id, by_user_id: r.by_user_id, by_guest_id: r.by_guest_id, by_name: r.by_name, by_color: r.by_color, note: r.note, rating: r.rating, created_at: r.created_at, added_name: r.added_by !== r.by_user_id ? r.added_name : null })),
     loved: c.loved.map((l) => l.name),
     liked: c.liked.map((l) => l.name),
     mine: c.mine,

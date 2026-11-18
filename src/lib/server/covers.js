@@ -24,7 +24,7 @@ async function poster(it, key) {
 }
 
 /** Look up a few missing covers. Runs after the page is sent, so it never slows anything down. */
-export async function fillCovers(db, env, max = 8) {
+export async function fillCovers(db, env, max = 15) {
   const cutoff = Date.now() - RETRY_DAYS * 864e5;
   const items = (await db.prepare(
     `SELECT DISTINCT i.id, i.kind, i.title, i.creator, i.year FROM items i JOIN recs r ON r.item_id = i.id

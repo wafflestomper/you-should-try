@@ -23,6 +23,8 @@
   // Clearing a private pick would make it vanish, so it goes back to "just for me" instead
   let backTo = $derived(card.private ? 'wanted' : 'clear');
   let collapsed = $derived(stacked && !open);
+  let ratings = $derived(card.recs.map((r) => r.rating).filter((x) => x != null));
+  let avg = $derived(ratings.length ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 2) / 2 : null);
 </script>
 
 <article class="rc" class:starred={mine?.state === 'starred'} class:collapsed class:stacked
@@ -55,7 +57,7 @@
         <p class="rlink">{#if it.url}<a href={it.url} target="_blank" rel="noopener">Open the recipe ↗</a>{:else if it.has_details}<a href="/item/{it.id}#details">See the recipe</a>{:else}<a href="/item/{it.id}#details">+ Add the recipe</a>{/if}</p>
       {/if}
       <div class="meta">
-        <span><b>{whoLine}</b>{card.private ? ', nobody else sees it yet' : ''} · {ago(card.newest)}{#if card.boosted}<span class="match" title="People with taste like yours are behind this one">your kind of thing</span>{/if}</span>
+        <span><b>{whoLine}</b>{#if avg}<span class="rt" title="Their rating out of 5">★ {avg}</span>{/if}{card.private ? ', nobody else sees it yet' : ''} · {ago(card.newest)}{#if card.boosted}<span class="match" title="People with taste like yours are behind this one">your kind of thing</span>{/if}</span>
         {#if card.loved.length || card.liked.length}
           <span class="lv"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21s-7.5-4.6-10-9.3C.4 8.4 2.4 4.5 6.1 4.5c2.2 0 3.6 1.2 4.4 2.4h3c.8-1.2 2.2-2.4 4.4-2.4 3.7 0 5.7 3.9 4.1 7.2C19.5 16.4 12 21 12 21Z"/></svg>{[...card.loved, ...card.liked].map(first).join(', ')}</span>
         {/if}
@@ -122,6 +124,7 @@
   .q { margin: 0 0 6px; }
   .qby { font-size: 12.5px; font-weight: 700; font-style: normal; font-family: Manrope, sans-serif; opacity: .65; white-space: nowrap; }
   .meta { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12.5px; font-weight: 600; }
+  .rt { margin-left: 6px; font-weight: 800; color: #C99A06; white-space: nowrap; }
   .lv { display: inline-flex; align-items: center; gap: 4px; }
   .match { margin-left: 6px; font-size: 11.5px; font-weight: 800; border-radius: 10px; padding: 1px 8px; white-space: nowrap; }
   .rlink { margin: 4px 0 6px; font-weight: 700; font-size: 14px; }
