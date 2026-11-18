@@ -31,7 +31,8 @@
       <span class="st-cov"><Cover title={it.title} kind={it.kind} image={it.image_url} w={42} /></span>
     </button>
   {:else}
-    <div class="hero">
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <div class="hero" class:tap={stacked} onclick={(e) => { if (stacked && !e.target.closest('a, button')) open = false; }}>
       <div class="blur" aria-hidden="true">{#if it.image_url}<img src={it.image_url} alt="" loading="lazy" />{/if}</div>
       <a href="/item/{it.id}" class="cov" tabindex="-1" aria-hidden="true"><Cover title={it.title} kind={it.kind} image={it.image_url} w={96} /></a>
       <div class="ht">
@@ -91,6 +92,7 @@
   .rc :global(.cover-img), .rc :global(.cover) { border-radius: 8px; box-shadow: 0 10px 22px rgba(0,0,0,.28); }
   .rc :global(.cover-img.round), .rc :global(.cover.restaurant), .rc :global(.cover.recipe) { border-radius: 50%; }
   .cov { text-decoration: none; }
+  .hero.tap { cursor: pointer; }
   .k { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
   .k i { width: 9px; height: 9px; border-radius: 3px; background: var(--kc); }
   h3 { margin: 4px 0 2px; line-height: 1.02; }
@@ -127,7 +129,7 @@
   .star-dot { width: 24px; height: 24px; border-radius: 50%; background: #F5C518; color: #fff; display: grid; place-items: center; flex: none; }
 
   /* ---------- Look: light / editorial ---------- */
-  :global(.look-light) .rc:not(.collapsed) { background: #F4F4F1; padding: 16px 16px 14px; margin-top: 30px; }
+  :global(.look-light) .rc:not(.collapsed) { background: color-mix(in srgb, var(--kc) 9%, #E9E9E4); padding: 16px 16px 14px; margin-top: 30px; }
   :global(.look-light) .stacked:not(.collapsed) { margin-top: 30px; }
   :global(.look-light) .hero { position: relative; min-height: 104px; padding-right: 116px; }
   :global(.look-light) .blur { display: none; }
@@ -142,7 +144,7 @@
   :global(.look-light) .match { background: #E8F1EC; color: #1F5D45; }
   :global(.look-light) .rlink a { color: var(--kd); }
   :global(.look-light) .p { background: var(--kd); color: #fff; }
-  :global(.look-light) .s { background: #fff; color: #111113; }
+  :global(.look-light) .s { background: rgba(255,255,255,.75); color: #111113; }
   :global(.look-light) .s[aria-pressed='true'] { color: #C99A06; }
   :global(.look-light) .g { color: #6B6B73; }
   :global(.look-light) .state { color: #111113; }
@@ -153,14 +155,15 @@
   :global(.look-light) .strip .k { color: #fff; }
 
   /* ---------- Look: dark / blurred cover ---------- */
-  :global(.look-dark) .rc:not(.collapsed) { background: #141417; overflow: hidden; color: #fff; }
+  :global(.look-dark) .rc:not(.collapsed) { background: #141417; overflow: hidden; color: #fff; box-shadow: inset 0 0 0 2px var(--kc), 0 0 22px color-mix(in srgb, var(--kc) 35%, transparent); }
   :global(.look-dark) .blur { position: absolute; inset: -40px; z-index: -1;
     background: radial-gradient(circle at 25% 30%, var(--kd), transparent 60%), radial-gradient(circle at 85% 15%, var(--kc), transparent 55%); filter: blur(26px); opacity: .95; }
   :global(.look-dark) .blur img { width: 100%; height: 100%; object-fit: cover; filter: blur(30px) saturate(1.4); opacity: .75; transform: scale(1.3); }
   :global(.look-dark) .hero { position: relative; display: flex; gap: 14px; align-items: flex-end; padding: 18px 16px 10px; }
   :global(.look-dark) .ht { flex: 1; min-width: 0; padding-right: 26px; }
-  :global(.look-dark) .k { opacity: .8; }
-  :global(.look-dark) .k i { background: #fff; }
+  :global(.look-dark) .hero .k { background: var(--kc); color: #fff; padding: 3px 9px; border-radius: 8px; opacity: 1; }
+  :global(.look-dark) .hero .k i { display: none; }
+  .strip .k { align-self: flex-start; }
   :global(.look-dark) h3 { font-size: 26px; font-weight: 800; letter-spacing: -.03em; }
   :global(.look-dark) .sub { opacity: .75; }
   :global(.look-dark) .body { margin: 6px 8px 8px; padding: 12px; border-radius: 18px; background: rgba(255,255,255,.1); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.12); }
