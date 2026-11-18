@@ -19,6 +19,18 @@
   }
   let personName = $derived(data.people.find((p) => p.key === data.opts.person)?.name);
   let more = $state(false);
+  import { install, detect } from '$lib/install.svelte.js';
+  let homeTip = $state(false);
+  onMount(() => {
+    const i = detect();
+    let seen = false; try { seen = !!localStorage.getItem('yst_home_tip'); } catch {}
+    homeTip = !seen && !i.standalone && i.platform !== 'desktop';
+  });
+  function dismissTip() { homeTip = false; try { localStorage.setItem('yst_home_tip', '1'); } catch {} }
+  async function oneTap() {
+    if (!install.prompt) return;
+    install.prompt.prompt(); await install.prompt.userChoice.catch(() => {}); install.prompt = null; install.ready = false; dismissTip();
+  }
 </script>
 
 <svelte:head><title>You Should Try…</title></svelte:head>
@@ -28,6 +40,16 @@
   <p class="toast" role="status">
     {#if how === 'mine'}<b>{addedCard.item.title}</b> is on your list. Only you can see it.{:else if how === 'dup'}<b>{addedCard.item.title}</b> was already on the board from them.{:else if how === 'joined'}Added to <b>{addedCard.item.title}</b>. It's one card now with everyone who recommended it.{:else}On the board: <b>{addedCard.item.title}</b>{/if}
   </p>
+{/if}
+
+{#if homeTip}
+  <aside class="hometip" aria-label="Tip">
+    <div><b>Put this on your home screen</b><br /><span>It opens like an app, so it's one tap when someone says "you should try…"</span></div>
+    <div class="ht-acts">
+      {#if install.ready}<button class="btn dark sm" onclick={oneTap}>Add it</button>{:else}<a class="btn dark sm" href="/install" onclick={dismissTip}>Show me how</a>{/if}
+      <button class="ht-x" onclick={dismissTip}>Not now</button>
+    </div>
+  </aside>
 {/if}
 
 {#if page.url.searchParams.get('removed')}<p class="toast" role="status">Removed from the board.</p>{/if}
@@ -78,6 +100,10 @@
 {/if}
 
 <style>
+  .hometip { display: grid; gap: 10px; background: var(--surface); border-radius: 16px; padding: 14px; margin: 4px 0 12px; }
+  .hometip span { color: var(--ink-2); font-size: 14px; }
+  .ht-acts { display: flex; gap: 10px; align-items: center; }
+  .ht-x { background: none; border: 0; font: 700 14px Manrope, sans-serif; color: var(--ink-2); cursor: pointer; min-height: 40px; }
   .toast { background: var(--surface); padding: 10px 14px; border-radius: 12px; margin: 4px 0 10px; font-weight: 600; }
   .filters { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 2px; scrollbar-width: none; margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
   .filters::-webkit-scrollbar { display: none; }

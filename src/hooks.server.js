@@ -2,7 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { sessionUser } from '$lib/server/auth.js';
 
 // Pages anyone can open without signing in
-const PUBLIC = ['/signin', '/auth/', '/invite/', '/favicon'];
+const PUBLIC = ['/signin', '/auth/', '/invite/', '/favicon', '/manifest', '/icon-', '/apple-touch', '/install'];
 
 export async function handle({ event, resolve }) {
   const db = event.platform?.env?.DB;

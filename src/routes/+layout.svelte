@@ -14,6 +14,9 @@
     document.cookie = `yst_look=${v}; path=/; max-age=31536000; samesite=lax`;
   }
   $effect(() => { document.documentElement.dataset.look = look; });
+  import { onMount } from 'svelte';
+  import { listenForInstall } from '$lib/install.svelte.js';
+  onMount(listenForInstall);
   const tabs = [['/', 'home', 'Board'], ['/add', 'plus', 'Add'], ['/mine', 'check', 'History']];
 </script>
 
@@ -47,6 +50,7 @@
         </form>
       {/if}
       <a href="/me" class="small">Your profile</a>
+      <a href="/install" class="small">Add to home screen</a>
       <form method="POST" action="/signout"><button class="linkish">Sign out</button></form>
       <span>You Should Try… · invite only</span>
     </footer>
