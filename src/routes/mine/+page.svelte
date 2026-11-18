@@ -24,7 +24,7 @@
   h1 { font-size: 24px; margin: 10px 0; }
   .sub { color: var(--ink-2); margin: 0 0 12px; }
   .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
-  .tabs a { padding: 8px 14px; border-radius: 18px; text-decoration: none; color: var(--ink); font-weight: 600; border: 1.5px solid #D6D4CC; background: #fff; }
+  .tabs a { padding: 8px 14px; border-radius: 18px; text-decoration: none; color: var(--ink); font-weight: 600; border: 1.5px solid var(--line); background: var(--surface-2); }
   .tabs a[aria-selected='true'] { background: var(--ink); color: #fff; border-color: var(--ink); }
   .tabs span { opacity: .7; }
   .list { display: grid; gap: 10px; }

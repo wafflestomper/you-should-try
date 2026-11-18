@@ -1,20 +1,32 @@
-/* Plain, functional look for now. The chalkboard styles stay in styles.css for later. */
+/* Modern look. Two themes on the .app wrapper: .look-light (editorial) and .look-dark (blurred covers). */
 :root {
-  --caps: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --serif: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --body: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --script: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --accent: #2F5D50;
-  --bg: #F7F7F5;
+  --caps: Manrope, system-ui, sans-serif; --serif: Manrope, system-ui, sans-serif;
+  --body: Manrope, system-ui, sans-serif; --script: Manrope, system-ui, sans-serif;
+  --block: Manrope, system-ui, sans-serif; --slab: Manrope, system-ui, sans-serif;
 }
-body { background: var(--bg); font-size: 16px; }
-.wrap { max-width: 860px; padding: 16px 16px 110px; }
-.h2 { font-style: normal; font-weight: 700; font-size: 22px; color: var(--ink); }
+.look-light {
+  --bg: #FFFFFF; --ink: #111113; --ink-2: #6B6B73; --ink-3: #8A8A93; --line: #E8E8E4;
+  --surface: #F4F4F1; --surface-2: #FFFFFF; --accent: #111113; --paper: #FFFFFF; --green: #111113;
+}
+.look-dark {
+  --bg: #0C0C0E; --ink: #F5F5F7; --ink-2: #A6A6B0; --ink-3: #7A7A84; --line: #26262C;
+  --surface: #17171B; --surface-2: #222228; --accent: #F5F5F7; --paper: #17171B; --green: #F5F5F7;
+}
+html[data-look='dark'], html[data-look='dark'] body { background: #0C0C0E; }
+body { background: #fff; font-family: Manrope, system-ui, sans-serif; }
+.app { min-height: 100vh; background: var(--bg); color: var(--ink); }
+.wrap { max-width: 760px; padding: 14px 14px 110px; }
+.h2 { font-style: normal; font-weight: 800; font-size: 22px; color: var(--ink); letter-spacing: -.02em; }
 .rule { border: 0; border-top: 1px solid var(--line); height: 0; margin: 8px 0 12px; }
 .cap { letter-spacing: .02em; text-transform: none; }
-.kind { letter-spacing: .02em; text-transform: none; font-size: 12.5px; font-weight: 600; }
-.btn { border-radius: 10px; border-width: 1.5px; }
-.btn.dark { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn.dark:hover { background: #26503f; }
-.script, .slab { font-family: var(--body) !important; }
-.card { background: #fff; border: 1px solid #E6E5E0; border-radius: 14px; padding: 14px; }
+.kind { letter-spacing: .06em; font-size: 12px; font-weight: 800; color: var(--ink-2); }
+.muted { color: var(--ink-2); } .faint { color: var(--ink-3); }
+.btn { border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface-2); color: var(--ink); font-family: Manrope, sans-serif; font-weight: 800; }
+.btn:hover { background: var(--surface); color: var(--ink); }
+.btn.dark { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.btn.dark:hover { background: var(--ink); opacity: .9; }
+.script, .slab { font-family: Manrope, sans-serif !important; font-weight: 800; }
+.card { background: var(--surface); border: 0; border-radius: 18px; padding: 14px; }
+a { color: inherit; }
+.app input:not([type=radio]):not([type=checkbox]), .app select, .app textarea { background: var(--surface-2) !important; color: var(--ink) !important; border-color: var(--line) !important; }
+.app .tag { border-color: var(--line); color: var(--ink-2); }

@@ -255,7 +255,7 @@
   .start { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 24px 0; }
   h1 { margin: 6px 0 4px; font-size: 26px; }
   .hint { margin: 0 0 26px; color: var(--ink-2); }
-  .bigmic { width: 170px; height: 170px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; cursor: pointer; display: grid; place-items: center;
+  .bigmic { width: 170px; height: 170px; border-radius: 50%; border: 0; background: var(--ink); color: var(--bg); cursor: pointer; display: grid; place-items: center;
     box-shadow: 0 0 0 calc(var(--lvl) * 26px) rgba(47, 93, 80, .22); transition: box-shadow .08s linear, transform .15s; }
   .bigmic:active { transform: scale(.97); }
   .bigmic.on { background: #B42318; box-shadow: 0 0 0 calc(8px + var(--lvl) * 30px) rgba(180, 35, 24, .2); }
@@ -263,7 +263,7 @@
   .lnk { background: none; border: 0; color: var(--ink-2); text-decoration: underline; font: inherit; cursor: pointer; padding: 10px; }
   .typed { width: 100%; max-width: 520px; display: grid; gap: 8px; text-align: left; margin-top: 18px; }
   .typed label, .f { font-weight: 700; font-size: 15px; }
-  input:not([type=radio]) { min-height: 48px; border: 1.5px solid #CFCDC4; border-radius: 10px; padding: 0 12px; font: 17px var(--body); background: #fff; width: 100%; box-sizing: border-box; }
+  input:not([type=radio]) { min-height: 48px; border: 1.5px solid var(--line); border-radius: 10px; padding: 0 12px; font: 17px var(--body); background: var(--surface-2); width: 100%; box-sizing: border-box; }
   .err { color: #B42318; font-weight: 600; max-width: 520px; }
   .heard { color: var(--ink-2); font-style: italic; }
   .spin { width: 54px; height: 54px; border-radius: 50%; border: 5px solid #DDE7E2; border-top-color: var(--accent); animation: sp .8s linear infinite; margin-top: 60px; }
@@ -273,19 +273,19 @@
   fieldset { border: 0; padding: 0; margin: 0; }
   legend { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
   .kinds { display: flex; flex-wrap: wrap; gap: 6px; }
-  .kchip { display: inline-flex; align-items: center; min-height: 38px; padding: 0 12px; border-radius: 19px; border: 1.5px solid #D6D4CC; background: #fff; font-weight: 600; font-size: 14.5px; cursor: pointer; }
+  .kchip { display: inline-flex; align-items: center; min-height: 38px; padding: 0 12px; border-radius: 19px; border: 1.5px solid var(--line); background: var(--surface-2); font-weight: 600; font-size: 14.5px; cursor: pointer; }
   .kchip input { position: absolute; opacity: 0; pointer-events: none; }
-  .kchip { border-color: color-mix(in srgb, var(--c) 45%, #D6D4CC); color: var(--c); }
+  .kchip { border-color: color-mix(in srgb, var(--c) 45%, var(--line)); color: var(--c); }
   .kchip:has(input:checked) { background: var(--c); color: #fff; border-color: var(--c); }
   .kchip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
   .f { margin-top: 10px; }
   .matches { display: grid; gap: 6px; }
-  .match { display: flex; gap: 10px; align-items: center; text-align: left; padding: 8px; border: 1.5px solid #E2E0D8; border-radius: 10px; background: #fff; cursor: pointer; font: inherit; color: inherit; }
-  .match.sel { border-color: var(--accent); background: #EEF5F1; }
+  .match { display: flex; gap: 10px; align-items: center; text-align: left; padding: 8px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface-2); cursor: pointer; font: inherit; color: inherit; }
+  .match.sel { border-color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--ink); }
   .match.plain { padding: 12px; color: var(--ink-2); }
   .m2 { color: var(--ink-2); font-size: 14px; margin: 0; }
-  .ob { color: var(--accent); font-weight: 600; font-size: 13.5px; }
-  .already { background: #FFF6DB; border: 1px solid #E9D18A; border-radius: 10px; padding: 12px 14px; font-size: 15px; margin-top: 8px; }
+  .ob { color: var(--ink-2); font-weight: 600; font-size: 13.5px; }
+  .already { color: #3A2E00; background: #FFF6DB; border: 1px solid #E9D18A; border-radius: 10px; padding: 12px 14px; font-size: 15px; margin-top: 8px; }
   .row { display: flex; gap: 12px; align-items: center; margin-top: 16px; }
   .big { min-height: 52px; font-size: 17px; flex: 1; }
 </style>

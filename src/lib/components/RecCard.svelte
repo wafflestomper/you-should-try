@@ -1,9 +1,11 @@
 <script>
+  // One recommendation. Two looks (set on the page wrapper): .look-light (editorial, cover pops out)
+  // and .look-dark (blurred cover behind frosted glass). In Stack view it starts collapsed.
   import { enhance } from '$app/forms';
   import Cover from './Cover.svelte';
-  import { KIND as KI, kindColor, kindSoft } from '$lib/kinds.js';
-  let { card, action = '?/react' } = $props();
-  const KIND = { book: 'Book', audiobook: 'Audiobook', movie: 'Movie', tv: 'TV show', podcast: 'Podcast', restaurant: 'Restaurant', recipe: 'Recipe', place: 'Place to go', other: 'Other' };
+  import { KIND as KI, kindColor, kindDeep } from '$lib/kinds.js';
+  let { card, action = '?/react', stacked = false } = $props();
+
   const DONE = { book: 'Read it', audiobook: 'Listened', movie: 'Watched it', tv: 'Watched it', podcast: 'Listened', restaurant: 'Been there', recipe: 'Made it', place: 'Been there', other: 'Tried it' };
   const first = (n) => n.split(' ')[0];
   function ago(iso) {
@@ -11,82 +13,167 @@
     if (d < 1) return 'today'; if (d < 2) return 'yesterday'; if (d < 7) return `${Math.floor(d)} days ago`;
     if (d < 30) return `${Math.floor(d / 7)} wk ago`; return `${Math.floor(d / 30)} mo ago`;
   }
+  let rating = $state(false);
   let open = $state(false);
   let it = $derived(card.item);
   let mine = $derived(card.mine);
   let names = $derived([...new Set(card.recs.map((r) => first(r.by_name)))]);
+  let whoLine = $derived(names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(' and '));
+  let collapsed = $derived(stacked && !open);
 </script>
 
-<article class="rc card" class:starred={mine?.state === 'starred'} style="--kc:{kindColor(it.kind)};--ks:{kindSoft(it.kind)}">
-  {#if mine?.state === 'starred'}<span class="starbadge" title="Starred" aria-label="Starred">★</span>{/if}
-  <a href="/item/{it.id}" class="cov" tabindex="-1" aria-hidden="true"><Cover title={it.title} kind={it.kind} image={it.image_url} w={64} /></a>
-  <div class="body">
-    <div class="kline"><span class="kpill">{KI[it.kind]?.label ?? it.kind}</span>{#if it.creator}<span class="cr">{it.creator}</span>{/if}</div>
-    <h3><a href="/item/{it.id}">{it.title}</a></h3>
-    <p class="who">
-      <b>{names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(' and ')}</b> {names.length > 1 ? 'recommend' : 'recommended'} it · {ago(card.newest)}
-      {#if card.boosted}<span class="match" title="People with taste like yours are behind this one">your kind of thing</span>{/if}
-    </p>
-    {#each card.recs.filter((r) => r.note) as r}<p class="note">“{r.note}” <span>– {first(r.by_name)}</span></p>{/each}
-    {#if it.kind === 'recipe'}
-      <p class="rlink">{#if it.url}<a href={it.url} target="_blank" rel="noopener">Open the recipe ↗</a>{:else if it.has_details}<a href="/item/{it.id}#details">See the recipe</a>{:else}<a href="/item/{it.id}#details">+ Add the recipe</a>{/if}</p>
-    {/if}
-    {#if card.loved.length || card.liked.length}
-      <p class="loves">{#if card.loved.length}❤️ {card.loved.map(first).join(', ')} loved it{/if}{#if card.loved.length && card.liked.length}{' · '}{/if}{#if card.liked.length}👍 {card.liked.map(first).join(', ')} liked it{/if}</p>
-    {/if}
-
-    <div class="acts">
-      {#if mine?.state === 'done'}
-        <span class="state">{mine.reaction === 'loved' ? '❤️ You loved it' : mine.reaction === 'liked' ? '👍 You liked it' : "You didn't like it"}</span>
-        <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="clear" /><button class="lnk">Undo</button></form>
-      {:else if mine?.state === 'hidden'}
-        <span class="state">Marked not for you</span>
-        <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="clear" /><button class="lnk">Put it back</button></form>
-      {:else if open}
-        <span class="q">How was it?</span>
-        {#each [['loved', '❤️ Loved it'], ['liked', '👍 Liked it'], ['not_for_me', "Didn't like it"]] as [r, label]}
-          <form method="POST" {action} use:enhance={() => async ({ update }) => { open = false; await update(); }}>
-            <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="done" /><input type="hidden" name="reaction" value={r} />
-            <button class="btn sm">{label}</button>
-          </form>
-        {/each}
-        <button class="lnk" onclick={() => (open = false)}>Cancel</button>
-      {:else}
-
-        <button class="btn sm dark" onclick={() => (open = true)}>{DONE[it.kind] ?? 'Tried it'}</button>
-        <form method="POST" {action} use:enhance>
-          <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value={mine?.state === 'starred' ? 'clear' : 'starred'} />
-          <button class="btn sm star" aria-pressed={mine?.state === 'starred'} title={mine?.state === 'starred' ? 'Unstar' : 'Star it to keep it at the top of your board'}>{mine?.state === 'starred' ? '★ Starred' : '☆ Star'}</button>
-        </form>
-        <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="hidden" /><button class="lnk" title="Takes it off your board. Everyone else still sees it.">Not for me</button></form>
-      {/if}
+<article class="rc" class:starred={mine?.state === 'starred'} class:collapsed class:stacked
+  style="--kc:{kindColor(it.kind)};--kd:{kindDeep(it.kind)}">
+  {#if collapsed}
+    <button class="strip" onclick={() => (open = true)} aria-expanded="false" aria-label="{it.title}, {KI[it.kind]?.label}. Open">
+      <span class="st-txt"><span class="k">{KI[it.kind]?.label ?? it.kind}</span><span class="st-title">{it.title}</span><span class="st-who">{whoLine}</span></span>
+      {#if mine?.state === 'starred'}<span class="star-dot" aria-label="Starred"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8Z"/></svg></span>{/if}
+      <span class="st-cov"><Cover title={it.title} kind={it.kind} image={it.image_url} w={42} /></span>
+    </button>
+  {:else}
+    <div class="hero">
+      <div class="blur" aria-hidden="true">{#if it.image_url}<img src={it.image_url} alt="" loading="lazy" />{/if}</div>
+      <a href="/item/{it.id}" class="cov" tabindex="-1" aria-hidden="true"><Cover title={it.title} kind={it.kind} image={it.image_url} w={96} /></a>
+      <div class="ht">
+        <span class="k"><i aria-hidden="true"></i>{KI[it.kind]?.label ?? it.kind}</span>
+        <h3><a href="/item/{it.id}">{it.title}</a></h3>
+        {#if it.creator}<div class="sub">{it.creator}</div>{/if}
+      </div>
+      {#if mine?.state === 'starred'}<span class="starbadge" title="Starred" aria-label="Starred"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8Z"/></svg></span>{/if}
+      {#if stacked}<button class="close" onclick={() => (open = false)} aria-label="Close {it.title}"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>{/if}
     </div>
-  </div>
+
+    <div class="body">
+      {#each card.recs.filter((r) => r.note) as r}<p class="q">“{r.note}” <span class="qby">{first(r.by_name)}</span></p>{/each}
+      {#if it.kind === 'recipe'}
+        <p class="rlink">{#if it.url}<a href={it.url} target="_blank" rel="noopener">Open the recipe ↗</a>{:else if it.has_details}<a href="/item/{it.id}#details">See the recipe</a>{:else}<a href="/item/{it.id}#details">+ Add the recipe</a>{/if}</p>
+      {/if}
+      <div class="meta">
+        <span><b>{whoLine}</b> · {ago(card.newest)}{#if card.boosted}<span class="match" title="People with taste like yours are behind this one">your kind of thing</span>{/if}</span>
+        {#if card.loved.length || card.liked.length}
+          <span class="lv"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21s-7.5-4.6-10-9.3C.4 8.4 2.4 4.5 6.1 4.5c2.2 0 3.6 1.2 4.4 2.4h3c.8-1.2 2.2-2.4 4.4-2.4 3.7 0 5.7 3.9 4.1 7.2C19.5 16.4 12 21 12 21Z"/></svg>{[...card.loved, ...card.liked].map(first).join(', ')}</span>
+        {/if}
+      </div>
+
+      <div class="acts">
+        {#if mine?.state === 'done'}
+          <span class="state">{mine.reaction === 'loved' ? 'You loved it' : mine.reaction === 'liked' ? 'You liked it' : "You didn't like it"}</span>
+          <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="clear" /><button class="g">Undo</button></form>
+        {:else if mine?.state === 'hidden'}
+          <span class="state">Marked not for you</span>
+          <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="clear" /><button class="g">Put it back</button></form>
+        {:else if rating}
+          <span class="state">How was it?</span>
+          <div class="rate">
+            {#each [['loved', 'Loved it'], ['liked', 'Liked it'], ['not_for_me', "Didn't like it"]] as [r, label]}
+              <form method="POST" {action} use:enhance={() => async ({ update }) => { rating = false; await update(); }}>
+                <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="done" /><input type="hidden" name="reaction" value={r} />
+                <button class="p sm">{label}</button>
+              </form>
+            {/each}
+            <button class="g" onclick={() => (rating = false)}>Cancel</button>
+          </div>
+        {:else}
+          <button class="p" onclick={() => (rating = true)}>{DONE[it.kind] ?? 'Tried it'}</button>
+          <form method="POST" {action} use:enhance>
+            <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value={mine?.state === 'starred' ? 'clear' : 'starred'} />
+            <button class="s" aria-pressed={mine?.state === 'starred'} aria-label={mine?.state === 'starred' ? 'Unstar' : 'Star it to keep it at the top of your board'}><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill={mine?.state === 'starred' ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8Z"/></svg></button>
+          </form>
+          <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="hidden" /><button class="g" title="Takes it off your board. Everyone else still sees it.">Not for me</button></form>
+        {/if}
+      </div>
+    </div>
+  {/if}
 </article>
 
 <style>
-  .rc { position: relative; display: flex; gap: 14px; border-left: 5px solid var(--kc);
-    background: linear-gradient(color-mix(in srgb, var(--ks) 45%, #fff), color-mix(in srgb, var(--ks) 45%, #fff)); border-color: color-mix(in srgb, var(--kc) 22%, #E6E5E0); border-left-color: var(--kc); }
-  .starbadge { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; background: #F5C518; color: #fff; display: grid; place-items: center; font-size: 17px; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
-  .starred h3 { padding-right: 36px; }
-  .kline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .kpill { background: var(--ks); color: var(--kc); font-weight: 700; font-size: 12.5px; border-radius: 10px; padding: 1px 9px; }
-  .cr { color: var(--ink-2); font-size: 13.5px; }
-  .cov { flex: none; }
-  .body { flex: 1; min-width: 0; }
-  h3 { margin: 2px 0 4px; font-size: 18px; line-height: 1.25; }
-  h3 a { color: var(--ink); text-decoration: none; }
-  .who, .loves, .note { margin: 2px 0; font-size: 14.5px; color: var(--ink-2); }
-  .who b { color: var(--ink); }
-  .note { color: var(--ink); }
-  .rlink { margin: 4px 0; font-weight: 600; font-size: 14.5px; }
-  .rlink a { color: var(--kc); }
-  .note span { color: var(--ink-3); }
-  .match { margin-left: 6px; font-size: 12px; font-weight: 700; color: var(--accent); background: #E4F0EA; border-radius: 10px; padding: 1px 8px; white-space: nowrap; }
-  .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .rc { position: relative; border-radius: 22px; isolation: isolate; }
+  .rc :global(.cover-img), .rc :global(.cover) { border-radius: 8px; box-shadow: 0 10px 22px rgba(0,0,0,.28); }
+  .rc :global(.cover-img.round), .rc :global(.cover.restaurant), .rc :global(.cover.recipe) { border-radius: 50%; }
+  .cov { text-decoration: none; }
+  .k { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+  .k i { width: 9px; height: 9px; border-radius: 3px; background: var(--kc); }
+  h3 { margin: 4px 0 2px; line-height: 1.02; }
+  h3 a { color: inherit; text-decoration: none; }
+  .sub { font-size: 13px; font-weight: 600; }
+  .q { margin: 0 0 6px; }
+  .qby { font-size: 12.5px; font-weight: 700; font-style: normal; font-family: Manrope, sans-serif; opacity: .65; white-space: nowrap; }
+  .meta { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 12.5px; font-weight: 600; }
+  .lv { display: inline-flex; align-items: center; gap: 4px; }
+  .match { margin-left: 6px; font-size: 11.5px; font-weight: 800; border-radius: 10px; padding: 1px 8px; white-space: nowrap; }
+  .rlink { margin: 4px 0 6px; font-weight: 700; font-size: 14px; }
+  .acts { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
   .acts form { margin: 0; }
-  .star[aria-pressed='true'] { background: #FFF6DB; border-color: #E2B93B; color: #7A5A00; }
-  .lnk { background: none; border: 0; color: var(--ink-2); text-decoration: underline; font: inherit; font-size: 14px; cursor: pointer; padding: 6px 4px; }
-  .state { font-weight: 600; font-size: 14.5px; }
-  .q { font-weight: 600; font-size: 14.5px; margin-right: 2px; }
+  .rate { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .p, .s, .g { min-height: 42px; border-radius: 12px; font: 800 14px Manrope, system-ui, sans-serif; border: 0; padding: 0 16px; cursor: pointer; }
+  .p { flex: 1; }
+  .p.sm { flex: none; min-height: 38px; padding: 0 12px; font-size: 13.5px; }
+  .acts > .p { flex: 1; }
+  .s { width: 44px; padding: 0; display: grid; place-items: center; }
+  .g { background: none; padding: 0 6px; }
+  .state { font-weight: 800; font-size: 14px; }
+  .starbadge { position: absolute; top: 12px; right: 12px; z-index: 3; width: 32px; height: 32px; border-radius: 50%; background: #F5C518; color: #fff; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  .close { position: absolute; top: 10px; left: 10px; z-index: 3; width: 36px; height: 36px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; }
+
+  /* ---------- Stack (wallet) ---------- */
+  .collapsed { border-radius: 20px; }
+  .strip { width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px 30px; border: 0; border-radius: 20px; text-align: left; cursor: pointer; color: #fff; font: inherit;
+    background: linear-gradient(150deg, var(--kc), var(--kd)); box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 -6px 18px rgba(0,0,0,.16); }
+  .st-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .strip .k { opacity: .85; }
+  .st-title { font-size: 20px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st-who { font-size: 12.5px; font-weight: 600; opacity: .85; }
+  .st-cov { flex: none; transform: rotate(4deg); }
+  .star-dot { width: 24px; height: 24px; border-radius: 50%; background: #F5C518; color: #fff; display: grid; place-items: center; flex: none; }
+
+  /* ---------- Look: light / editorial ---------- */
+  :global(.look-light) .rc:not(.collapsed) { background: #F4F4F1; padding: 16px 16px 14px; margin-top: 30px; }
+  :global(.look-light) .stacked:not(.collapsed) { margin-top: 30px; }
+  :global(.look-light) .hero { position: relative; min-height: 104px; padding-right: 116px; }
+  :global(.look-light) .blur { display: none; }
+  :global(.look-light) .cov { position: absolute; top: -46px; right: 0; transform: rotate(3deg); z-index: 2; }
+  :global(.look-light) .k { color: var(--kd); }
+  :global(.look-light) h3 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 36px; letter-spacing: -.01em; color: #111113; }
+  :global(.look-light) .sub { color: #6B6B73; }
+  :global(.look-light) .q { font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-size: 20px; line-height: 1.28; color: #111113; margin-top: 8px; }
+  :global(.look-light) .meta { color: #6B6B73; }
+  :global(.look-light) .meta b { color: #111113; }
+  :global(.look-light) .lv { color: #D21F52; }
+  :global(.look-light) .match { background: #E8F1EC; color: #1F5D45; }
+  :global(.look-light) .rlink a { color: var(--kd); }
+  :global(.look-light) .p { background: var(--kd); color: #fff; }
+  :global(.look-light) .s { background: #fff; color: #111113; }
+  :global(.look-light) .s[aria-pressed='true'] { color: #C99A06; }
+  :global(.look-light) .g { color: #6B6B73; }
+  :global(.look-light) .state { color: #111113; }
+  :global(.look-light) .close { background: #fff; color: #111113; }
+  :global(.look-light) .stacked .close { top: -4px; left: auto; right: 124px; }
+  :global(.look-light) .starbadge { top: -2px; right: 124px; }
+  :global(.look-light) .stacked .starbadge { right: 168px; }
+  :global(.look-light) .strip .k { color: #fff; }
+
+  /* ---------- Look: dark / blurred cover ---------- */
+  :global(.look-dark) .rc:not(.collapsed) { background: #141417; overflow: hidden; color: #fff; }
+  :global(.look-dark) .blur { position: absolute; inset: -40px; z-index: -1;
+    background: radial-gradient(circle at 25% 30%, var(--kd), transparent 60%), radial-gradient(circle at 85% 15%, var(--kc), transparent 55%); filter: blur(26px); opacity: .95; }
+  :global(.look-dark) .blur img { width: 100%; height: 100%; object-fit: cover; filter: blur(30px) saturate(1.4); opacity: .75; transform: scale(1.3); }
+  :global(.look-dark) .hero { position: relative; display: flex; gap: 14px; align-items: flex-end; padding: 18px 16px 10px; }
+  :global(.look-dark) .ht { flex: 1; min-width: 0; padding-right: 26px; }
+  :global(.look-dark) .k { opacity: .8; }
+  :global(.look-dark) .k i { background: #fff; }
+  :global(.look-dark) h3 { font-size: 26px; font-weight: 800; letter-spacing: -.03em; }
+  :global(.look-dark) .sub { opacity: .75; }
+  :global(.look-dark) .body { margin: 6px 8px 8px; padding: 12px; border-radius: 18px; background: rgba(255,255,255,.1); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.12); }
+  :global(.look-dark) .q { font-size: 15px; line-height: 1.4; font-weight: 600; }
+  :global(.look-dark) .meta { opacity: .85; }
+  :global(.look-dark) .lv { color: #FF8FAB; }
+  :global(.look-dark) .match { background: rgba(255,255,255,.18); color: #fff; }
+  :global(.look-dark) .rlink a { color: #fff; }
+  :global(.look-dark) .p { background: #fff; color: #0C0C0E; }
+  :global(.look-dark) .s { background: rgba(255,255,255,.14); color: #fff; }
+  :global(.look-dark) .s[aria-pressed='true'] { color: #F5C518; }
+  :global(.look-dark) .g { color: rgba(255,255,255,.75); }
+  :global(.look-dark) .close { background: rgba(0,0,0,.35); color: #fff; }
+  :global(.look-dark) .stacked .ht { padding-left: 0; }
+  :global(.look-dark) .stacked .hero { padding-top: 54px; }
 </style>

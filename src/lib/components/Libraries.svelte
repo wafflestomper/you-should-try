@@ -77,14 +77,14 @@
   .rl { background: none; border: 0; padding: 0; font: 13px var(--body); color: var(--ink-2); text-decoration: underline; cursor: pointer; }
   .sm { font-size: 13px; color: var(--ink-2); margin: -2px 0 6px; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 6px 0 12px; border-radius: 17px; background: var(--green); color: #fff; font: 600 14px var(--body); }
-  .chip button { background: none; border: 0; color: #fff; font-size: 18px; cursor: pointer; width: 26px; height: 26px; border-radius: 13px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 6px 0 12px; border-radius: 17px; background: var(--ink); color: var(--bg); font: 600 14px var(--body); }
+  .chip button { background: none; border: 0; color: inherit; font-size: 18px; cursor: pointer; width: 26px; height: 26px; border-radius: 13px; }
   .chip button:hover, .chip button:focus-visible { background: rgba(255,255,255,.18); }
   .search { position: relative; flex: 0 1 280px; }
-  .search input { width: 100%; min-height: 36px; padding: 0 12px; border: 1.5px solid #CFCDC4; border-radius: 18px; font: 14px var(--body); }
-  .drop { position: absolute; z-index: 20; top: 40px; left: 0; right: 0; min-width: 260px; list-style: none; margin: 0; padding: 4px; background: #fff; border: 1.5px solid var(--slate); border-radius: 6px; box-shadow: 0 8px 22px rgba(0,0,0,.12); }
+  .search input { width: 100%; min-height: 36px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: 18px; font: 14px var(--body); }
+  .drop { position: absolute; z-index: 20; top: 40px; left: 0; right: 0; min-width: 260px; list-style: none; margin: 0; padding: 4px; background: var(--surface-2); border: 1.5px solid var(--slate); border-radius: 6px; box-shadow: 0 8px 22px rgba(0,0,0,.12); }
   .drop button { width: 100%; text-align: left; padding: 9px 10px; background: none; border: 0; font: 14px var(--body); cursor: pointer; border-radius: 4px; }
-  .drop button:hover, .drop button:focus-visible { background: #F3F1EA; }
+  .drop button:hover, .drop button:focus-visible { background: var(--surface); }
   .opt { display: flex; align-items: center; gap: 4px; }
   .opt button { flex: 1; display: flex; flex-direction: column; }
   .opt a { font-size: 12.5px; padding: 6px 8px; white-space: nowrap; color: var(--ink-2); }

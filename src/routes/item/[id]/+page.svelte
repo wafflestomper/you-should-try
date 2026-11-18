@@ -128,10 +128,10 @@
   .boardcard { margin-top: 18px; max-width: 640px; }
   .boardcard :global(.cov) { display: none; }
   .details { margin-top: 32px; max-width: 700px; }
-  .dtext { white-space: pre-wrap; background: #fff; border: 1px solid #E6E5E0; border-radius: 10px; padding: 14px; margin: 12px 0 6px; line-height: 1.55; }
+  .dtext { white-space: pre-wrap; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin: 12px 0 6px; line-height: 1.55; }
   .dform { display: grid; gap: 6px; }
   .dform label { font-weight: 700; margin-top: 8px; }
-  .dform input, .dform textarea { border: 1.5px solid #CFCDC4; border-radius: 10px; padding: 10px 12px; font: 16px var(--body); }
+  .dform input, .dform textarea { border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; font: 16px var(--body); }
   .drow { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
   .lnkb { background: none; border: 0; text-decoration: underline; cursor: pointer; font: inherit; color: var(--ink-2); padding: 0; }
   .bad2 { color: #B42318; font-weight: 600; }

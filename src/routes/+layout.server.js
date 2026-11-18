@@ -1,7 +1,8 @@
-export async function load({ locals, platform }) {
+export async function load({ locals, platform, cookies }) {
+  const look = cookies.get('yst_look') === 'dark' ? 'dark' : 'light';
   const db = platform?.env?.DB;
-  if (!db) return { user: null, dbMissing: true };
-  if (!locals.user) return { user: null, dbMissing: false };
+  if (!db) return { user: null, dbMissing: true, look };
+  if (!locals.user) return { user: null, dbMissing: false, look };
   const [tries, unread, people] = await Promise.all([
     db.prepare("SELECT COUNT(*) AS n FROM reactions WHERE user_id = ? AND state = 'saved'").bind(locals.user.id).first(),
     db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND read_at IS NULL').bind(locals.user.id).first(),
@@ -14,6 +15,7 @@ export async function load({ locals, platform }) {
     realUser: locals.realUser,
     counts: { saved: tries.n, unread: unread.n },
     viewAsPeople: people.results,
-    dbMissing: false
+    dbMissing: false,
+    look
   };
 }
