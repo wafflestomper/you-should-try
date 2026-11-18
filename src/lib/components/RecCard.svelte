@@ -32,14 +32,14 @@
 
     <div class="acts">
       {#if mine?.state === 'done'}
-        <span class="state">{mine.reaction === 'loved' ? '❤️ You loved it' : mine.reaction === 'liked' ? '👍 You liked it' : 'Not for you'}</span>
+        <span class="state">{mine.reaction === 'loved' ? '❤️ You loved it' : mine.reaction === 'liked' ? '👍 You liked it' : "You didn't like it"}</span>
         <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="clear" /><button class="lnk">Undo</button></form>
       {:else if mine?.state === 'hidden'}
-        <span class="state">Hidden for you</span>
-        <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="clear" /><button class="lnk">Unhide</button></form>
+        <span class="state">Marked not for you</span>
+        <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="clear" /><button class="lnk">Put it back</button></form>
       {:else if open}
         <span class="q">How was it?</span>
-        {#each [['loved', '❤️ Loved it'], ['liked', '👍 Liked it'], ['not_for_me', 'Not for me']] as [r, label]}
+        {#each [['loved', '❤️ Loved it'], ['liked', '👍 Liked it'], ['not_for_me', "Didn't like it"]] as [r, label]}
           <form method="POST" {action} use:enhance={() => async ({ update }) => { open = false; await update(); }}>
             <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="done" /><input type="hidden" name="reaction" value={r} />
             <button class="btn sm">{label}</button>
@@ -53,7 +53,7 @@
           <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value={mine?.state === 'starred' ? 'clear' : 'starred'} />
           <button class="btn sm star" aria-pressed={mine?.state === 'starred'} title={mine?.state === 'starred' ? 'Unstar' : 'Star it to keep it at the top of your board'}>{mine?.state === 'starred' ? '★ Starred' : '☆ Star'}</button>
         </form>
-        <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="hidden" /><button class="lnk" title="Hide it for you. Everyone else still sees it.">Hide</button></form>
+        <form method="POST" {action} use:enhance><input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="hidden" /><button class="lnk" title="Takes it off your board. Everyone else still sees it.">Not for me</button></form>
       {/if}
     </div>
   </div>

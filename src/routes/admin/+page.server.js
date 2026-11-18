@@ -1,3 +1,4 @@
+import { possibleDups, mergeItems } from '$lib/server/dups.js';
 import { error, fail } from '@sveltejs/kit';
 
 const all = async (db, sql, ...a) => (await db.prepare(sql).bind(...a).all()).results;
@@ -15,14 +16,27 @@ export async function load({ locals, platform, url }) {
     all(db, `SELECT c.*, u.name AS by_name FROM circles c LEFT JOIN users u ON u.id = c.suggested_by WHERE c.status = 'pending'`),
     db.prepare(`SELECT COUNT(*) AS n FROM users WHERE id LIKE 'u-%' AND email IS NULL AND google_sub IS NULL AND id != ?`).bind(locals.realUser.id).first()
   ]);
+  const dups = await possibleDups(platform.env.DB);
   const mm = await platform.env.DB.prepare("SELECT value FROM settings WHERE key = 'match_min_shared'").first();
-  return { newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5) };
+  return { newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups };
 }
 
 const guard = (locals) => { if (!locals.realUser?.is_admin) error(403, 'Admins only.'); };
 const field = async (request, k) => String((await request.formData()).get(k) || '');
 
 export const actions = {
+  merge: async ({ request, platform, locals }) => {
+    if (!locals.realUser?.is_admin) return;
+    const f = await request.formData();
+    await mergeItems(platform.env.DB, locals.realUser.id, String(f.get('from')), String(f.get('to')));
+    return { merged: true };
+  },
+  notDup: async ({ request, platform, locals }) => {
+    if (!locals.realUser?.is_admin) return;
+    const f = await request.formData();
+    const [a, b] = [String(f.get('a')), String(f.get('b'))].sort();
+    await platform.env.DB.prepare('INSERT OR IGNORE INTO dup_dismissed (a, b, dismissed_by) VALUES (?, ?, ?)').bind(a, b, locals.realUser.id).run();
+  },
   matchMin: async ({ request, platform, locals }) => {
     if (!locals.realUser?.is_admin) return;
     const n = Math.round(Number((await request.formData()).get('n')));

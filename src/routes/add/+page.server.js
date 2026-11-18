@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { ensureItem } from '$lib/server/lists.js';
 import { KINDS } from '$lib/server/board.js';
+import { flagIfDup } from '$lib/server/dups.js';
 
 export async function load({ platform, locals }) {
   const db = platform.env.DB;
@@ -54,6 +55,7 @@ export const actions = {
     if (!dup) {
       await db.prepare('INSERT INTO recs (id, item_id, by_user_id, by_guest_id, added_by, note) VALUES (?, ?, ?, ?, ?, ?)')
         .bind(crypto.randomUUID(), itemId, who.user ?? null, who.guest ?? null, locals.user.id, note).run();
+      if (!before.n) await flagIfDup(db, locals.user.id, itemId).catch(() => {});
     } else if (note) {
       // Same person again: keep their newest note
       await db.prepare('UPDATE recs SET note = ? WHERE id = ?').bind(note, dup.id).run();

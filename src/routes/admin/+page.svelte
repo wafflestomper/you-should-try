@@ -11,6 +11,23 @@
 
 <svelte:head><title>Admin · You Should Try</title></svelte:head>
 <h1 class="slab" style="font-size:32px;margin:20px 0 0">Admin</h1>
+<section class="dups" id="duplicates">
+  <h2 class="h2">Possible duplicates {#if data.dups.length}<span class="cnt">{data.dups.length}</span>{/if}</h2>
+  {#if !data.dups.length}<p class="muted small">Nothing looks doubled up right now.</p>{/if}
+  {#each data.dups as d (d.a.id + d.b.id)}
+    <div class="pair">
+      {#each [[d.a, d.b], [d.b, d.a]] as [keep, drop]}
+        <div class="side">
+          <a href="/item/{keep.id}"><b>{keep.title}</b></a>
+          <div class="small muted">{keep.kind}{keep.creator ? `, ${keep.creator}` : ''} · {keep.recs} recommendation{keep.recs === 1 ? '' : 's'}</div>
+          <form method="POST" action="?/merge"><input type="hidden" name="from" value={drop.id} /><input type="hidden" name="to" value={keep.id} /><button class="btn sm">Keep this one</button></form>
+        </div>
+      {/each}
+      <form method="POST" action="?/notDup" class="nd"><input type="hidden" name="a" value={d.a.id} /><input type="hidden" name="b" value={d.b.id} /><button class="lnkb">Not the same</button><span class="small muted">{d.score}% alike</span></form>
+    </div>
+  {/each}
+</section>
+
 <form method="POST" action="?/matchMin" class="mm">
   <label for="mm">Taste match kicks in after</label>
   <input id="mm" name="n" type="number" min="1" max="50" value={data.matchMin} />
@@ -62,6 +79,13 @@
 {/if}
 
 <style>
+  .dups { margin: 16px 0 24px; }
+  .cnt { background: #C2410C; color: #fff; border-radius: 10px; font-size: 13px; padding: 1px 8px; vertical-align: middle; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #fff; border: 1px solid #E6E5E0; border-radius: 12px; padding: 12px; margin-top: 10px; }
+  .side { display: grid; gap: 4px; align-content: start; }
+  .side form { margin-top: 4px; }
+  .nd { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; border-top: 1px solid #EEE; padding-top: 8px; }
+  .lnkb { background: none; border: 0; text-decoration: underline; cursor: pointer; font: inherit; color: var(--ink-2); padding: 4px 0; }
   .mm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0 20px; }
   .mm input { width: 70px; min-height: 36px; font-size: 16px; padding: 0 8px; }
   .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--line); }
