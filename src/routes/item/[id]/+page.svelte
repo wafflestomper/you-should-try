@@ -1,4 +1,5 @@
 <script>
+  import { tick } from 'svelte';
   import { enhance } from '$app/forms';
   import Cover from '$lib/components/Cover.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
@@ -18,6 +19,8 @@
   let fxPick = $state(null);
   let fxNote = $state('');
   let fxTimer;
+  let fxForm;
+  let fxSaving = $state(false);
   function fxSearch() {
     clearTimeout(fxTimer);
     fxTimer = setTimeout(async () => {
@@ -25,7 +28,7 @@
       const r = await fetch(`/api/search?kind=${fxKind}&q=${encodeURIComponent(fxTitle)}`);
       const j = await r.json();
       fxResults = (j.results || []).filter((m) => m.local_id !== data.item.id);
-      fxNote = j.note || (fxResults.length ? 'Pick the right one, or save to keep what you typed.' : 'No matches. Saving keeps what you typed.');
+      fxNote = j.note || (fxResults.length ? '' : 'No matches. Saving keeps what you typed.');
       fxPick = null;
     }, 350);
   }
@@ -132,7 +135,7 @@
 {#if data.canFix}
 <details class="fixbox" open={!!form?.fixError}>
   <summary>Wrong thing, or added by mistake?</summary>
-  <form method="POST" action="?/fix" class="fixform">
+  <form method="POST" action="?/fix" class="fixform" bind:this={fxForm}>
     <label for="fx-kind">What is it?</label>
     <select id="fx-kind" name="kind" bind:value={fxKind} onchange={fxSearch}>
       {#each KIND_INFO as k}<option value={k.key}>{k.label}</option>{/each}
@@ -143,16 +146,16 @@
     {#if fxResults.length}
       <div class="fxres" role="radiogroup" aria-label="Pick the right one">
         {#each fxResults as m, i (i)}
-          <button type="button" role="radio" aria-checked={fxPick === m} class:sel={fxPick === m} onclick={() => { fxPick = m; fxTitle = m.title; }}>
-            <Cover title={m.title} kind={m.kind} image={m.image_url} w={36} /><span><b>{m.title}</b><br /><span class="small muted">{[m.creator, m.year].filter(Boolean).join(', ')}</span></span>
+          <button type="button" role="radio" aria-checked={fxPick === m} class:sel={fxPick === m} onclick={async () => { fxPick = m; fxTitle = m.title; fxSaving = true; await tick(); fxForm.requestSubmit(); }}>
+            <Cover title={m.title} kind={m.kind} image={m.image_url} w={36} /><span class="fxt"><b>{m.title}</b><br /><span class="small muted">{[m.creator, m.year].filter(Boolean).join(', ')}</span></span><span class="use">{fxSaving && fxPick === m ? 'Saving…' : 'Use this'}</span>
           </button>
         {/each}
       </div>
     {/if}
     <input type="hidden" name="pick" value={fxPick ? JSON.stringify(fxPick) : '{}'} />
     {#if form?.fixError}<p class="bad2" role="alert">{form.fixError}</p>{/if}
-    <button class="btn dark">Save the fix</button>
-    <p class="small muted">Everyone's recommendations, notes and ratings move with it.</p>
+    <button class="btn dark">{fxResults.length ? 'None of these, save what I typed' : 'Save the fix'}</button>
+    <p class="small muted">Tap the right one above and it saves right away. Everyone's recommendations, notes and ratings move with it.</p>
   </form>
   <div class="rmrow">
     {#if data.mineRecs}
@@ -186,6 +189,8 @@
   .fxres { display: grid; gap: 6px; }
   .fxres button { display: flex; gap: 10px; align-items: center; text-align: left; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; cursor: pointer; }
   .fxres button.sel { box-shadow: inset 0 0 0 2px var(--ink); }
+  .fxt { flex: 1; min-width: 0; }
+  .use { flex: none; font-weight: 800; font-size: 13px; background: var(--ink); color: var(--bg); border-radius: 10px; padding: 7px 10px; }
   .rmrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
   .rmrow form { margin: 0; }
   .btn.danger { border-color: #B42318; color: #B42318; }
