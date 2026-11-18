@@ -1,5 +1,9 @@
 <script>
+  import { enhance } from '$app/forms';
+  import { invalidate } from '$app/navigation';
   let { data } = $props();
+  // This page just marked everything read, so refresh the number on the bell
+  $effect(() => { invalidate('app:counts'); });
   const first = (n) => (n || 'Someone').split(' ')[0];
   function ago(iso) {
     const d = (Date.now() - Date.parse(iso.replace(' ', 'T') + 'Z')) / 864e5;
@@ -9,7 +13,10 @@
 </script>
 <svelte:head><title>Notifications · You Should Try</title></svelte:head>
 
-<h1>Notifications</h1>
+<div class="head">
+  <h1>Notifications</h1>
+  {#if data.notes.length}<form method="POST" action="?/clear" use:enhance><button class="btn sm">Clear all</button></form>{/if}
+</div>
 {#if data.notes.length}
   <ul class="list">
     {#each data.notes as n (n.id)}
@@ -34,6 +41,9 @@
 {/if}
 
 <style>
+  .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .head form { margin: 0; }
+  .head .btn { min-height: 40px; padding: 0 16px; }
   h1 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; margin: 14px 0 12px; }
   .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
   li { display: flex; gap: 12px; align-items: flex-start; background: var(--surface); border-radius: 16px; padding: 14px; color: var(--ink); }

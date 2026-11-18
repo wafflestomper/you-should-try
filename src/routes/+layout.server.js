@@ -1,4 +1,5 @@
-export async function load({ locals, platform, cookies }) {
+export async function load({ locals, platform, cookies, depends }) {
+  depends('app:counts');
   const look = cookies.get('yst_look') === 'dark' ? 'dark' : 'light';
   const db = platform?.env?.DB;
   if (!db) return { user: null, dbMissing: true, look };

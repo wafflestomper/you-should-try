@@ -10,6 +10,9 @@ export async function load({ platform, locals }) {
   return { notes };
 }
 export const actions = {
+  clear: async ({ platform, locals }) => {
+    await platform.env.DB.prepare("DELETE FROM notifications WHERE user_id = ?").bind(locals.user.id).run();
+  },
   read: async ({ platform, locals }) => {
     await platform.env.DB.prepare("UPDATE notifications SET read_at = datetime('now') WHERE user_id = ? AND read_at IS NULL").bind(locals.user.id).run();
   }
