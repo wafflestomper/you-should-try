@@ -17,7 +17,7 @@ export async function load({ platform, locals }) {
   // Episode names we already have, for "Up next: S2 E5, Crossroads"
   const epNames = {};
   for (const r of names.results) for (const x of JSON.parse(r.data)) if (x.name) epNames[`${r.item_id}:${r.season}:${x.e}`] = x.name;
-  const shows = rows.results.map((r) => ({ id: r.item_id, title: r.title, year: r.year, image: r.image_url, s: r.s, e: r.e, caughtUp: !!r.caught_up_at, onBoard: !!r.on_board, info: r.info ? JSON.parse(r.info) : null }));
+  const shows = rows.results.map((r) => ({ id: r.item_id, title: r.title, year: r.year, image: r.image_url, s: r.s, e: r.e, caughtUp: !!r.caught_up_at, onBoard: !!r.on_board, at: r.updated_at, info: r.info ? JSON.parse(r.info) : null }));
   const job = refreshTracked(db, platform.env, me).catch(() => {});
   if (platform.context?.waitUntil) platform.context.waitUntil(job); else if (platform.ctx?.waitUntil) platform.ctx.waitUntil(job);
   return { shows, epNames };

@@ -3,7 +3,7 @@
   import '$lib/plain.css';
   import TopBar from '$lib/components/TopBar.svelte';
   import { page, updated } from '$app/state';
-  import { beforeNavigate } from '$app/navigation';
+  import { beforeNavigate, goto } from '$app/navigation';
   import Nav from '$lib/components/Nav.svelte';
   import Corners from '$lib/components/Corners.svelte';
   import Icon from '$lib/components/Icon.svelte';
@@ -62,9 +62,13 @@
 
   <nav class="tabbar" aria-label="Main">
     {#each tabs as [href, icon, label]}
-      <a {href} class:add={icon === 'plus'} aria-current={(href === '/' ? path === '/' : path.startsWith(href)) ? 'page' : undefined}>
+      <!-- The + adds whatever fits where you are: a show on Watching, a recommendation everywhere else -->
+      {@const onWatch = icon === 'plus' && path.startsWith('/watching')}
+      <a href={onWatch ? '/watching?add=1' : href} class:add={icon === 'plus'} aria-label={onWatch ? 'Add a show' : undefined}
+        onclick={(e) => { if (onWatch) { e.preventDefault(); goto(`/watching?add=${Date.now()}`, { replaceState: true, noScroll: true, keepFocus: true }); } }}
+        aria-current={icon !== 'plus' && (href === '/' ? path === '/' : path.startsWith(href)) ? 'page' : undefined}>
         {#if icon === 'plus'}<span class="plus"><Icon name="plus" size={24} /></span>{:else}<Icon name={icon} size={22} />{/if}
-        <span>{label}</span>
+        <span>{onWatch ? 'Add show' : label}</span>
       </a>
     {/each}
   </nav>
