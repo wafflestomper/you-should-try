@@ -119,7 +119,7 @@
 
   /* ---------- Stack (wallet) ---------- */
   .collapsed { border-radius: 20px; }
-  .strip { width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px 30px; border: 0; border-radius: 20px; text-align: left; cursor: pointer; color: #fff; font: inherit;
+  .strip { box-sizing: border-box; width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px 30px; border: 0; border-radius: 20px; text-align: left; cursor: pointer; color: #fff; font: inherit;
     background: linear-gradient(150deg, var(--kc), var(--kd)); box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 -6px 18px rgba(0,0,0,.16); }
   .st-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .strip .k { opacity: .85; }
@@ -152,7 +152,13 @@
   :global(.look-light) .stacked .close { top: -4px; left: auto; right: 124px; }
   :global(.look-light) .starbadge { top: -2px; right: 124px; }
   :global(.look-light) .stacked .starbadge { right: 168px; }
-  :global(.look-light) .strip .k { color: #fff; }
+  /* Light stack: same calm tinted card as the full cards, not the bold gradient */
+  :global(.look-light) .strip { background: color-mix(in srgb, var(--kc) 9%, #E9E9E4); color: #111113;
+    box-shadow: 0 -1px 0 rgba(255,255,255,.9) inset, 0 -8px 18px rgba(17,17,19,.08); border: 1px solid color-mix(in srgb, var(--kc) 14%, #DCDCD6); padding-top: 13px; }
+  :global(.look-light) .strip .k { color: var(--kd); opacity: 1; }
+  :global(.look-light) .strip .k::before { content: ''; width: 9px; height: 9px; border-radius: 3px; background: var(--kc); }
+  :global(.look-light) .st-title { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 25px; letter-spacing: -.005em; line-height: 1.05; }
+  :global(.look-light) .st-who { color: #6B6B73; opacity: 1; }
 
   /* ---------- Look: dark / blurred cover ---------- */
   :global(.look-dark) .rc:not(.collapsed) { background: #141417; overflow: hidden; color: #fff; box-shadow: inset 0 0 0 2px var(--kc), 0 0 22px color-mix(in srgb, var(--kc) 35%, transparent); }

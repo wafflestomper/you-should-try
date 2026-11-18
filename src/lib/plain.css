@@ -14,7 +14,7 @@
 }
 html[data-look='dark'], html[data-look='dark'] body { background: #0C0C0E; }
 body { background: #fff; font-family: Manrope, system-ui, sans-serif; }
-.app { min-height: 100vh; background: var(--bg); color: var(--ink); }
+.app { min-height: 100vh; background: var(--bg); color: var(--ink); overflow-x: clip; }
 .wrap { max-width: 760px; padding: 14px 14px 110px; }
 .h2 { font-style: normal; font-weight: 800; font-size: 22px; color: var(--ink); letter-spacing: -.02em; }
 .rule { border: 0; border-top: 1px solid var(--line); height: 0; margin: 8px 0 12px; }
