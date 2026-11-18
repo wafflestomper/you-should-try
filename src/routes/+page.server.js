@@ -1,8 +1,12 @@
 import { fail } from '@sveltejs/kit';
 import { getBoard, boardPeople, react, KINDS } from '$lib/server/board.js';
+import { fillCovers } from '$lib/server/covers.js';
 
 export async function load({ platform, locals, url }) {
   const db = platform.env.DB;
+  // Missing covers get looked up in the background; they appear on the next visit.
+  const job = fillCovers(db, platform.env).catch(() => {});
+  if (platform.context?.waitUntil) platform.context.waitUntil(job); else if (platform.ctx?.waitUntil) platform.ctx.waitUntil(job);
   const q = url.searchParams;
   const opts = {
     kind: KINDS[q.get('kind')] ? q.get('kind') : null,
