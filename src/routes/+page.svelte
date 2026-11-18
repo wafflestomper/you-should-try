@@ -120,8 +120,8 @@
   .ht-acts { display: flex; gap: 10px; align-items: center; }
   .ht-x { background: none; border: 0; font: 700 14px Manrope, sans-serif; color: var(--ink-2); cursor: pointer; min-height: 40px; }
   .quick { position: sticky; top: 72px; z-index: 20; box-shadow: 0 6px 20px rgba(0,0,0,.12);
-    animation: flash 1.1s ease-out both, leave .35s ease-in 2.65s both; }
-  /* Starts red to catch the eye, settles to the normal look, then slips away at 3 seconds */
+    animation: flash 1.1s ease-out both, leave .35s ease-in 4.65s both; }
+  /* Starts red to catch the eye, settles to the normal look, then slips away at 5 seconds */
   @keyframes flash { 0%, 25% { background: #D92D20; color: #fff; } 100% { background: var(--surface); color: var(--ink); } }
   @keyframes leave { to { opacity: 0; transform: translateY(-6px); } }
   @media (prefers-reduced-motion: reduce) { .quick { animation: none; } }
