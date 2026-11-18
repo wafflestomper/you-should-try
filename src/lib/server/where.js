@@ -39,7 +39,7 @@ async function getJson(url, opts = {}) {
 
 /* ---------- Streaming ---------- */
 
-async function tmdbRef(db, item, key, b) {
+export async function tmdbRef(db, item, key, b = budget(3)) {
   if (item.source === 'tmdb-movie') return `movie:${item.source_id}`;
   if (item.source === 'tmdb-tv') return `tv:${item.source_id}`;
   if (item.tmdb_ref != null) return item.tmdb_ref || null;

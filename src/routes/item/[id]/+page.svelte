@@ -6,6 +6,7 @@
   import Icon from '$lib/components/Icon.svelte';
   import Libraries from '$lib/components/Libraries.svelte';
   import RecCard from '$lib/components/RecCard.svelte';
+  import TvProgress from '$lib/components/TvProgress.svelte';
   import { KIND_INFO } from '$lib/kinds.js';
   let { data, form } = $props();
   // Where to stream or borrow it: asked for after the page opens, and again if your libraries change
@@ -91,6 +92,8 @@
   {/if}
 </section>
 {/if}
+
+{#if data.item.kind === 'tv'}{#key data.item.id}<TvProgress itemId={data.item.id} />{/key}{/if}
 
 {#if ['movie', 'tv', 'book', 'audiobook'].includes(data.item.kind)}
 <section class="where">

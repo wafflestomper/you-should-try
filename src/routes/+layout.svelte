@@ -20,7 +20,7 @@
   onMount(listenForInstall);
   // After the site is updated, the next tap to another page loads the new version cleanly
   beforeNavigate(({ willUnload, to }) => { if (updated.current && !willUnload && to?.url) location.href = to.url.href; });
-  const tabs = [['/', 'home', 'Board'], ['/add', 'plus', 'Add'], ['/mine', 'check', 'History']];
+  const tabs = [['/', 'home', 'Board'], ['/watching', 'tv', 'Watching'], ['/add', 'plus', 'Add'], ['/mine', 'check', 'History'], ['/people', 'people', 'People']];
 </script>
 
 <svelte:head><title>You Should Try</title></svelte:head>

@@ -9,7 +9,8 @@
     bell: '<path d="M6 16 V11 a6 6 0 0 1 12 0 V16 L20 18 H4 Z"/><path d="M10 21 h4"/>',
     search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16 L21 21"/>',
     back: '<path d="M15 5 L8 12 L15 19"/>',
-    check: '<path d="M5 12.5 L10 17 L19 7"/>'
+    check: '<path d="M5 12.5 L10 17 L19 7"/>',
+    tv: '<rect x="3" y="5" width="18" height="12" rx="2.5"/><path d="M8 21 H16 M10.5 9 L14.5 11 L10.5 13 Z"/>'
   };
 </script>
 

@@ -1,7 +1,7 @@
 <script>
   import Logo from './Logo.svelte';
   let { path = '/', counts = {}, look = 'light', setLook = () => {} } = $props();
-  const links = [['/', 'Board'], ['/mine', 'History'], ['/people', 'People']];
+  const links = [['/', 'Board'], ['/watching', 'Watching'], ['/mine', 'History'], ['/people', 'People']];
   const on = (h) => (h === '/' ? path === '/' : path.startsWith(h));
 </script>
 
