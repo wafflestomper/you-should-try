@@ -17,7 +17,8 @@
     loaded = false;
     fetch(`/api/tv/${id}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => {
       info = d.info; progress = d.progress; onBoard = d.onBoard; title = d.title; loaded = true;
-      if (d.info?.last) { pickS = d.info.last.s; pickE = 1; }
+      // The pickers start at the very beginning: Season 1, Episode 1
+      pickS = (d.info?.seasons || []).filter((x) => x.n >= 1 && x.count > 0).map((x) => x.n).sort((a, b) => a - b)[0] ?? 1; pickE = 1;
     }).catch(() => { failed = true; loaded = true; });
   });
 

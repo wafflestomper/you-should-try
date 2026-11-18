@@ -55,7 +55,7 @@
     try {
       const d = await (await fetch('/api/tv/new', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(r) })).json();
       pick = { ...d, image: r.image_url, year: r.year };
-      const l = d.info?.last; pickS = l?.s ?? 1; pickE = 1;
+      pickS = (d.info?.seasons || []).filter((x) => x.n >= 1 && x.count > 0).map((x) => x.n).sort((a, b) => a - b)[0] ?? 1; pickE = 1;
     } catch { showToast("Couldn't add that show. Try again."); }
     adding = null;
   }
