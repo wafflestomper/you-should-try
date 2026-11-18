@@ -8,6 +8,13 @@
   import RecCard from '$lib/components/RecCard.svelte';
   import { KIND_INFO } from '$lib/kinds.js';
   let { data, form } = $props();
+  // Where to stream or borrow it: asked for after the page opens, and again if your libraries change
+  let where = $state(new Promise(() => {}));
+  $effect(() => {
+    const id = data.item.id, libKey = data.libs.map((l) => l.key).join(',');
+    if (!['movie', 'tv', 'book', 'audiobook'].includes(data.item.kind)) return;
+    where = fetch(`/api/where/${id}?l=${encodeURIComponent(libKey)}`).then((r) => (r.ok ? r.json() : { failed: true })).catch(() => ({ failed: true }));
+  });
   const HAD = { book: "I've read it", audiobook: "I've listened to it", movie: "I've seen it", tv: "I've watched it", restaurant: "I've been", recipe: "I've made it" };
   let onMyList = $derived(data.rankedOn.some((r) => r.user_id === data.user?.id));
   const wait = (h) => h.available ? (h.availableCopies > 1 ? `Available, ${h.availableCopies} copies` : 'Available now') : h.waitDays ? `About ${Math.max(1, Math.round(h.waitDays / 7))} wk wait` : 'Waitlist';
@@ -91,7 +98,7 @@
   {#if ['movie', 'tv'].includes(data.item.kind)}
     {#if !data.hasTmdb}<p class="muted">Streaming info turns on once the TMDB key is added.</p>
     {:else}
-      {#await data.where}<p class="muted">Checking streaming services…</p>
+      {#await where}<p class="muted">Checking streaming services…</p>
       {:then w}
         {#if !w?.stream}<p class="muted">{w?.stream === null ? 'Not streaming, renting or for sale in the US right now.' : "Couldn't check right now. Reload in a minute."}</p>
         {:else}
@@ -111,8 +118,9 @@
     <Libraries libs={data.libs} compact />
     {#if !data.libs.length}<p class="muted small">Add the libraries you use in Libby to see if you can borrow it now.</p>
     {:else}
-      {#await data.where}<p class="muted">Checking your libraries…</p>
+      {#await where}<p class="muted">Checking your libraries…</p>
       {:then w}
+        {#if w?.failed}<p class="muted small">Couldn't check your libraries right now. Reload in a minute.</p>{/if}
         {#each w?.libs ?? [] as r (r.lib.key)}
           <div class="lib">
             <div class="ln">{r.lib.name}</div>

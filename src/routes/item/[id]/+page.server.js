@@ -6,7 +6,6 @@ import { getBoard, react, KINDS } from '$lib/server/board.js';
 import { mergeItems } from '$lib/server/dups.js';
 import { ensureItem } from '$lib/server/lists.js';
 import { redirect } from '@sveltejs/kit';
-import { streaming, library, libbySearchUrl } from '$lib/server/where.js';
 
 export async function load({ params, platform, locals }) {
   const db = platform.env.DB;
@@ -21,23 +20,19 @@ export async function load({ params, platform, locals }) {
       `SELECT r.to_user_id, u.name FROM recommendations r JOIN users u ON u.id = r.to_user_id
         WHERE r.from_user_id = ? AND r.item_id = ? ORDER BY r.created_at`).bind(me, params.id).all()
   ]);
-  const item = data.item;
-  const libs = await myLibraries(db, me);
   const env = platform.env;
-  // Not awaited: the page shows first and this fills in.
-  const where = (async () => {
-    if (['movie', 'tv'].includes(item.kind)) return { stream: await streaming(db, env, item) };
-    if (['book', 'audiobook'].includes(item.kind)) {
-      const rows = await library(db, env, item, libs);
-      return { libs: rows.map((r) => ({ ...r, search: libbySearchUrl(r.lib.key, item) })) };
-    }
-    return null;
-  })();
-  const detailsBy = data.item.details_by ? await db.prepare('SELECT name FROM users WHERE id = ?').bind(data.item.details_by).first() : null;
-  const card = (await getBoard(db, me, { view: 'any', itemId: params.id }))[0] ?? null;
-  const mineRecs = (await db.prepare('SELECT COUNT(*) AS n FROM recs WHERE item_id = ? AND (added_by = ? OR by_user_id = ?)').bind(params.id, me, me).first()).n;
+  // Everything here comes from our own database, asked all at once. Streaming and library
+  // lookups (outside services, sometimes slow) are fetched by the page after it opens.
+  const [libs, detailsBy, cards, mine] = await Promise.all([
+    myLibraries(db, me),
+    data.item.details_by ? db.prepare('SELECT name FROM users WHERE id = ?').bind(data.item.details_by).first() : null,
+    getBoard(db, me, { view: 'any', itemId: params.id }),
+    db.prepare('SELECT COUNT(*) AS n FROM recs WHERE item_id = ? AND (added_by = ? OR by_user_id = ?)').bind(params.id, me, me).first()
+  ]);
+  const card = cards[0] ?? null;
+  const mineRecs = mine.n;
   const canFix = mineRecs > 0 || !!locals.realUser?.is_admin;
-  return { ...data, card, canFix, mineRecs, isAdmin: !!locals.realUser?.is_admin, detailsBy: detailsBy?.name ?? null, saved: !!saved, done: done?.reaction ?? null, people: people.results, sentTo: sent.results, libs, where, hasTmdb: !!env.TMDB_KEY };
+  return { ...data, card, canFix, mineRecs, isAdmin: !!locals.realUser?.is_admin, detailsBy: detailsBy?.name ?? null, saved: !!saved, done: done?.reaction ?? null, people: people.results, sentTo: sent.results, libs, hasTmdb: !!env.TMDB_KEY };
 }
 
 export const actions = {
