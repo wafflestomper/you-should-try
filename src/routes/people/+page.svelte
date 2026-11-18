@@ -1,5 +1,6 @@
 <script>
   import { enhance } from '$app/forms';
+  import { inviteBody, inviteSubject } from '$lib/inviteText.js';
   let { data, form } = $props();
 
   let name = $state(form?.name ?? '');
@@ -10,14 +11,11 @@
 
   let link = $derived(form?.code ? `${data.origin}/invite/${form.code}` : null);
   let first = $derived((form?.name || '').split(' ')[0]);
-  let subject = $derived(`${data.myName.split(' ')[0]} says you should try this`);
-  let body = $derived(link ? [
-    `Hi ${first},`, '',
-    `I'm using a little site where friends keep track of the shows, books and places we tell each other about, so nobody forgets "what was that thing you said?"`,
-    form?.picks ? `${form.picks} of your recommendations are already on it.` : '',
-    '', `Here's your invite (it works once and lasts two weeks):`, link, '',
-    `It's free and private, just our group. Sign in with Google.`, '', `- ${data.myName}`
-  ].filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n') : '');
+  let subject = $derived(inviteSubject(data.myName));
+  let body = $derived(link ? inviteBody({ toName: form?.name, fromName: data.myName, picks: form?.picks, link }) : '');
+  let sendTo = $state(form?.email ?? '');
+  $effect(() => { if (form?.code) sendTo = form.sent || form.email || ''; });
+  let sending = $state(false);
   let mailto = $derived(`mailto:${encodeURIComponent(form?.email || '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   let sms = $derived(`sms:?&body=${encodeURIComponent(`${first}, you should try this: our group's recommendation board. Your invite: ${link}`)}`);
   let copied = $state(false);
@@ -34,9 +32,25 @@
 <section class="box" id="invite">
   <h2>Invite someone</h2>
   {#if link}
-    <p class="sub">Invite for <b>{form.name}</b> is ready. It works once and lasts two weeks.{#if form.picks} Their {form.picks} picks move to their account when they join.{/if}</p>
+    <p class="sub">Invite for <b>{form.name}</b> is ready. It works once and lasts two weeks.{#if form.picks}{' '}Their {form.picks} picks move to their account when they join.{/if}</p>
+    {#if data.canSend}
+      {#if form?.sent}
+        <p class="ok" role="status">Sent to <b>{form.sent}</b>. If they reply, it comes to your email.</p>
+      {:else}
+        <form method="POST" action="?/send" class="sendf" use:enhance={() => { sending = true; return async ({ update }) => { await update({ reset: false }); sending = false; }; }}>
+          <input type="hidden" name="code" value={form.code} />
+          <label for="send-to">Send it from the site</label>
+          <div class="sendline">
+            <input id="send-to" name="to" type="email" bind:value={sendTo} placeholder="their@email.com" maxlength="120" autocomplete="off" required />
+            <button class="btn dark" disabled={sending}>{sending ? 'Sending…' : 'Send email'}</button>
+          </div>
+          {#if form?.sendError}<p class="err" role="alert">{form.sendError}</p>{/if}
+        </form>
+        <p class="hint or">Or send it yourself:</p>
+      {/if}
+    {/if}
     <div class="sendrow">
-      <a class="btn dark" href={mailto}>Email it</a>
+      <a class="btn {data.canSend ? '' : 'dark'}" href={mailto}>{data.canSend ? 'From my email' : 'Email it'}</a>
       <a class="btn" href={sms}>Text it</a>
       {#if canShare}<button class="btn" onclick={share}>Share…</button>{/if}
       <button class="btn" onclick={copy}>{copied ? 'Copied' : 'Copy link'}</button>
@@ -95,6 +109,12 @@
   .f .btn { min-height: 48px; margin-top: 12px; }
   .hint { color: var(--ink-2); font-size: 13.5px; margin: 0; }
   .err { color: #B42318; font-weight: 700; margin: 4px 0 0; }
+  .sendf { display: grid; gap: 6px; margin-bottom: 4px; }
+  .sendline { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sendline input { flex: 1 1 170px; min-width: 0; }
+  .sendline .btn { min-height: 46px; padding: 0 18px; white-space: nowrap; }
+  .ok { background: var(--surface-2); border-radius: 12px; padding: 12px 14px; margin: 0 0 12px; }
+  .or { margin: 12px 0 8px; }
   .sendrow { display: flex; gap: 8px; flex-wrap: wrap; }
   .sendrow .btn { min-height: 46px; padding: 0 18px; text-decoration: none; }
   .preview { margin-top: 12px; }
