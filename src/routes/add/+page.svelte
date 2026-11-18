@@ -225,6 +225,11 @@
     <datalist id="people">{#each known as n}<option value={n}></option>{/each}</datalist>
     {#if byStatus}<p class="m2">{byStatus}</p>{/if}
 
+    {#if ['recipe', 'restaurant', 'place', 'podcast', 'other'].includes(kind)}
+      <label class="f" for="link">{kind === 'recipe' ? 'Link to the recipe' : 'Website or map link'} <span class="m2">(optional, you can add it later)</span></label>
+      <input id="link" name="link" type="text" inputmode="url" autocapitalize="off" placeholder={kind === 'recipe' ? 'Paste the recipe link' : 'Paste a link'} autocomplete="off" />
+    {/if}
+
     <label class="f" for="note">Anything to remember? <span class="m2">(optional)</span></label>
     <input id="note" name="note" bind:value={note} placeholder="Get the mole enchiladas. Skip season 1." maxlength="300" />
 

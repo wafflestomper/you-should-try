@@ -66,7 +66,7 @@ export async function getBoard(db, me, opts = {}) {
   const ids = [...new Set(recs.map((r) => r.item_id))];
   const ph = ids.map(() => '?').join(',');
   const [items, reacts] = await Promise.all([
-    db.prepare(`SELECT id, kind, title, creator, year, narrator, city, url, image_url FROM items WHERE id IN (${ph})`).bind(...ids).all(),
+    db.prepare(`SELECT id, kind, title, creator, year, narrator, city, url, image_url, details IS NOT NULL AS has_details FROM items WHERE id IN (${ph})`).bind(...ids).all(),
     db.prepare(`SELECT x.user_id, x.item_id, x.state, x.reaction, u.name FROM reactions x JOIN users u ON u.id = x.user_id WHERE x.item_id IN (${ph})`).bind(...ids).all()
   ]);
   const matches = await tasteMatches(db, me, realm);

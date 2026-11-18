@@ -30,11 +30,22 @@ export async function load({ params, platform, locals }) {
     }
     return null;
   })();
+  const detailsBy = data.item.details_by ? await db.prepare('SELECT name FROM users WHERE id = ?').bind(data.item.details_by).first() : null;
   const card = (await getBoard(db, me, { view: 'any', itemId: params.id }))[0] ?? null;
-  return { ...data, card, saved: !!saved, done: done?.reaction ?? null, people: people.results, sentTo: sent.results, libs, where, hasTmdb: !!env.TMDB_KEY };
+  return { ...data, card, detailsBy: detailsBy?.name ?? null, saved: !!saved, done: done?.reaction ?? null, people: people.results, sentTo: sent.results, libs, where, hasTmdb: !!env.TMDB_KEY };
 }
 
 export const actions = {
+  details: async ({ request, platform, locals, params }) => {
+    const f = await request.formData();
+    let link = String(f.get('link') || '').trim();
+    if (link && !/^https?:\/\//i.test(link)) link = 'https://' + link;
+    try { link = link ? new URL(link).href : null; } catch { return fail(400, { detailsError: "That link doesn't look right. Paste the whole web address." }); }
+    const details = String(f.get('details') || '').trim().slice(0, 8000) || null;
+    await platform.env.DB.prepare("UPDATE items SET url = ?, details = ?, details_by = ?, details_at = datetime('now') WHERE id = ?")
+      .bind(link, details, locals.user.id, params.id).run();
+    return { detailsSaved: true };
+  },
   metoo: async ({ platform, locals, params }) => {
     const db = platform.env.DB;
     const has = await db.prepare('SELECT 1 FROM recs WHERE item_id = ? AND by_user_id = ?').bind(params.id, locals.user.id).first();

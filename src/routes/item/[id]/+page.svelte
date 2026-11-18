@@ -10,6 +10,7 @@
   let onMyList = $derived(data.rankedOn.some((r) => r.user_id === data.user?.id));
   const wait = (h) => h.available ? (h.availableCopies > 1 ? `Available, ${h.availableCopies} copies` : 'Available now') : h.waitDays ? `About ${Math.max(1, Math.round(h.waitDays / 7))} wk wait` : 'Waitlist';
   const fmt = (h) => (h.format === 'audiobook' ? 'Audiobook' : h.kindle ? 'Ebook, Kindle OK' : 'Ebook');
+  let editing = $state(false);
   let to = $state('');
   let note = $state('');
   const KIND = { book: 'Book', audiobook: 'Audiobook', movie: 'Movie', tv: 'TV show', restaurant: 'Restaurant', recipe: 'Recipe' };
@@ -34,6 +35,32 @@
     {#if data.tags.length}<div style="margin-top:18px"><div class="small faint">Suggested tags</div><div class="tags" style="margin-top:6px">{#each data.tags as t}<span class="tag">{t}</span>{/each}</div></div>{/if}
   </div>
 </div>
+
+{#if !['movie', 'tv', 'book', 'audiobook'].includes(data.item.kind)}
+<section class="details" id="details">
+  <h2 class="h2">{data.item.kind === 'recipe' ? 'The recipe' : 'Details'}</h2><div class="rule"></div>
+  {#if !editing}
+    {#if data.item.url}<a class="btn dark" href={data.item.url} target="_blank" rel="noopener">{data.item.kind === 'recipe' ? 'Open the recipe' : 'Open the link'} ↗</a>{/if}
+    {#if data.item.details}<div class="dtext">{data.item.details}</div>{/if}
+    {#if data.item.url || data.item.details}
+      <p class="small muted">{data.detailsBy ? `Added by ${data.detailsBy.split(' ')[0]}. ` : ''}<button class="lnkb" onclick={() => (editing = true)}>Edit</button></p>
+    {:else}
+      <p class="muted">{data.item.kind === 'recipe' ? 'No recipe here yet.' : 'No link or details yet.'}</p>
+      <button class="btn" onclick={() => (editing = true)}>{data.item.kind === 'recipe' ? 'Add the link or the recipe' : 'Add a link or details'}</button>
+    {/if}
+    {#if form?.detailsSaved}<p class="ok small">Saved.</p>{/if}
+  {:else}
+    <form method="POST" action="?/details" use:enhance={() => async ({ update, result }) => { await update({ reset: false }); if (result.type === 'success') editing = false; }} class="dform">
+      <label for="d-link">{data.item.kind === 'recipe' ? 'Link to the recipe' : 'Link'}</label>
+      <input id="d-link" name="link" type="text" inputmode="url" autocapitalize="off" value={data.item.url ?? ''} placeholder="https://" />
+      <label for="d-text">{data.item.kind === 'recipe' ? 'Or type or paste the recipe' : 'Details'} <span class="small muted">(ingredients, steps, what to order…)</span></label>
+      <textarea id="d-text" name="details" rows="8">{data.item.details ?? ''}</textarea>
+      {#if form?.detailsError}<p class="bad2" role="alert">{form.detailsError}</p>{/if}
+      <div class="drow"><button class="btn dark">Save</button><button type="button" class="lnkb" onclick={() => (editing = false)}>Cancel</button></div>
+    </form>
+  {/if}
+</section>
+{/if}
 
 {#if ['movie', 'tv', 'book', 'audiobook'].includes(data.item.kind)}
 <section class="where">
@@ -100,6 +127,14 @@
   .metoo { margin-top: 28px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .boardcard { margin-top: 18px; max-width: 640px; }
   .boardcard :global(.cov) { display: none; }
+  .details { margin-top: 32px; max-width: 700px; }
+  .dtext { white-space: pre-wrap; background: #fff; border: 1px solid #E6E5E0; border-radius: 10px; padding: 14px; margin: 12px 0 6px; line-height: 1.55; }
+  .dform { display: grid; gap: 6px; }
+  .dform label { font-weight: 700; margin-top: 8px; }
+  .dform input, .dform textarea { border: 1.5px solid #CFCDC4; border-radius: 10px; padding: 10px 12px; font: 16px var(--body); }
+  .drow { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+  .lnkb { background: none; border: 0; text-decoration: underline; cursor: pointer; font: inherit; color: var(--ink-2); padding: 0; }
+  .bad2 { color: #B42318; font-weight: 600; }
   .where { margin-top: 40px; }
   .prov { display: flex; gap: 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .pl { width: 90px; font: 600 14px var(--body); }

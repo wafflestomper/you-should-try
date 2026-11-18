@@ -18,6 +18,7 @@
 </script>
 
 <article class="rc card" class:starred={mine?.state === 'starred'} style="--kc:{kindColor(it.kind)};--ks:{kindSoft(it.kind)}">
+  {#if mine?.state === 'starred'}<span class="starbadge" title="Starred" aria-label="Starred">★</span>{/if}
   <a href="/item/{it.id}" class="cov" tabindex="-1" aria-hidden="true"><Cover title={it.title} kind={it.kind} image={it.image_url} w={64} /></a>
   <div class="body">
     <div class="kline"><span class="kpill">{KI[it.kind]?.label ?? it.kind}</span>{#if it.creator}<span class="cr">{it.creator}</span>{/if}</div>
@@ -27,6 +28,9 @@
       {#if card.boosted}<span class="match" title="People with taste like yours are behind this one">your kind of thing</span>{/if}
     </p>
     {#each card.recs.filter((r) => r.note) as r}<p class="note">“{r.note}” <span>– {first(r.by_name)}</span></p>{/each}
+    {#if it.kind === 'recipe'}
+      <p class="rlink">{#if it.url}<a href={it.url} target="_blank" rel="noopener">Open the recipe ↗</a>{:else if it.has_details}<a href="/item/{it.id}#details">See the recipe</a>{:else}<a href="/item/{it.id}#details">+ Add the recipe</a>{/if}</p>
+    {/if}
     {#if card.loved.length || card.liked.length}
       <p class="loves">{#if card.loved.length}❤️ {card.loved.map(first).join(', ')} loved it{/if}{#if card.loved.length && card.liked.length}{' · '}{/if}{#if card.liked.length}👍 {card.liked.map(first).join(', ')} liked it{/if}</p>
     {/if}
@@ -61,7 +65,10 @@
 </article>
 
 <style>
-  .rc { display: flex; gap: 14px; border-left: 5px solid var(--kc); }
+  .rc { position: relative; display: flex; gap: 14px; border-left: 5px solid var(--kc);
+    background: linear-gradient(color-mix(in srgb, var(--ks) 45%, #fff), color-mix(in srgb, var(--ks) 45%, #fff)); border-color: color-mix(in srgb, var(--kc) 22%, #E6E5E0); border-left-color: var(--kc); }
+  .starbadge { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; background: #F5C518; color: #fff; display: grid; place-items: center; font-size: 17px; line-height: 1; box-shadow: 0 1px 3px rgba(0,0,0,.18); }
+  .starred h3 { padding-right: 36px; }
   .kline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .kpill { background: var(--ks); color: var(--kc); font-weight: 700; font-size: 12.5px; border-radius: 10px; padding: 1px 9px; }
   .cr { color: var(--ink-2); font-size: 13.5px; }
@@ -72,11 +79,12 @@
   .who, .loves, .note { margin: 2px 0; font-size: 14.5px; color: var(--ink-2); }
   .who b { color: var(--ink); }
   .note { color: var(--ink); }
+  .rlink { margin: 4px 0; font-weight: 600; font-size: 14.5px; }
+  .rlink a { color: var(--kc); }
   .note span { color: var(--ink-3); }
   .match { margin-left: 6px; font-size: 12px; font-weight: 700; color: var(--accent); background: #E4F0EA; border-radius: 10px; padding: 1px 8px; white-space: nowrap; }
   .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
   .acts form { margin: 0; }
-  .starred { box-shadow: 0 0 0 2px #E2B93B; }
   .star[aria-pressed='true'] { background: #FFF6DB; border-color: #E2B93B; color: #7A5A00; }
   .lnk { background: none; border: 0; color: var(--ink-2); text-decoration: underline; font: inherit; font-size: 14px; cursor: pointer; padding: 6px 4px; }
   .state { font-weight: 600; font-size: 14.5px; }

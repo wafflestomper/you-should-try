@@ -38,12 +38,16 @@ export const actions = {
     const kind = String(f.get('kind') || '');
     const title = String(f.get('title') || '').trim();
     const note = String(f.get('note') || '').trim().slice(0, 300) || null;
+    let link = String(f.get('link') || '').trim();
+    if (link && !/^https?:\/\//i.test(link)) link = 'https://' + link;
+    try { link = link ? new URL(link).href : null; } catch { return fail(400, { error: "That link doesn't look right. Paste the whole web address." }); }
     if (!KINDS[kind]) return fail(400, { error: 'Pick what kind of thing it is.' });
     if (!title && !pick.title) return fail(400, { error: 'Add the title or name.' });
 
     let itemId;
     try {
-      itemId = await ensureItem(db, pick.title ? { ...pick, kind: pick.kind === 'audiobook' && kind === 'book' ? 'audiobook' : kind } : { kind, title, creator: String(f.get('creator') || '') });
+      itemId = await ensureItem(db, pick.title ? { ...pick, kind: pick.kind === 'audiobook' && kind === 'book' ? 'audiobook' : kind, url: link || pick.url } : { kind, title, creator: String(f.get('creator') || ''), url: link });
+      if (link) await db.prepare('UPDATE items SET url = ? WHERE id = ? AND url IS NULL').bind(link, itemId).run();
     } catch (e) {
       return fail(400, { error: e.message });
     }
