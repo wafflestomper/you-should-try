@@ -26,7 +26,7 @@ export async function POST({ request, platform, locals }) {
   let matches = [];
   let note = null;
   if (p.title) {
-    const kinds = p.kind ? [p.kind] : p.kindGuess ?? ['tv', 'movie', 'book'];
+    const kinds = p.kind ? [p.kind] : p.kindGuess ?? ['book', 'tv', 'movie'];
     const found = await Promise.all(kinds.map((k) => search(db, platform.env, k, p.title).catch(() => ({ results: [] }))));
     matches = found.flatMap((f) => f.results).slice(0, 6);
     note = found.find((f) => f.note)?.note ?? null;

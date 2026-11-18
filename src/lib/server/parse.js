@@ -27,24 +27,34 @@ export function rulesParse(text, members = []) {
       break;
     }
   }
-  const sayM = t.match(new RegExp(`\\b([A-Z][a-z]+(?:\\s[A-Z][a-z]+)?)\\s+${SAY}`));
-  if (!by && sayM) by = { type: 'new', name: sayM[1] };
-  const fromM = !by && t.match(/\b(?:from|per|according to)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/);
-  if (fromM) by = { type: 'new', name: fromM[1] };
+  // "... recommended by Warren", "... from Warren", "Warren's pick"
+  const byM = t.match(/\b(?:(?:was|were|is|got|came)\s+)?(?:highly\s+)?(?:recommended|suggested|mentioned|pitched)\s+(?:to (?:me|us)\s+)?by\s+([A-Za-z][a-z]+(?:\s[A-Z][a-z]+)?)/i)
+    || t.match(/\b(?:from|per|according to|via)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/)
+    || t.match(/\b([A-Z][a-z]+)'s\s+(?:pick|recommendation|rec|suggestion|favorite)/);
+  const sayM = !byM && t.match(new RegExp(`\\b([A-Z][a-z]+(?:\\s[A-Z][a-z]+)?)\\s+${SAY}`));
+  const who = byM?.[1] || (sayM && sayM[1]);
+  if (who) {
+    const lw = who.toLowerCase();
+    const m = members.find((x) => x.name.toLowerCase() === lw) || members.find((x) => x.name.toLowerCase().split(' ')[0] === lw.split(' ')[0]);
+    if (m && (!by || by.id !== m.id)) by = { type: 'user', id: m.id, name: m.name };
+    else if (!by) by = { type: 'new', name: who.replace(/^./, (c) => c.toUpperCase()) };
+  }
+  const fromM = null;
 
   let kind = null;
   for (const [k, re] of KIND_WORDS) if (re.test(t)) { kind = k; break; }
 
   // Title: strip the "who said it" part and filler
   let title = t;
+  if (byM) title = title.replace(byM[0], ' ');
   if (sayM) title = title.replace(sayM[0], ' ');
-  if (fromM) title = title.replace(fromM[0], ' ');
   if (by?.type === 'user') title = title.replace(new RegExp(`\\b${by.name.split(' ')[0]}\\b('s)?`, 'i'), ' ');
   title = title
     .replace(new RegExp(`\\b${SAY}\\b`, 'gi'), ' ')
     .replace(/\b(you|we|i|everyone)\s+(should|need to|have to|gotta|must)\s+(really\s+)?(watch|read|try|listen to|see|go to|eat at|make|check out)?\b/gi, ' ')
     .replace(/\b(the\s+)?(audio ?book|book|novel|movie|film|tv show|show|series|podcast|restaurant|recipe)\b(\s+called)?/gi, ' ')
-    .replace(/\b(called|named|it's|its|a|an)\b\s*$/i, ' ')
+    .replace(/\b(called|named|it's|its|a|an|was|is|were|that|which)\b\s*$/i, ' ')
+    .replace(/\b(called|named|it's|its|a|an|was|is|were|that|which)\b\s*$/i, ' ')
     .replace(/^[\s,.:;-]*(that|the one|is|was)?\s*/i, '')
     .replace(/[\s,.:;!?-]+$/g, '')
     .replace(/\s{2,}/g, ' ')
@@ -56,17 +66,32 @@ export async function aiParse(env, text, members = []) {
   if (!env.AI) return null;
   const names = members.map((m) => m.name).join(', ');
   const kinds = Object.keys(KINDS).join(', ');
-  const prompt = `Someone heard a recommendation and said this out loud:
-"${text}"
+  const prompt = `You turn a quick spoken note about a recommendation into fields.
+The note says what someone should try (a book, show, movie, podcast, restaurant, recipe, place) and usually WHO recommended it.
+The recommender is never part of the title. "by <name>" after "recommended" means the recommender, not the author.
 
-Pull out the details. Reply with only a JSON object, no other text:
-{"kind": one of [${kinds}] or null, "title": the exact title or name of the thing (fix obvious speech-to-text errors, use proper capitalization), "creator": author, director, or city if mentioned else null, "recommender": the first name or full name of the person who recommended it or null, "note": any extra detail worth keeping (like what to order or which season) else null}
+Kinds: ${kinds}
+Group members (match the recommender to one of these when it sounds similar): ${names}
 
-Members of the group (match the recommender to one of these when it sounds the same): ${names}`;
+Examples:
+Note: "Dungeon Crawler Carl was recommended by Warren"
+{"kind":"book","title":"Dungeon Crawler Carl","creator":"Matt Dinniman","recommender":"Warren","note":null}
+Note: "Amy says we have to watch Slow Horses, start with season two"
+{"kind":"tv","title":"Slow Horses","creator":null,"recommender":"Amy","note":"Start with season two"}
+Note: "Casa Luna in Richmond, get the mole, from Dana"
+{"kind":"restaurant","title":"Casa Luna","creator":"Richmond","recommender":"Dana","note":"Get the mole"}
+Note: "the pound cake recipe Liz makes"
+{"kind":"recipe","title":"Pound cake","creator":null,"recommender":"Liz","note":null}
+
+Reply with only the JSON object for this note. Fix obvious speech-to-text mistakes in titles and names and use proper capitalization. creator is the author, director, network or city, only if you are confident; never the recommender.
+Note: "${text.replace(/"/g, "'")}"`;
   try {
-    const r = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
-      messages: [{ role: 'user', content: prompt }], max_tokens: 200, temperature: 0.1
-    });
+    let r;
+    try {
+      r = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', { messages: [{ role: 'user', content: prompt }], max_tokens: 200, temperature: 0 });
+    } catch {
+      r = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', { messages: [{ role: 'user', content: prompt }], max_tokens: 200, temperature: 0 });
+    }
     const raw = typeof r?.response === 'string' ? r.response : JSON.stringify(r?.response ?? '');
     const j = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
     let by = null;
@@ -75,10 +100,18 @@ Members of the group (match the recommender to one of these when it sounds the s
       const m = members.find((x) => x.name.toLowerCase() === n) || members.find((x) => x.name.toLowerCase().split(' ')[0] === n.split(' ')[0]);
       by = m ? { type: 'user', id: m.id, name: m.name } : { type: 'new', name: String(j.recommender).trim() };
     }
+    // Safety net: never let the recommender leak into the title or creator
+    let title = j.title ? String(j.title).trim() : '';
+    let creator = j.creator || null;
+    if (j.recommender) {
+      const rn = String(j.recommender).trim();
+      title = title.replace(new RegExp(`\\s*(,|by|from|per|-)?\\s*${rn.replace(/[.*+?^${}()|[\]\\]/g, '')}\\s*$`, 'i'), '').trim();
+      if (creator && creator.toLowerCase() === rn.toLowerCase()) creator = null;
+    }
     return {
       kind: KINDS[j.kind] ? j.kind : null,
-      title: j.title ? String(j.title).trim() : '',
-      creator: j.creator || null,
+      title,
+      creator,
       by,
       note: j.note || null
     };
