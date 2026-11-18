@@ -1,6 +1,7 @@
 <script>
   import { enhance } from '$app/forms';
   import Cover from './Cover.svelte';
+  import { KIND as KI, kindColor, kindSoft } from '$lib/kinds.js';
   let { card, action = '?/react' } = $props();
   const KIND = { book: 'Book', audiobook: 'Audiobook', movie: 'Movie', tv: 'TV show', podcast: 'Podcast', restaurant: 'Restaurant', recipe: 'Recipe', place: 'Place to go', other: 'Other' };
   const DONE = { book: 'Read it', audiobook: 'Listened', movie: 'Watched it', tv: 'Watched it', podcast: 'Listened', restaurant: 'Been there', recipe: 'Made it', place: 'Been there', other: 'Tried it' };
@@ -16,10 +17,10 @@
   let names = $derived([...new Set(card.recs.map((r) => first(r.by_name)))]);
 </script>
 
-<article class="rc card" class:starred={mine?.state === 'starred'}>
+<article class="rc card" class:starred={mine?.state === 'starred'} style="--kc:{kindColor(it.kind)};--ks:{kindSoft(it.kind)}">
   <a href="/item/{it.id}" class="cov" tabindex="-1" aria-hidden="true"><Cover title={it.title} kind={it.kind} image={it.image_url} w={64} /></a>
   <div class="body">
-    <div class="kind">{KIND[it.kind] ?? it.kind}{it.creator ? ` · ${it.creator}` : ''}</div>
+    <div class="kline"><span class="kpill">{KI[it.kind]?.label ?? it.kind}</span>{#if it.creator}<span class="cr">{it.creator}</span>{/if}</div>
     <h3><a href="/item/{it.id}">{it.title}</a></h3>
     <p class="who">
       <b>{names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(' and ')}</b> {names.length > 1 ? 'recommend' : 'recommended'} it · {ago(card.newest)}
@@ -60,7 +61,10 @@
 </article>
 
 <style>
-  .rc { display: flex; gap: 14px; }
+  .rc { display: flex; gap: 14px; border-left: 5px solid var(--kc); }
+  .kline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .kpill { background: var(--ks); color: var(--kc); font-weight: 700; font-size: 12.5px; border-radius: 10px; padding: 1px 9px; }
+  .cr { color: var(--ink-2); font-size: 13.5px; }
   .cov { flex: none; }
   .body { flex: 1; min-width: 0; }
   h3 { margin: 2px 0 4px; font-size: 18px; line-height: 1.25; }
@@ -72,7 +76,7 @@
   .match { margin-left: 6px; font-size: 12px; font-weight: 700; color: var(--accent); background: #E4F0EA; border-radius: 10px; padding: 1px 8px; white-space: nowrap; }
   .acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
   .acts form { margin: 0; }
-  .starred { border-color: #E2B93B; box-shadow: inset 4px 0 0 #E2B93B; }
+  .starred { box-shadow: 0 0 0 2px #E2B93B; }
   .star[aria-pressed='true'] { background: #FFF6DB; border-color: #E2B93B; color: #7A5A00; }
   .lnk { background: none; border: 0; color: var(--ink-2); text-decoration: underline; font: inherit; font-size: 14px; cursor: pointer; padding: 6px 4px; }
   .state { font-weight: 600; font-size: 14.5px; }

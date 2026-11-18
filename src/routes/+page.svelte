@@ -5,7 +5,8 @@
   let added = $derived(page.url.searchParams.get('added'));
   let addedCard = $derived(data.addedTitle ? { item: { title: data.addedTitle } } : null);
   let { data } = $props();
-  const KINDS = [['', 'Everything'], ['book', 'Books'], ['tv', 'TV'], ['movie', 'Movies'], ['podcast', 'Podcasts'], ['restaurant', 'Food'], ['recipe', 'Recipes'], ['place', 'Places']];
+  import { KIND_INFO } from '$lib/kinds.js';
+  const KINDS = [['', 'Everything', '#1E1E1E'], ...KIND_INFO.filter((k) => k.key !== 'other').map((k) => [k.key, k.plural, k.color])];
   function set(key, val) {
     const u = new URL(location.href);
     if (val) u.searchParams.set(key, val); else u.searchParams.delete(key);
@@ -29,8 +30,8 @@
 {/if}
 
 <div class="filters" role="group" aria-label="Show">
-  {#each KINDS as [k, label]}
-    <button class="chip" aria-pressed={(data.opts.kind ?? '') === k} onclick={() => set('kind', k)}>{label}</button>
+  {#each KINDS as [k, label, color]}
+    <button class="chip" style="--c:{color}" aria-pressed={(data.opts.kind ?? '') === k} onclick={() => set('kind', k)}>{#if k}<span class="dot"></span>{/if}{label}</button>
   {/each}
 </div>
 <div class="filters2">
@@ -67,7 +68,10 @@
   .mic { width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,.18); display: grid; place-items: center; font-size: 30px; flex: none; }
   .filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
   .chip { flex: none; min-height: 36px; padding: 0 14px; border-radius: 18px; border: 1.5px solid #D6D4CC; background: #fff; font: 600 14px var(--body); cursor: pointer; color: var(--ink); }
-  .chip[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+  .chip[aria-pressed='true'] { background: var(--c); border-color: var(--c); color: #fff; }
+  .chip[aria-pressed='true'] .dot { background: #fff; }
   .filters2 { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0 14px; }
   .filters2 label { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-2); font-weight: 600; }
   .filters2 select { min-height: 36px; border: 1.5px solid #D6D4CC; border-radius: 8px; padding: 0 8px; font: 14px var(--body); background: #fff; max-width: 190px; }

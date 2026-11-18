@@ -3,7 +3,8 @@
   import Cover from '$lib/components/Cover.svelte';
   let { data, form } = $props();
 
-  const KINDS = [['book', 'Book'], ['audiobook', 'Audiobook'], ['tv', 'TV show'], ['movie', 'Movie'], ['podcast', 'Podcast'], ['restaurant', 'Restaurant'], ['recipe', 'Recipe'], ['place', 'Place to go'], ['other', 'Other']];
+  import { KIND_INFO } from '$lib/kinds.js';
+  const KINDS = KIND_INFO.map((k) => [k.key, k.label, k.color]);
 
   // step: start | listening | working | review
   let step = $state('start');
@@ -198,8 +199,8 @@
     <fieldset>
       <legend>What is it?</legend>
       <div class="kinds">
-        {#each KINDS as [k, label]}
-          <label class="kchip"><input type="radio" name="kind" value={k} bind:group={kind} onchange={researchTitle} />{label}</label>
+        {#each KINDS as [k, label, color]}
+          <label class="kchip" style="--c:{color}"><input type="radio" name="kind" value={k} bind:group={kind} onchange={researchTitle} />{label}</label>
         {/each}
       </div>
     </fieldset>
@@ -269,7 +270,8 @@
   .kinds { display: flex; flex-wrap: wrap; gap: 6px; }
   .kchip { display: inline-flex; align-items: center; min-height: 38px; padding: 0 12px; border-radius: 19px; border: 1.5px solid #D6D4CC; background: #fff; font-weight: 600; font-size: 14.5px; cursor: pointer; }
   .kchip input { position: absolute; opacity: 0; pointer-events: none; }
-  .kchip:has(input:checked) { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .kchip { border-color: color-mix(in srgb, var(--c) 45%, #D6D4CC); color: var(--c); }
+  .kchip:has(input:checked) { background: var(--c); color: #fff; border-color: var(--c); }
   .kchip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
   .f { margin-top: 10px; }
   .matches { display: grid; gap: 6px; }
