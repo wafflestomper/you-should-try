@@ -25,7 +25,7 @@
 {#if data.dbMissing}
   <div class="wrap"><h1 class="h2">The database isn't connected yet</h1><p>Follow step 2 in the README to create the database and paste its ID into <code>wrangler.jsonc</code>.</p></div>
 {:else if !data.user}
-  <div class="wrap">{@render children()}</div>
+  <div class="app look-{look}"><div class="wrap">{@render children()}</div></div>
 {:else}
   {#if data.realUser?.is_guest}
     <div class="banner"><span>You're in as a guest, invited by a friend. Everything works on this device. Sign in with Google to keep your lists everywhere.</span><a class="gb" href="/auth/google">Sign in with Google</a></div>
