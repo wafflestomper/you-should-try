@@ -17,14 +17,12 @@
   let open = $state(false);
   let it = $derived(card.item);
   let mine = $derived(card.mine);
-  let names = $derived([...new Set(card.recs.map((r) => first(r.by_name)))]);
+  let names = $derived([...new Set(card.recs.map((r) => r.by_name))]);
   let whoLine = $derived(card.private ? 'Just for you' : names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(' and '));
   let shareStep = $state(null); // 'loved' | 'liked' while asking whether to recommend a private pick
   // Clearing a private pick would make it vanish, so it goes back to "just for me" instead
   let backTo = $derived(card.private ? 'wanted' : 'clear');
   let collapsed = $derived(stacked && !open);
-  let ratings = $derived(card.recs.map((r) => r.rating).filter((x) => x != null));
-  let avg = $derived(ratings.length ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 2) / 2 : null);
 </script>
 
 <article class="rc" class:starred={mine?.state === 'starred'} class:collapsed class:stacked
@@ -52,14 +50,14 @@
     </div>
 
     <div class="body">
-      {#each card.recs.filter((r) => r.note) as r}<p class="q">“{r.note}” <span class="qby">{first(r.by_name)}</span></p>{/each}
+      {#each card.recs.filter((r) => r.note) as r}<p class="q">“{r.note}” <span class="qby">{r.by_name}</span></p>{/each}
       {#if it.kind === 'recipe'}
         <p class="rlink">{#if it.url}<a href={it.url} target="_blank" rel="noopener">Open the recipe ↗</a>{:else if it.has_details}<a href="/item/{it.id}#details">See the recipe</a>{:else}<a href="/item/{it.id}#details">+ Add the recipe</a>{/if}</p>
       {/if}
       <div class="meta">
-        <span><b>{whoLine}</b>{#if avg}<span class="rt" title="Their rating out of 5">★ {avg}</span>{/if}{card.private ? ', nobody else sees it yet' : ''} · {ago(card.newest)}{#if card.boosted}<span class="match" title="People with taste like yours are behind this one">your kind of thing</span>{/if}</span>
+        <span><b>{whoLine}</b>{card.private ? ', nobody else sees it yet' : ''} · {ago(card.newest)}{#if card.boosted}<span class="match" title="People with taste like yours are behind this one">your kind of thing</span>{/if}</span>
         {#if card.loved.length || card.liked.length}
-          <span class="lv"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21s-7.5-4.6-10-9.3C.4 8.4 2.4 4.5 6.1 4.5c2.2 0 3.6 1.2 4.4 2.4h3c.8-1.2 2.2-2.4 4.4-2.4 3.7 0 5.7 3.9 4.1 7.2C19.5 16.4 12 21 12 21Z"/></svg>{[...card.loved, ...card.liked].map(first).join(', ')}</span>
+          <span class="lv"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21s-7.5-4.6-10-9.3C.4 8.4 2.4 4.5 6.1 4.5c2.2 0 3.6 1.2 4.4 2.4h3c.8-1.2 2.2-2.4 4.4-2.4 3.7 0 5.7 3.9 4.1 7.2C19.5 16.4 12 21 12 21Z"/></svg>{[...card.loved, ...card.liked].join(', ')}</span>
         {/if}
       </div>
 

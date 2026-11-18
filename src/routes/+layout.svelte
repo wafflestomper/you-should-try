@@ -46,6 +46,7 @@
           <a href="/admin" class="small">Admin page</a>
         </form>
       {/if}
+      <a href="/me" class="small">Your profile</a>
       <form method="POST" action="/signout"><button class="linkish">Sign out</button></form>
       <span>You Should Try… · invite only</span>
     </footer>

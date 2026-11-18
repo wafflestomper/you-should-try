@@ -27,7 +27,9 @@
   let byStatus = $derived.by(() => {
     const n = by.trim().toLowerCase();
     if (!n || ['me', 'myself', 'i'].includes(n)) return 'You recommended it.';
-    if (data.members.some((m) => m.name.toLowerCase() === n || m.name.toLowerCase().split(' ')[0] === n)) return '';
+    const sameFirst = data.members.filter((m) => m.name.toLowerCase().split(' ')[0] === n);
+    if (sameFirst.length > 1) return `More than one ${by.trim()} here (${sameFirst.map((m) => m.name).join(', ')}). Add the last name.`;
+    if (data.members.some((m) => m.name.toLowerCase() === n || m.name.toLowerCase().split(' ')[0] === n || m.name.toLowerCase().startsWith(n))) return '';
     if (data.guests.some((g) => g.name.toLowerCase() === n)) return `${by.trim()} isn't on here yet. We'll keep this with their other picks.`;
     return `${by.trim()} isn't on here yet. We'll save the name so you can invite them later.`;
   });

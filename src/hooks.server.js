@@ -15,7 +15,7 @@ export async function handle({ event, resolve }) {
     // Admins can look at the site as someone else, to check how it looks for them
     const viewAs = event.cookies.get('yst_view_as');
     if (me?.is_admin && viewAs && viewAs !== me.id) {
-      const other = await db.prepare("SELECT id, name, color, email, is_admin, is_guest FROM users WHERE id = ? AND status = 'active'").bind(viewAs).first();
+      const other = await db.prepare("SELECT id, name, color, email, is_admin, is_guest, how_known FROM users WHERE id = ? AND status = 'active'").bind(viewAs).first();
       if (other) event.locals.user = other;
     }
   }

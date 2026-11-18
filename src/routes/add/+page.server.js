@@ -18,12 +18,14 @@ async function resolvePerson(db, me, raw) {
   if (!name || /^(me|myself|i)$/i.test(name)) return { user: me.id };
   const lc = name.toLowerCase();
   const members = (await db.prepare("SELECT id, name FROM users WHERE status = 'active' AND is_guest = 0").all()).results;
-  const exact = members.find((m) => m.name.toLowerCase() === lc);
+  const exact = members.find((m) => m.name.toLowerCase() === lc)
+    || (() => { const [f1, l1] = lc.replace('.', '').split(' '); if (!l1) return null; const hits = members.filter((m) => { const [f2, ...rest] = m.name.toLowerCase().split(' '); return f2 === f1 && rest.join(' ').startsWith(l1); }); return hits.length === 1 ? hits[0] : null; })();
   if (exact) return { user: exact.id };
-  const byFirst = members.filter((m) => m.name.toLowerCase().split(' ')[0] === lc);
-  if (byFirst.length === 1) return { user: byFirst[0].id };
   const g = await db.prepare('SELECT id FROM guests WHERE lower(name) = ? AND user_id IS NULL').bind(lc).first();
   if (g) return { guest: g.id };
+  const byFirst = members.filter((m) => m.name.toLowerCase().split(' ')[0] === lc);
+  if (byFirst.length === 1) return { user: byFirst[0].id };
+  if (byFirst.length > 1) return { ambiguous: byFirst.map((m) => m.name) };
   const gid = crypto.randomUUID();
   await db.prepare('INSERT INTO guests (id, name, added_by) VALUES (?, ?, ?)').bind(gid, name, me.id).run();
   return { guest: gid, isNew: true };
@@ -60,6 +62,7 @@ export const actions = {
       redirect(303, `/?added=${itemId}&how=mine`);
     }
     const who = await resolvePerson(db, locals.user, mode === 'me' ? '' : f.get('by'));
+    if (who.ambiguous) return fail(400, { error: `There's more than one ${String(f.get('by')).trim()} on here (${who.ambiguous.join(', ')}). Type the last name too.` });
     // Same person, same thing: don't double count
     const dup = await db.prepare('SELECT id FROM recs WHERE item_id = ? AND (by_user_id = ? OR by_guest_id = ?)')
       .bind(itemId, who.user ?? '', who.guest ?? '').first();

@@ -25,6 +25,30 @@ async function setting(db, key, fallback) {
   return r ? r.value : fallback;
 }
 
+/** First names, plus a last initial (or more) wherever two people share a first name. */
+export async function shortNames(db) {
+  const people = [
+    ...(await db.prepare("SELECT 'u:' || id AS key, name FROM users WHERE status = 'active'").all()).results,
+    ...(await db.prepare("SELECT 'g:' || id AS key, name FROM guests WHERE user_id IS NULL").all()).results
+  ];
+  const first = (n) => n.trim().split(/\s+/)[0];
+  const byFirst = {};
+  for (const p of people) (byFirst[first(p.name).toLowerCase()] ??= []).push(p);
+  const out = {};
+  for (const group of Object.values(byFirst)) {
+    for (const p of group) {
+      const parts = p.name.trim().split(/\s+/);
+      if (group.length === 1 || parts.length === 1) { out[p.key] = parts.length === 1 || group.length === 1 ? parts[0] : p.name; continue; }
+      // Shortest last-name prefix that tells them apart
+      const last = parts.slice(1).join(' ');
+      let n = 1;
+      while (n < last.length && group.some((o) => o !== p && o.name.trim().split(/\s+/).slice(1).join(' ').toLowerCase().startsWith(last.slice(0, n).toLowerCase()))) n++;
+      out[p.key] = `${parts[0]} ${last.slice(0, n)}${n < last.length ? '.' : ''}`;
+    }
+  }
+  return out;
+}
+
 /** How each other member's taste lines up with mine: -1..1, only with enough overlap. */
 export async function tasteMatches(db, me, realm = 'main') {
   const min = Number(await setting(db, 'match_min_shared', '5')) || 5;
@@ -73,7 +97,7 @@ export async function getBoard(db, me, opts = {}) {
     db.prepare(`SELECT id, kind, title, creator, year, narrator, city, url, image_url, details IS NOT NULL AS has_details FROM items WHERE id IN (${ph})`).bind(...ids).all(),
     db.prepare(`SELECT x.user_id, x.item_id, x.state, x.reaction, u.name FROM reactions x JOIN users u ON u.id = x.user_id WHERE x.item_id IN (${ph})`).bind(...ids).all()
   ]);
-  const matches = await tasteMatches(db, me, realm);
+  const [matches, shorts] = await Promise.all([tasteMatches(db, me, realm), shortNames(db)]);
 
   const cards = new Map();
   for (const it of items.results) cards.set(it.id, { item: it, recs: [], loved: [], liked: [], notForMe: 0, mine: null });
@@ -82,8 +106,9 @@ export async function getBoard(db, me, opts = {}) {
     const c = cards.get(x.item_id);
     if (!c) continue;
     if (x.user_id === me) c.mine = { state: x.state, reaction: x.reaction };
-    if (x.reaction === 'loved') c.loved.push({ id: x.user_id, name: x.name });
-    else if (x.reaction === 'liked') c.liked.push({ id: x.user_id, name: x.name });
+    const nm = shorts[`u:${x.user_id}`] ?? x.name;
+    if (x.reaction === 'loved') c.loved.push({ id: x.user_id, name: nm });
+    else if (x.reaction === 'liked') c.liked.push({ id: x.user_id, name: nm });
     else if (x.reaction === 'not_for_me') c.notForMe++;
   }
 
@@ -122,7 +147,9 @@ export async function getBoard(db, me, opts = {}) {
   let list = out.filter((c) => {
     const st = c.mine?.state;
     if (view === 'any') return true;
-    if (view === 'board') return st !== 'hidden' && st !== 'done';
+    const mineRec = c.recs.some((r) => r.by_user_id === me);
+    if (view === 'picks') return mineRec;
+    if (view === 'board') return st !== 'hidden' && st !== 'done' && !mineRec;
     return st === view;
   });
   if (opts.itemId) list = list.filter((c) => c.item.id === opts.itemId);
@@ -142,7 +169,7 @@ export async function getBoard(db, me, opts = {}) {
   // Trim what goes to the page
   return list.map((c) => ({
     item: c.item,
-    recs: c.recs.map((r) => ({ id: r.id, by_user_id: r.by_user_id, by_guest_id: r.by_guest_id, by_name: r.by_name, by_color: r.by_color, note: r.note, rating: r.rating, created_at: r.created_at, added_name: r.added_by !== r.by_user_id ? r.added_name : null })),
+    recs: c.recs.map((r) => ({ id: r.id, by_user_id: r.by_user_id, by_guest_id: r.by_guest_id, by_name: shorts[r.by_user_id ? `u:${r.by_user_id}` : `g:${r.by_guest_id}`] ?? r.by_name, by_color: r.by_color, note: r.note, rating: r.rating, created_at: r.created_at, added_name: r.added_by !== r.by_user_id ? r.added_name : null })),
     loved: c.loved.map((l) => l.name),
     liked: c.liked.map((l) => l.name),
     mine: c.mine,

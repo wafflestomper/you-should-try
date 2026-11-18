@@ -16,7 +16,7 @@ export async function sessionUser(db, cookies) {
   const token = cookies.get('yst_session');
   if (!token) return null;
   return await db.prepare(
-    `SELECT u.id, u.name, u.color, u.email, u.is_admin, u.is_guest FROM sessions s JOIN users u ON u.id = s.user_id
+    `SELECT u.id, u.name, u.color, u.email, u.is_admin, u.is_guest, u.how_known FROM sessions s JOIN users u ON u.id = s.user_id
       WHERE s.token_hash = ? AND s.expires_at > datetime('now') AND u.status = 'active'`).bind(await sha256(token)).first();
 }
 
