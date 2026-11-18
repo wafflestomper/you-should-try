@@ -1,6 +1,8 @@
 import { fail } from '@sveltejs/kit';
 import { getBoard, boardPeople, react, KINDS } from '$lib/server/board.js';
 import { fillCovers } from '$lib/server/covers.js';
+import { warmWhere } from '$lib/server/where.js';
+import { myLibraries } from '$lib/server/libs.js';
 
 export async function load({ platform, locals, url }) {
   const db = platform.env.DB;
@@ -15,6 +17,9 @@ export async function load({ platform, locals, url }) {
     sort: ['best', 'new', 'loved'].includes(q.get('sort')) ? q.get('sort') : 'best'
   };
   const [cards, people] = await Promise.all([getBoard(db, locals.user.id, opts), boardPeople(db)]);
+  // In the background: look up where to watch or borrow the top few, so opening them is instant
+  const warm = myLibraries(db, locals.user.id).then((libs) => warmWhere(db, platform.env, libs, cards.slice(0, 12).map((c) => c.item.id))).catch(() => {});
+  if (platform.context?.waitUntil) platform.context.waitUntil(warm); else if (platform.ctx?.waitUntil) platform.ctx.waitUntil(warm);
   const added = q.get('added') ? await db.prepare('SELECT title FROM items WHERE id = ?').bind(q.get('added')).first() : null;
   // They credited someone who isn't on the site yet: offer to invite them
   const invitee = q.get('guest') ? await db.prepare(

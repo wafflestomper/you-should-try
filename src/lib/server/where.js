@@ -107,8 +107,8 @@ export async function searchLibraries(env, q) {
  */
 export async function library(db, env, item, libs, b = budget()) {
   if (!['book', 'audiobook'].includes(item.kind) || !libs.length) return [];
-  const out = [];
-  for (const lib of libs) {
+  // All libraries at once, not one after another
+  return Promise.all(libs.map(async (lib) => {
     const scope = `lib:${lib.key}`;
     const c = await cached(db, item.id, scope, LIB_HOURS);
     let hits = c.fresh ? c.data : null;
@@ -137,9 +137,30 @@ export async function library(db, env, item, libs, b = budget()) {
     }
     if (hits == null) hits = c.data ?? null;
     if (hits && item.kind === 'audiobook') hits = hits.filter((h) => h.format === 'audiobook');
-    out.push({ lib, hits });
-  }
-  return out;
+    return { lib, hits };
+  }));
+}
+
+/**
+ * Look up a few board items ahead of time (in the background), so "Where to get it"
+ * is already saved when someone opens them.
+ */
+export async function warmWhere(db, env, libs, ids, max = 6) {
+  if (!ids.length) return;
+  const b = budget(14); // covers share the same per-visit limit on outside calls
+  const marks = ids.map(() => '?').join(',');
+  const shows = (await db.prepare(
+    `SELECT i.* FROM items i LEFT JOIN where_cache w ON w.item_id = i.id AND w.scope = 'stream'
+      WHERE i.id IN (${marks}) AND i.kind IN ('movie','tv') AND (w.fetched_at IS NULL OR w.fetched_at < ?) LIMIT ?`)
+    .bind(...ids, Date.now() - STREAM_HOURS * 3600e3, max).all()).results;
+  const books = libs.length ? (await db.prepare(
+    `SELECT i.* FROM items i LEFT JOIN where_cache w ON w.item_id = i.id AND w.scope = ?
+      WHERE i.id IN (${marks}) AND i.kind IN ('book','audiobook') AND (w.fetched_at IS NULL OR w.fetched_at < ?) LIMIT ?`)
+    .bind(`lib:${libs[0].key}`, ...ids, Date.now() - LIB_HOURS * 3600e3, Math.max(1, Math.floor(12 / libs.length))).all()).results : [];
+  await Promise.all([
+    ...shows.map((it) => streaming(db, env, it, b).catch(() => {})),
+    ...books.map((it) => library(db, env, it, libs, b).catch(() => {}))
+  ]);
 }
 
 export const libbySearchUrl = (libKey, item) =>
