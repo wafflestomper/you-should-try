@@ -90,7 +90,7 @@
   {#if data.people.length}
     <ul class="ppl">
       {#each data.people as p (p.id)}
-        <li><div><b>{p.short}</b>{#if p.short !== p.name}<span class="hint"> {p.name}</span>{/if}<div class="hint">{[p.how_known, `${p.picks} pick${p.picks === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}</div></div>
+        <li><div><b>{p.short}</b>{#if p.short !== p.name}<span class="full">{p.name}</span>{/if}<div class="hint">{[p.how_known, `${p.picks} pick${p.picks === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}</div></div>
           <span class="m">{p.match != null ? `${p.match}% match` : ''}</span></li>
       {/each}
     </ul>
@@ -123,5 +123,6 @@
   .again { display: inline-block; margin-top: 12px; font-weight: 700; color: var(--ink); }
   .ppl { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .ppl li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--surface); border-radius: 14px; }
+  .full { margin-left: 8px; color: var(--ink-3); font-size: 14px; font-weight: 600; }
   .m { font-weight: 800; color: var(--ink-2); font-size: 14px; white-space: nowrap; }
 </style>
