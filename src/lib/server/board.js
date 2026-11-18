@@ -167,3 +167,16 @@ export async function react(db, me, itemId, state, reaction = null) {
        reaction = COALESCE(excluded.reaction, CASE WHEN excluded.state = 'done' THEN reactions.reaction ELSE reactions.reaction END),
        updated_at = datetime('now')`).bind(me, itemId, state, reaction).run();
 }
+
+/** Who already has each of these items on the board. */
+export async function onBoard(db, ids) {
+  ids = [...new Set(ids.filter(Boolean))];
+  if (!ids.length) return {};
+  const rows = (await db.prepare(
+    `SELECT r.item_id, r.by_user_id, r.by_guest_id, COALESCE(u.name, g.name) AS name, r.created_at
+     FROM recs r LEFT JOIN users u ON u.id = r.by_user_id LEFT JOIN guests g ON g.id = r.by_guest_id
+     WHERE r.item_id IN (${ids.map(() => '?').join(',')}) ORDER BY r.created_at`).bind(...ids).all()).results;
+  const out = {};
+  for (const r of rows) (out[r.item_id] ??= []).push({ name: r.name, user: r.by_user_id, guest: r.by_guest_id, at: r.created_at });
+  return out;
+}

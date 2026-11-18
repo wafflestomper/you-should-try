@@ -18,6 +18,10 @@ export async function ensureItem(db, it) {
     const found = await db.prepare('SELECT id FROM items WHERE source = ? AND source_id = ?').bind(it.source, it.source_id).first();
     if (found) return found.id;
   }
+  if (!it.source) {
+    const same = await db.prepare('SELECT id FROM items WHERE kind = ? AND lower(trim(title)) = lower(?) LIMIT 1').bind(it.kind, title).first();
+    if (same) return same.id;
+  }
   const id = uid();
   const source = it.source || 'manual';
   const sourceId = it.source_id || id;

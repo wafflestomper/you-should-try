@@ -30,6 +30,19 @@
     return `${by.trim()} isn't on here yet. We'll save the name so you can invite them later.`;
   });
 
+  // Is the picked thing already on the board?
+  let existing = $derived(pick?.onBoard ?? null);
+  let sameAgain = $derived.by(() => {
+    if (!existing) return false;
+    const n = by.trim().toLowerCase() || data.me.toLowerCase();
+    return existing.some((e) => e.name.toLowerCase() === n || e.name.toLowerCase().split(' ')[0] === n.split(' ')[0]);
+  });
+  const firstName = (n) => n.split(' ')[0];
+  function ago(iso) {
+    const d = (Date.now() - Date.parse(iso.replace(' ', 'T') + 'Z')) / 864e5;
+    return d < 1 ? 'today' : d < 2 ? 'yesterday' : d < 30 ? `${Math.floor(d)} days ago` : `${Math.floor(d / 30)} mo ago`;
+  }
+
   /* ---------- Recording: plain WAV, 16 kHz mono, stops itself after a pause ---------- */
   let ctx, stream, proc, srcNode, chunks = [], inRate = 48000, startedAt = 0, lastLoud = 0, heard = false, timer;
 
@@ -199,7 +212,7 @@
         {#each matches as m, i (i)}
           <button type="button" class="match" class:sel={pick === m} role="radio" aria-checked={pick === m} onclick={() => { pick = m; title = m.title; if (m.kind) kind = m.kind; }}>
             <Cover title={m.title} kind={m.kind} image={m.image_url} w={44} />
-            <span><b>{m.title}</b><br /><span class="m2">{[m.creator, m.year].filter(Boolean).join(', ')}</span></span>
+            <span><b>{m.title}</b><br /><span class="m2">{[m.creator, m.year].filter(Boolean).join(', ')}</span>{#if m.onBoard}<br /><span class="ob">On the board from {m.onBoard.map((e) => firstName(e.name)).join(', ')}</span>{/if}</span>
           </button>
         {/each}
         <button type="button" class="match plain" class:sel={!pick} role="radio" aria-checked={!pick} onclick={() => (pick = null)}>None of these. Use “{title}”.</button>
@@ -214,9 +227,19 @@
     <label class="f" for="note">Anything to remember? <span class="m2">(optional)</span></label>
     <input id="note" name="note" bind:value={note} placeholder="Get the mole enchiladas. Skip season 1." maxlength="300" />
 
+    {#if existing}
+      <div class="already" role="status">
+        {#if sameAgain}
+          <b>{by.trim() || 'You'} already recommended this</b> ({ago(existing.find((e) => e.name.toLowerCase().split(' ')[0] === (by.trim() || data.me).toLowerCase().split(' ')[0])?.at ?? existing[0].at)}). Saving just updates the note.
+        {:else}
+          <b>Already on the board.</b> {existing.map((e) => firstName(e.name)).join(' and ')} recommended it {ago(existing[existing.length - 1].at)}. Saving adds {by.trim() ? firstName(by.trim()) : 'you'} to the same card, and it moves up the board.
+        {/if}
+      </div>
+    {/if}
+
     <input type="hidden" name="pick" value={pick ? JSON.stringify(pick) : '{}'} />
     <div class="row">
-      <button class="btn dark big">Put it on the board</button>
+      <button class="btn dark big">{existing ? (sameAgain ? 'Update the note' : `Add ${by.trim() ? firstName(by.trim()) : 'me'} to it`) : 'Put it on the board'}</button>
       <button type="button" class="lnk" onclick={reset}>Start over</button>
     </div>
   </form>
@@ -254,6 +277,8 @@
   .match.sel { border-color: var(--accent); background: #EEF5F1; }
   .match.plain { padding: 12px; color: var(--ink-2); }
   .m2 { color: var(--ink-2); font-size: 14px; margin: 0; }
+  .ob { color: var(--accent); font-weight: 600; font-size: 13.5px; }
+  .already { background: #FFF6DB; border: 1px solid #E9D18A; border-radius: 10px; padding: 12px 14px; font-size: 15px; margin-top: 8px; }
   .row { display: flex; gap: 12px; align-items: center; margin-top: 16px; }
   .big { min-height: 52px; font-size: 17px; flex: 1; }
 </style>

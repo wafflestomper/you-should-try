@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { rulesParse, aiParse } from '$lib/server/parse.js';
 import { search } from '$lib/server/search.js';
+import { onBoard } from '$lib/server/board.js';
 
 export async function POST({ request, platform, locals }) {
   const db = platform.env.DB;
@@ -31,5 +32,7 @@ export async function POST({ request, platform, locals }) {
     matches = found.flatMap((f) => f.results).slice(0, 6);
     note = found.find((f) => f.note)?.note ?? null;
   }
+  const ob = await onBoard(db, matches.map((m) => m.local_id));
+  for (const m of matches) if (ob[m.local_id]) m.onBoard = ob[m.local_id];
   return json({ heard: said, parsed: p, matches, note, usedAI: !!(ai && ai.title) });
 }

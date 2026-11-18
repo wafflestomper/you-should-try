@@ -2,13 +2,13 @@ import { fail, redirect } from '@sveltejs/kit';
 import { ensureItem } from '$lib/server/lists.js';
 import { KINDS } from '$lib/server/board.js';
 
-export async function load({ platform }) {
+export async function load({ platform, locals }) {
   const db = platform.env.DB;
   const [members, guests] = await Promise.all([
     db.prepare("SELECT id, name FROM users WHERE status = 'active' AND is_guest = 0 ORDER BY name").all(),
     db.prepare('SELECT id, name FROM guests WHERE user_id IS NULL ORDER BY name').all()
   ]);
-  return { members: members.results, guests: guests.results, hasVoice: !!platform.env.AI };
+  return { members: members.results, guests: guests.results, hasVoice: !!platform.env.AI, me: locals.user.name };
 }
 
 /** Work out who "Warren" is: a member, someone already named, or someone new. */
@@ -50,10 +50,14 @@ export const actions = {
     // Same person, same thing: don't double count
     const dup = await db.prepare('SELECT id FROM recs WHERE item_id = ? AND (by_user_id = ? OR by_guest_id = ?)')
       .bind(itemId, who.user ?? '', who.guest ?? '').first();
+    const before = await db.prepare('SELECT COUNT(*) AS n FROM recs WHERE item_id = ?').bind(itemId).first();
     if (!dup) {
       await db.prepare('INSERT INTO recs (id, item_id, by_user_id, by_guest_id, added_by, note) VALUES (?, ?, ?, ?, ?, ?)')
         .bind(crypto.randomUUID(), itemId, who.user ?? null, who.guest ?? null, locals.user.id, note).run();
+    } else if (note) {
+      // Same person again: keep their newest note
+      await db.prepare('UPDATE recs SET note = ? WHERE id = ?').bind(note, dup.id).run();
     }
-    redirect(303, `/?added=${itemId}${dup ? '&dup=1' : ''}`);
+    redirect(303, `/?added=${itemId}&how=${dup ? 'dup' : before.n ? 'joined' : 'new'}`);
   }
 };

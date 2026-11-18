@@ -11,7 +11,8 @@ export async function load({ platform, locals, url }) {
     sort: ['best', 'new', 'loved'].includes(q.get('sort')) ? q.get('sort') : 'best'
   };
   const [cards, people] = await Promise.all([getBoard(db, locals.user.id, opts), boardPeople(db)]);
-  return { cards, people, opts };
+  const added = q.get('added') ? await db.prepare('SELECT title FROM items WHERE id = ?').bind(q.get('added')).first() : null;
+  return { cards, people, opts, addedTitle: added?.title ?? null };
 }
 
 export const actions = {

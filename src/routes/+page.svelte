@@ -3,7 +3,7 @@
   import RecCard from '$lib/components/RecCard.svelte';
   import { page } from '$app/state';
   let added = $derived(page.url.searchParams.get('added'));
-  let addedCard = $derived(added ? data.cards.find((c) => c.item.id === added) : null);
+  let addedCard = $derived(data.addedTitle ? { item: { title: data.addedTitle } } : null);
   let { data } = $props();
   const KINDS = [['', 'Everything'], ['book', 'Books'], ['tv', 'TV'], ['movie', 'Movies'], ['podcast', 'Podcasts'], ['restaurant', 'Food'], ['recipe', 'Recipes'], ['place', 'Places']];
   function set(key, val) {
@@ -21,7 +21,12 @@
   <span><b>You should try…</b><br /><span class="sub2">Heard a good one? Tap and say it.</span></span>
 </a>
 
-{#if addedCard}<p class="toast" role="status">{page.url.searchParams.get('dup') ? 'Already on the board from them. ' : 'On the board: '}<b>{addedCard.item.title}</b></p>{/if}
+{#if addedCard}
+  {@const how = page.url.searchParams.get('how')}
+  <p class="toast" role="status">
+    {#if how === 'dup'}<b>{addedCard.item.title}</b> was already on the board from them.{:else if how === 'joined'}Added to <b>{addedCard.item.title}</b>. It's one card now with everyone who recommended it.{:else}On the board: <b>{addedCard.item.title}</b>{/if}
+  </p>
+{/if}
 
 <div class="filters" role="group" aria-label="Show">
   {#each KINDS as [k, label]}
