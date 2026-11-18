@@ -1,11 +1,11 @@
-// Invite links: single use, good for 7 days.
+// Invite links: single use, good for 14 days.
 import { randomToken, pickColor } from './auth.js';
 
-export async function createInvite(db, me, { name, email, circle_id, knows_note }) {
+export async function createInvite(db, me, { name, email, circle_id, knows_note, guest_id = null }) {
   const code = randomToken(9);
   await db.prepare(
-    `INSERT INTO invites (code, created_by, circle_id, name, email, knows_note, expires_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now', '+7 days'))`)
-    .bind(code, me.id, circle_id || null, name, email || null, knows_note).run();
+    `INSERT INTO invites (code, created_by, circle_id, name, email, knows_note, guest_id, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+14 days'))`)
+    .bind(code, me.id, circle_id || null, name, email || null, knows_note, guest_id || null).run();
   return code;
 }
 
@@ -25,6 +25,11 @@ export async function acceptInvite(db, invite, { name, email = null, google_sub 
       .bind(id, String(name).trim().slice(0, 60) || 'New friend', email, google_sub, pickColor(), google_sub ? 0 : 1, invite.created_by, invite.knows_note),
     db.prepare(`UPDATE invites SET used_by = ?, used_at = datetime('now') WHERE code = ?`).bind(id, invite.code)
   ];
+  if (invite.guest_id) {
+    // Their picks were on the board under just their name: they're theirs now
+    stmts.push(db.prepare('UPDATE recs SET by_user_id = ?, by_guest_id = NULL WHERE by_guest_id = ?').bind(id, invite.guest_id));
+    stmts.push(db.prepare('UPDATE guests SET user_id = ? WHERE id = ?').bind(id, invite.guest_id));
+  }
   if (invite.circle_id) stmts.push(db.prepare('INSERT OR IGNORE INTO circle_members (circle_id, user_id) VALUES (?, ?)').bind(invite.circle_id, id));
   await db.batch(stmts);
   return { id, status: 'active' };

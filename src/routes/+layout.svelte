@@ -49,6 +49,7 @@
           <a href="/admin" class="small">Admin page</a>
         </form>
       {/if}
+      <a href="/people" class="small">People and invites</a>
       <a href="/me" class="small">Your profile</a>
       <a href="/install" class="small">Add to home screen</a>
       <form method="POST" action="/signout"><button class="linkish">Sign out</button></form>

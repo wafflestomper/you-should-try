@@ -1,45 +1,51 @@
 <script>
-  import Corners from '$lib/components/Corners.svelte';
-  import Ribbon from '$lib/components/Ribbon.svelte';
+  import Logo from '$lib/components/Logo.svelte';
   let { data, form } = $props();
+  let first = $derived((data.invite?.name || '').split(' ')[0]);
 </script>
 
 <svelte:head><title>You're invited · You Should Try</title></svelte:head>
 
-<div class="frame" style="max-width:680px;margin:40px auto 0"><div class="board box"><Corners size={70} />
-  <div class="inner">
-    {#if data.invite}
-      <div class="cap" style="font-size:12.5px;color:var(--chalk-2)">{data.invite.from} invited you</div>
-      <div class="script you" style="margin-top:12px">You should</div><Ribbon w={260} h={60} size={30} />
-      {#if data.invite.knows}<p class="script q">“{data.invite.knows}”</p>{/if}
-      <p class="lead">Friends rank their top 10 books, shows, movies, restaurants, and recipes, then tell each other what to try.{#if data.invite.circle}{' '}You'll join the <b>{data.invite.circle}</b> circle.{/if}</p>
-      {#if form?.message}<p class="err" role="alert">{form.message}</p>{/if}
+<div class="wrapi">
+  <Logo size={40} />
+  {#if data.invite}
+    <p class="from">{data.invite.from} invited you{first ? `, ${first}` : ''}</p>
+    <h1>Keep track of what friends say you should try.</h1>
+    {#if data.invite.knows}<p class="knows">“{data.invite.knows}”</p>{/if}
+    <p class="lead">When someone says "you have to watch this" or "read this," it goes on one shared board. Later, when you're looking for something, it's all there with who said it.</p>
+    {#if form?.message}<p class="err" role="alert">{form.message}</p>{/if}
+    {#if data.googleReady}
+      <form method="POST" action="?/google"><button class="btn dark big">Join with Google</button></form>
+      <p class="small">Just signs you in. Nothing gets posted anywhere.</p>
+    {/if}
+    <details class="alt">
+      <summary>Not a Google person?</summary>
       <form method="POST" action="?/guest" class="guest">
         <label for="nm">Your name</label>
         <input id="nm" name="name" value={data.invite.name ?? ''} maxlength="60" autocomplete="name" required />
-        <button class="btn" style="background:var(--chalk);color:var(--slate);border-color:var(--chalk)">Jump in, no account needed</button>
+        <button class="btn">Start without an account</button>
+        <p class="small">Works on this device only. You can sign in with Google later.</p>
       </form>
-      {#if data.googleReady}
-        <form method="POST" action="?/google"><button class="btn chalk">Or sign in with Google now</button></form>
-      {/if}
-      <p class="note">Starting without an account works on this device. Sign in with Google later to keep your lists everywhere.</p>
-    {:else}
-      <div class="slab" style="font-size:38px">This invite has run out</div>
-      <p class="lead">Invite links work once and last a week. Ask your friend to send you a new one.</p>
-      <a class="btn chalk" href="/signin">Already a member? Sign in</a>
-    {/if}
-  </div>
-</div></div>
+    </details>
+  {:else}
+    <h1>This invite has run out</h1>
+    <p class="lead">Invite links work once and last two weeks. Ask your friend to send a new one.</p>
+    <a class="btn dark big" href="/signin">Already a member? Sign in</a>
+  {/if}
+</div>
 
 <style>
-  .box { padding: 34px 30px 30px; text-align: center; }
-  .inner { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .you { font-size: 60px; line-height: .9; transform: rotate(-5deg); }
-  .q { font-size: 28px; margin: 14px 0 0; }
-  .lead { max-width: 460px; color: var(--chalk-2); margin: 12px 0 18px; }
-  .guest { display: grid; gap: 8px; width: 100%; max-width: 340px; text-align: left; margin-bottom: 10px; }
-  .guest label { font: 600 13px var(--caps); letter-spacing: .14em; text-transform: uppercase; color: var(--chalk-2); }
-  .guest input { min-height: 46px; border-radius: 8px; border: 2px solid rgba(241,240,234,.5); background: transparent; color: var(--chalk); padding: 0 12px; font: 17px var(--body); }
-  .note { color: var(--chalk-2); font-size: 13.5px; margin: 14px 0 0; max-width: 420px; }
-  .err { background: #FBE9E7; color: #8C1D18; padding: 10px 14px; border-radius: 8px; font-weight: 600; }
+  .wrapi { max-width: 460px; margin: 28px auto 0; display: flex; flex-direction: column; gap: 10px; }
+  .from { margin: 18px 0 0; font-weight: 800; color: var(--ink-2); }
+  h1 { margin: 0; font-size: 30px; line-height: 1.1; font-weight: 800; letter-spacing: -.025em; }
+  .knows { margin: 4px 0 0; font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-size: 22px; }
+  .lead { margin: 4px 0 10px; color: var(--ink-2); line-height: 1.5; }
+  .big { min-height: 52px; width: 100%; font-size: 17px; }
+  .small { color: var(--ink-2); font-size: 13.5px; margin: 0; }
+  .alt { margin-top: 14px; background: var(--surface); border-radius: 14px; padding: 12px 14px; }
+  .alt summary { font-weight: 700; cursor: pointer; }
+  .guest { display: grid; gap: 8px; margin-top: 10px; }
+  .guest label { font-weight: 800; font-size: 14px; }
+  .guest input { min-height: 46px; border-radius: 12px; border: 1px solid var(--line); padding: 0 12px; font: 16px Manrope, sans-serif; }
+  .err { color: #B42318; font-weight: 700; }
 </style>

@@ -8,7 +8,7 @@
 <svelte:head><title>History · You Should Try…</title></svelte:head>
 
 <h1>History</h1>
-<p class="me">You show up as <b>{data.myName}</b>. <a href="/me">Change your name</a></p>
+<p class="me">You show up as <b>{data.myName}</b>. <a href="/me">Change your name</a> · <a href="/people">Invite people</a></p>
 <p class="sub">Things you've recommended, finished or marked not for you. They're off your board, and everyone else still sees them.</p>
 <div class="tabs" role="tablist">
   {#each TABS as [v, label]}
