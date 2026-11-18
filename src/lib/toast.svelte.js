@@ -5,7 +5,7 @@ let timer;
 export function showToast(text, undo = null) {
   toast.text = text; toast.undo = undo; toast.id += 1;
   clearTimeout(timer);
-  timer = setTimeout(() => { toast.text = ''; toast.undo = null; }, 10000);
+  timer = setTimeout(() => { toast.text = ''; toast.undo = null; }, 3000);
 }
 export function clearToast() { toast.text = ''; toast.undo = null; }
 
