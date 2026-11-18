@@ -81,6 +81,10 @@
         <button class="btn" onclick={() => (picking = true)}>Watched some</button>
         <button class="btn" onclick={allOfIt}>Watched it all</button>
       </div>
+      {#if seasons.length > 1}
+        <p class="muted small thru-l">Or watched through the end of season:</p>
+        <div class="thru">{#each seasons as x (x.n)}<button class="btn" onclick={() => setTo(x.n, info.last && info.last.s === x.n ? info.last.e : x.count)} aria-label="Watched through season {x.n}">{x.n}</button>{/each}</div>
+      {/if}
     {:else}
       <p class="lead">What's the last episode you watched?</p>
       <div class="pick">
@@ -143,6 +147,9 @@
   .choices { display: flex; gap: 8px; flex-wrap: wrap; }
   .choices .btn { min-height: 46px; padding: 0 16px; }
   .pick { display: flex; gap: 12px; margin-bottom: 12px; }
+  .thru-l { margin: 14px 0 6px; }
+  .thru { display: flex; gap: 8px; flex-wrap: wrap; }
+  .thru .btn { min-width: 46px; min-height: 46px; padding: 0 12px; border-radius: 999px; }
   .pick label { display: grid; gap: 4px; font-weight: 800; font-size: 14px; }
   .pick select { min-height: 46px; min-width: 96px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: 16px Manrope, sans-serif; padding: 0 10px; }
   .now { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface); border-radius: 16px; padding: 14px 16px; }

@@ -109,6 +109,10 @@
           <button class="btn dark" onclick={() => start(pickSeasons[0].n, 0)}>Haven't started</button>
           <button class="btn" onclick={() => { const l = pick.info.last; start(l.s, l.e); }}>Watched it all</button>
         </div>
+        {#if pickSeasons.length > 1}
+          <p class="muted small">Watched through the end of season:</p>
+          <div class="thru">{#each pickSeasons as x (x.n)}<button class="btn" onclick={() => { const l = pick.info.last; start(x.n, l && l.s === x.n ? l.e : x.count); }} aria-label="Watched through season {x.n}">{x.n}</button>{/each}</div>
+        {/if}
         <p class="muted small">Or the last one you watched:</p>
         <div class="pick">
           <label>Season <select bind:value={pickS} onchange={() => (pickE = 1)}>{#each pickSeasons as x}<option value={x.n}>{x.n}</option>{/each}</select></label>
@@ -229,6 +233,8 @@
   .pickbox p { margin: 0; }
   .choices { display: flex; gap: 8px; flex-wrap: wrap; }
   .choices .btn, .pick .btn { min-height: 46px; padding: 0 16px; }
+  .thru { display: flex; gap: 8px; flex-wrap: wrap; }
+  .thru .btn { min-width: 46px; min-height: 46px; padding: 0 12px; border-radius: 999px; }
   .pick { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
   .pick label { display: grid; gap: 4px; font-weight: 800; font-size: 14px; }
   .pick select { min-height: 46px; min-width: 84px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: 16px Manrope, sans-serif; padding: 0 10px; }
