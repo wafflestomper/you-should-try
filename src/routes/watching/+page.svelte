@@ -1,6 +1,7 @@
 <script>
   import { standing, epCode } from '$lib/tvmath.js';
   import Cover from '$lib/components/Cover.svelte';
+  import RateFinish from '$lib/components/RateFinish.svelte';
   import { showToast } from '$lib/toast.svelte.js';
   import { toast } from '$lib/toast.svelte.js';
   import { invalidateAll } from '$app/navigation';
@@ -112,10 +113,11 @@
     <h2>Finished</h2>
     <ul class="shows">
       {#each [...finished, ...unknown] as x (x.id)}
-        <li class="show quiet">
+        <li class="show quiet fin">
           <a href="/item/{x.id}" class="cov"><Cover title={x.title} kind="tv" image={x.image} w={44} /></a>
-          <a href="/item/{x.id}" class="mid"><span class="t">{x.title}</span>
-            <span class="left">{x.st ? 'All watched. Tap to say how it was.' : 'Checking episodes…'}</span></a>
+          <div class="mid"><a href="/item/{x.id}" class="t">{x.title}</a>
+            {#if x.st}<RateFinish itemId={x.id} title={x.title} onBoard={x.onBoard} compact ondone={() => (shows = shows.filter((y) => y.id !== x.id))} />
+            {:else}<span class="left">Checking episodes…</span>{/if}</div>
         </li>
       {/each}
     </ul>
@@ -167,6 +169,9 @@
   .shows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
   .show { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; background: var(--surface); border-radius: 16px; padding: 10px 12px; }
   .show.quiet { padding: 8px 12px; }
+  .show.fin { grid-template-columns: auto 1fr; align-items: start; padding: 12px; }
+  .show.fin .mid { gap: 8px; }
+  a.t { color: var(--ink); text-decoration: none; }
   .cov { display: flex; text-decoration: none; }
   .mid { display: grid; gap: 2px; min-width: 0; text-decoration: none; color: var(--ink); }
   .t { font-weight: 800; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

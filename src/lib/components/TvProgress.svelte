@@ -1,9 +1,10 @@
 <script>
   // Episode tracking on a TV show's page. Everything updates on tap; the save happens behind it.
   import { nextAfter, aired, standing, prevOf, epCode } from '$lib/tvmath.js';
+  import RateFinish from './RateFinish.svelte';
   let { itemId } = $props();
 
-  let info = $state(null), progress = $state(null), loaded = $state(false), failed = $state(false);
+  let info = $state(null), progress = $state(null), loaded = $state(false), failed = $state(false), onBoard = $state(false), title = $state(''), rated = $state(null);
   let picking = $state(false), pickS = $state(1), pickE = $state(1);
   let openSeason = $state(null), episodes = $state({}), msg = $state('');
 
@@ -15,7 +16,7 @@
     const id = itemId;
     loaded = false;
     fetch(`/api/tv/${id}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => {
-      info = d.info; progress = d.progress; loaded = true;
+      info = d.info; progress = d.progress; onBoard = d.onBoard; title = d.title; loaded = true;
       if (d.info?.last) { pickS = d.info.last.s; pickE = 1; }
     }).catch(() => { failed = true; loaded = true; });
   });
@@ -69,6 +70,8 @@
     <p class="muted">Getting the episode list…</p>
   {:else if failed || !info || !seasons.length}
     <p class="muted">Couldn't find this show's episodes. If it's the wrong show, use "Wrong thing?" below to pick the right one.</p>
+  {:else if rated}
+    <p class="lead">{rated === 'loved' ? 'You loved it.' : rated === 'liked' ? 'You liked it.' : 'Not for you. Noted.'} It's in your History.</p>
   {:else if !progress}
     {#if !picking}
       <p class="lead">Keep your place in this show. It goes on your Watching tab, and only you see it.</p>
@@ -98,7 +101,7 @@
       {:else if st.state === 'waiting'}
         <div><b>You're caught up.</b><div class="muted small">{st.ep ? `${epCode(st.ep)} ` : 'More '}{st.air ? `comes out ${when(st.air)}.` : 'hasn\'t been scheduled yet.'}</div></div>
       {:else}
-        <div><b>You've watched it all.</b><div class="muted small">The show has ended.</div></div>
+        <RateFinish {itemId} {title} {onBoard} ondone={(r) => { rated = r; progress = null; }} />
       {/if}
     </div>
     {#if msg}<p class="err" role="alert">{msg}</p>{/if}
