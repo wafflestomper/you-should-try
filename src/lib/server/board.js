@@ -1,5 +1,6 @@
 // The shared board: every "you should try" recommendation, ranked.
 // Each person's board is everything except what they've finished or hidden.
+// Starring something pins it to the top of your own board (private, no effect on scores).
 //
 // Points: +3 per person recommending it, +2 per "loved it", +1 per "liked it",
 // -1 per "not for me" (private, and never below a fresh recommendation's 3).
@@ -128,6 +129,9 @@ export async function getBoard(db, me, opts = {}) {
   if (sort === 'new') list.sort((a, b) => a.age - b.age);
   else if (sort === 'loved') list.sort((a, b) => b.lovedCount - a.lovedCount || b.score - a.score);
   else list.sort((a, b) => b.score - a.score);
+  // Your starred ones always go first (only for you)
+  const st = (c) => (c.mine?.state === 'starred' ? 1 : 0);
+  list.sort((a, b) => st(b) - st(a));
 
   // Trim what goes to the page
   return list.map((c) => ({
@@ -155,7 +159,7 @@ export async function react(db, me, itemId, state, reaction = null) {
     await db.prepare('DELETE FROM reactions WHERE user_id = ? AND item_id = ?').bind(me, itemId).run();
     return;
   }
-  if (!['hidden', 'done'].includes(state)) throw new Error('Unknown choice.');
+  if (!['hidden', 'done', 'starred'].includes(state)) throw new Error('Unknown choice.');
   if (reaction && !VALUE[reaction]) throw new Error('Unknown rating.');
   await db.prepare(
     `INSERT INTO reactions (user_id, item_id, state, reaction) VALUES (?, ?, ?, ?)
