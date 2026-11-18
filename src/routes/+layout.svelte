@@ -2,7 +2,8 @@
   import '$lib/styles.css';
   import '$lib/plain.css';
   import TopBar from '$lib/components/TopBar.svelte';
-  import { page } from '$app/state';
+  import { page, updated } from '$app/state';
+  import { beforeNavigate } from '$app/navigation';
   import Nav from '$lib/components/Nav.svelte';
   import Corners from '$lib/components/Corners.svelte';
   import Icon from '$lib/components/Icon.svelte';
@@ -17,6 +18,8 @@
   import { onMount } from 'svelte';
   import { listenForInstall } from '$lib/install.svelte.js';
   onMount(listenForInstall);
+  // After the site is updated, the next tap to another page loads the new version cleanly
+  beforeNavigate(({ willUnload, to }) => { if (updated.current && !willUnload && to?.url) location.href = to.url.href; });
   const tabs = [['/', 'home', 'Board'], ['/add', 'plus', 'Add'], ['/mine', 'check', 'History']];
 </script>
 
