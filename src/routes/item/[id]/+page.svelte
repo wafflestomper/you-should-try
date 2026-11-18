@@ -5,12 +5,30 @@
   import Icon from '$lib/components/Icon.svelte';
   import Libraries from '$lib/components/Libraries.svelte';
   import RecCard from '$lib/components/RecCard.svelte';
+  import { KIND_INFO } from '$lib/kinds.js';
   let { data, form } = $props();
   const HAD = { book: "I've read it", audiobook: "I've listened to it", movie: "I've seen it", tv: "I've watched it", restaurant: "I've been", recipe: "I've made it" };
   let onMyList = $derived(data.rankedOn.some((r) => r.user_id === data.user?.id));
   const wait = (h) => h.available ? (h.availableCopies > 1 ? `Available, ${h.availableCopies} copies` : 'Available now') : h.waitDays ? `About ${Math.max(1, Math.round(h.waitDays / 7))} wk wait` : 'Waitlist';
   const fmt = (h) => (h.format === 'audiobook' ? 'Audiobook' : h.kindle ? 'Ebook, Kindle OK' : 'Ebook');
   let editing = $state(false);
+  let fxKind = $state(data.item.kind);
+  let fxTitle = $state(data.item.title);
+  let fxResults = $state([]);
+  let fxPick = $state(null);
+  let fxNote = $state('');
+  let fxTimer;
+  function fxSearch() {
+    clearTimeout(fxTimer);
+    fxTimer = setTimeout(async () => {
+      if (fxTitle.trim().length < 2) return;
+      const r = await fetch(`/api/search?kind=${fxKind}&q=${encodeURIComponent(fxTitle)}`);
+      const j = await r.json();
+      fxResults = (j.results || []).filter((m) => m.local_id !== data.item.id);
+      fxNote = j.note || (fxResults.length ? 'Pick the right one, or save to keep what you typed.' : 'No matches. Saving keeps what you typed.');
+      fxPick = null;
+    }, 350);
+  }
   let to = $state('');
   let note = $state('');
   const KIND = { book: 'Book', audiobook: 'Audiobook', movie: 'Movie', tv: 'TV show', restaurant: 'Restaurant', recipe: 'Recipe' };
@@ -111,6 +129,42 @@
 </section>
 {/if}
 
+{#if data.canFix}
+<details class="fixbox" open={!!form?.fixError}>
+  <summary>Wrong thing, or added by mistake?</summary>
+  <form method="POST" action="?/fix" class="fixform">
+    <label for="fx-kind">What is it?</label>
+    <select id="fx-kind" name="kind" bind:value={fxKind} onchange={fxSearch}>
+      {#each KIND_INFO as k}<option value={k.key}>{k.label}</option>{/each}
+    </select>
+    <label for="fx-title">Title or name</label>
+    <input id="fx-title" name="title" bind:value={fxTitle} oninput={fxSearch} autocomplete="off" />
+    {#if fxNote}<p class="small muted">{fxNote}</p>{/if}
+    {#if fxResults.length}
+      <div class="fxres" role="radiogroup" aria-label="Pick the right one">
+        {#each fxResults as m, i (i)}
+          <button type="button" role="radio" aria-checked={fxPick === m} class:sel={fxPick === m} onclick={() => { fxPick = m; fxTitle = m.title; }}>
+            <Cover title={m.title} kind={m.kind} image={m.image_url} w={36} /><span><b>{m.title}</b><br /><span class="small muted">{[m.creator, m.year].filter(Boolean).join(', ')}</span></span>
+          </button>
+        {/each}
+      </div>
+    {/if}
+    <input type="hidden" name="pick" value={fxPick ? JSON.stringify(fxPick) : '{}'} />
+    {#if form?.fixError}<p class="bad2" role="alert">{form.fixError}</p>{/if}
+    <button class="btn dark">Save the fix</button>
+    <p class="small muted">Everyone's recommendations, notes and ratings move with it.</p>
+  </form>
+  <div class="rmrow">
+    {#if data.mineRecs}
+      <form method="POST" action="?/removeMine" onsubmit={(e) => { if (!confirm('Remove your recommendation of this?')) e.preventDefault(); }}><button class="btn">Remove my recommendation</button></form>
+    {/if}
+    {#if data.isAdmin}
+      <form method="POST" action="?/deleteCard" onsubmit={(e) => { if (!confirm('Delete this card for everyone? This removes every recommendation and rating on it.')) e.preventDefault(); }}><button class="btn danger">Delete card for everyone</button></form>
+    {/if}
+  </div>
+</details>
+{/if}
+
 <form method="POST" action="?/metoo" use:enhance class="metoo">
   {#if data.card?.recs.some((r) => r.by_user_id === data.user?.id)}
     <p class="muted">You recommended this.</p>
@@ -124,6 +178,17 @@
   .head { display: flex; gap: 34px; align-items: flex-start; margin-top: 32px; flex-wrap: wrap; }
   .stats { display: flex; gap: 34px; margin: 20px 0; }
   .big { font-size: 48px; line-height: 1; }
+  .fixbox { margin-top: 28px; background: var(--surface); border-radius: 16px; padding: 12px 14px; }
+  .fixbox summary { font-weight: 800; cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+  .fixform { display: grid; gap: 6px; margin-top: 8px; }
+  .fixform label { font-weight: 700; font-size: 14px; margin-top: 6px; }
+  .fixform input, .fixform select { min-height: 44px; border-radius: 10px; padding: 0 10px; font: 16px Manrope, sans-serif; border: 1px solid var(--line); }
+  .fxres { display: grid; gap: 6px; }
+  .fxres button { display: flex; gap: 10px; align-items: center; text-align: left; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; cursor: pointer; }
+  .fxres button.sel { box-shadow: inset 0 0 0 2px var(--ink); }
+  .rmrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .rmrow form { margin: 0; }
+  .btn.danger { border-color: #B42318; color: #B42318; }
   .metoo { margin-top: 28px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .boardcard { margin-top: 18px; max-width: 640px; }
   .boardcard :global(.cov) { display: none; }

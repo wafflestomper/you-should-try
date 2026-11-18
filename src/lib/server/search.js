@@ -1,3 +1,4 @@
+import { tmdb } from './tmdb.js';
 // Searching for things to add to a list.
 // Books and audiobooks: Open Library (free, no key). Movies and TV: TMDB (free key, set as TMDB_KEY).
 // Restaurants and recipes are added by hand for now.
@@ -49,10 +50,7 @@ async function searchOpenLibrary(kind, q) {
 
 async function searchTmdb(kind, q, key) {
   const type = kind === 'tv' ? 'tv' : 'movie';
-  const url = `https://api.themoviedb.org/3/search/${type}?query=${encodeURIComponent(q)}&include_adult=false&api_key=${encodeURIComponent(key)}`;
-  const res = await fetch(url);
-  if (!res.ok) return [];
-  const data = await res.json();
+  const data = await tmdb(`/search/${type}`, { query: q, include_adult: 'false' }, key);
   return (data.results || []).slice(0, 8).map((m) => {
     const date = m.release_date || m.first_air_date || '';
     return {
@@ -80,8 +78,8 @@ export async function search(db, env, kind, q) {
       if (env.TMDB_KEY) outside = await searchTmdb(kind, q, env.TMDB_KEY);
       else note = 'Movie and TV search turns on once the TMDB key is added. For now you can add them by hand.';
     }
-  } catch {
-    note = 'The outside search did not answer. Try again, or add it by hand.';
+  } catch (e) {
+    note = /401/.test(e.message) ? 'Movie and TV search is set up wrong: TMDB turned the key down. Z needs to check the TMDB_KEY secret.' : 'The outside search did not answer. Try again, or add it by hand.';
   }
   // Drop outside results that are already in our database
   const have = new Set(local.map((l) => `${l.source}|${l.source_id}`));

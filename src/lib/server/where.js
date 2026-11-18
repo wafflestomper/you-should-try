@@ -1,3 +1,4 @@
+import { tmdb } from './tmdb.js';
 // Where to get something: streaming for movies and TV (TMDB, data from JustWatch),
 // and Libby availability for books and audiobooks (through the Shelf Check worker).
 // Results are cached in where_cache so page loads stay quick and the free APIs stay happy.
@@ -44,8 +45,9 @@ async function tmdbRef(db, item, key, b) {
   if (item.tmdb_ref != null) return item.tmdb_ref || null;
   if (!b.take()) return undefined;
   const type = item.kind === 'tv' ? 'tv' : 'movie';
-  const yearParam = item.year ? `&${type === 'tv' ? 'first_air_date_year' : 'year'}=${item.year}` : '';
-  const d = await getJson(`${TMDB}/search/${type}?query=${encodeURIComponent(item.title)}${yearParam}&api_key=${encodeURIComponent(key)}`);
+  const params = { query: item.title };
+  if (item.year) params[type === 'tv' ? 'first_air_date_year' : 'year'] = String(item.year);
+  const d = await tmdb(`/search/${type}`, params, key);
   const ref = d.results?.[0]?.id ? `${type}:${d.results[0].id}` : '';
   await db.prepare('UPDATE items SET tmdb_ref = ? WHERE id = ?').bind(ref, item.id).run();
   return ref || null;
@@ -68,7 +70,7 @@ export async function streaming(db, env, item, b = budget()) {
     if (ref) {
       if (!b.take()) return c.data ?? undefined;
       const [type, id] = ref.split(':');
-      const d = await getJson(`${TMDB}/${type}/${id}/watch/providers?api_key=${encodeURIComponent(env.TMDB_KEY)}`);
+      const d = await tmdb(`/${type}/${id}/watch/providers`, {}, env.TMDB_KEY);
       const us = d.results?.US;
       if (us) {
         data = {

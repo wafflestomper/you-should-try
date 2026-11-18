@@ -1,3 +1,4 @@
+import { tmdb } from './tmdb.js';
 // Fill in missing covers and posters for things on the board (demo items, typed-in titles).
 const UA = 'YouShouldTry/1.0 (friends recommendation board)';
 const RETRY_DAYS = 7;
@@ -15,10 +16,9 @@ async function bookCover(it) {
 async function poster(it, key) {
   if (!key) return null;
   const type = it.kind === 'tv' ? 'tv' : 'movie';
-  const y = it.year ? `&${type === 'tv' ? 'first_air_date_year' : 'year'}=${it.year}` : '';
-  const r = await fetch(`https://api.themoviedb.org/3/search/${type}?query=${encodeURIComponent(it.title)}${y}&api_key=${encodeURIComponent(key)}`, { signal: AbortSignal.timeout(6000) });
-  if (!r.ok) return null;
-  const d = await r.json();
+  const params = { query: it.title };
+  if (it.year) params[type === 'tv' ? 'first_air_date_year' : 'year'] = String(it.year);
+  const d = await tmdb(`/search/${type}`, params, key, 6000);
   const hit = (d.results || []).find((x) => x.poster_path);
   return hit ? `https://image.tmdb.org/t/p/w185${hit.poster_path}` : null;
 }

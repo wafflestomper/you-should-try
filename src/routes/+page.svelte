@@ -30,6 +30,8 @@
   </p>
 {/if}
 
+{#if page.url.searchParams.get('removed')}<p class="toast" role="status">Removed from the board.</p>{/if}
+
 <div class="filters" role="group" aria-label="Show">
   {#each KINDS as [k, label, color]}
     <button class="chip" style={color ? `--c:${color}` : ''} aria-pressed={(data.opts.kind ?? '') === k} onclick={() => set('kind', k)}>{#if color}<span class="dot"></span>{/if}{label}</button>
