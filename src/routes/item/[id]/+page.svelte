@@ -21,6 +21,8 @@
   let fxTimer;
   let fxForm;
   let fxSaving = $state(false);
+  let fxOpen = $state(false);
+  $effect(() => { if (form?.fixError) fxOpen = true; });
   function fxSearch() {
     clearTimeout(fxTimer);
     fxTimer = setTimeout(async () => {
@@ -133,7 +135,7 @@
 {/if}
 
 {#if data.canFix}
-<details class="fixbox" open={!!form?.fixError}>
+<details class="fixbox" bind:open={fxOpen}>
   <summary>Wrong thing, or added by mistake?</summary>
   <form method="POST" action="?/fix" class="fixform" bind:this={fxForm}>
     <label for="fx-kind">What is it?</label>
