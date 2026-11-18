@@ -52,7 +52,10 @@
       {#if open}
         <ul class="drop" role="listbox">
           {#each results as l (l.key)}
-            <li><button type="button" onclick={() => choose(l)}>{l.name}</button></li>
+            <li class="opt">
+              <button type="button" onclick={() => choose(l)}>{l.name}<span class="k">{l.where ? `${l.where} · ` : ''}code: {l.key}</span></button>
+              <a href="https://libbyapp.com/library/{l.key}" target="_blank" rel="noopener" title="Open this library in Libby to check it's the right one">Check ↗</a>
+            </li>
           {/each}
           {#if note}<li class="note">{note}</li>{/if}
         </ul>
@@ -82,6 +85,10 @@
   .drop { position: absolute; z-index: 20; top: 40px; left: 0; right: 0; min-width: 260px; list-style: none; margin: 0; padding: 4px; background: #fff; border: 1.5px solid var(--slate); border-radius: 6px; box-shadow: 0 8px 22px rgba(0,0,0,.12); }
   .drop button { width: 100%; text-align: left; padding: 9px 10px; background: none; border: 0; font: 14px var(--body); cursor: pointer; border-radius: 4px; }
   .drop button:hover, .drop button:focus-visible { background: #F3F1EA; }
+  .opt { display: flex; align-items: center; gap: 4px; }
+  .opt button { flex: 1; display: flex; flex-direction: column; }
+  .opt a { font-size: 12.5px; padding: 6px 8px; white-space: nowrap; color: var(--ink-2); }
+  .k { font-size: 12.5px; color: var(--ink-3); }
   .note { padding: 9px 10px; font-size: 13px; color: var(--ink-2); }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>

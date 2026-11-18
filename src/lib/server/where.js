@@ -91,7 +91,11 @@ export async function streaming(db, env, item, b = budget()) {
 
 export async function searchLibraries(env, q) {
   const d = await getJson(`${shelfApi(env)}/libraries?q=${encodeURIComponent(q)}`, { headers: SHELF_HEADERS });
-  return (d.libraries || []).slice(0, 12).map((l) => ({ key: l.key, name: l.name }));
+  return (d.libraries || []).slice(0, 12).map((l) => {
+    // Pass along any place info the search gives, to tell same-named libraries apart
+    const where = [l.city, l.location, l.region, l.state, l.country].filter((x) => typeof x === 'string' && x.trim()).join(', ');
+    return { key: l.key, name: l.name, where };
+  });
 }
 
 /**
