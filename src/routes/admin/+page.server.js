@@ -15,13 +15,19 @@ export async function load({ locals, platform, url }) {
     all(db, `SELECT c.*, u.name AS by_name FROM circles c LEFT JOIN users u ON u.id = c.suggested_by WHERE c.status = 'pending'`),
     db.prepare(`SELECT COUNT(*) AS n FROM users WHERE id LIKE 'u-%' AND email IS NULL AND google_sub IS NULL AND id != ?`).bind(locals.realUser.id).first()
   ]);
-  return { newbies, invites, circles, demoCount: demo.n, origin: url.origin };
+  const mm = await platform.env.DB.prepare("SELECT value FROM settings WHERE key = 'match_min_shared'").first();
+  return { newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5) };
 }
 
 const guard = (locals) => { if (!locals.realUser?.is_admin) error(403, 'Admins only.'); };
 const field = async (request, k) => String((await request.formData()).get(k) || '');
 
 export const actions = {
+  matchMin: async ({ request, platform, locals }) => {
+    if (!locals.realUser?.is_admin) return;
+    const n = Math.round(Number((await request.formData()).get('n')));
+    if (n >= 1 && n <= 50) await platform.env.DB.prepare("INSERT INTO settings (key, value) VALUES ('match_min_shared', ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value").bind(String(n)).run();
+  },
   keep: async ({ request, platform, locals }) => {
     guard(locals);
     await platform.env.DB.prepare('UPDATE users SET reviewed = 1 WHERE id = ?').bind(await field(request, 'id')).run();

@@ -3,10 +3,10 @@ import { normTag, MAX_TAGS } from '$lib/tags.js';
 import { itemLabels } from './search.js';
 
 const uid = () => crypto.randomUUID();
-const KINDS = ['book', 'audiobook', 'movie', 'tv', 'restaurant', 'recipe'];
+const KINDS = ['book', 'audiobook', 'movie', 'tv', 'podcast', 'restaurant', 'recipe', 'place', 'other'];
 
 /** Find or create the item for one entry. Returns its id. */
-async function ensureItem(db, it) {
+export async function ensureItem(db, it) {
   if (it.local_id) {
     const found = await db.prepare('SELECT id FROM items WHERE id = ?').bind(it.local_id).first();
     if (found) return found.id;

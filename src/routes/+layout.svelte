@@ -1,12 +1,14 @@
 <script>
   import '$lib/styles.css';
+  import '$lib/plain.css';
+  import TopBar from '$lib/components/TopBar.svelte';
   import { page } from '$app/state';
   import Nav from '$lib/components/Nav.svelte';
   import Corners from '$lib/components/Corners.svelte';
   import Icon from '$lib/components/Icon.svelte';
   let { data, children } = $props();
   let path = $derived(page.url.pathname);
-  const tabs = [['/', 'home', 'Home'], ['/lists', 'list', 'Lists'], ['/new', 'plus', 'Add'], ['/try', 'mark', 'Try list'], ['/people', 'people', 'People']];
+  const tabs = [['/', 'home', 'Board'], ['/add', 'plus', 'Add'], ['/mine', 'mark', 'My list']];
 </script>
 
 <svelte:head><title>You Should Try</title></svelte:head>
@@ -23,10 +25,8 @@
     <div class="banner viewing"><span>You're seeing the site as <b>{data.user.name}</b>.</span>
       <form method="POST" action="/view-as"><input type="hidden" name="user" value="" /><button class="gb">Back to me</button></form></div>
   {/if}
+  <TopBar {path} counts={data.counts} />
   <div class="wrap">
-    {#if path !== '/'}
-      <div class="frame"><div class="board strip"><Corners size={56} /><div class="inner"><Nav {path} user={data.user} counts={data.counts} /></div></div></div>
-    {/if}
     {@render children()}
 
     <footer class="foot">
@@ -57,11 +57,11 @@
 <style>
   .strip { padding: 14px 30px 16px; }
   .inner { position: relative; padding: 0 30px; }
-  .foot { margin-top: 60px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-3); font-family: var(--serif); font-style: italic; }
+  .foot { margin-top: 60px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--ink-3); }
   .demo { display: flex; gap: 8px; align-items: center; font-family: var(--body); font-style: normal; }
   .demo select { min-height: 36px; border: 1.5px solid #CFCDC4; border-radius: 6px; padding: 0 8px; font: 14px var(--body); background: #fff; }
   .tabbar { display: none; }
-  .banner { background: var(--slate); color: var(--chalk); display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 10px 16px; font-size: 14.5px; }
+  .banner { background: #1F2937; color: #fff; display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 10px 16px; font-size: 14.5px; }
   .banner.viewing { background: #7A5C00; }
   .banner form { margin: 0; }
   .gb { background: #fff; color: #1f1f1f; border: 0; border-radius: 18px; padding: 7px 14px; font: 700 14px var(--body); text-decoration: none; cursor: pointer; }
@@ -71,7 +71,7 @@
     .inner { padding: 0; }
     .tabbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; height: 74px; background: #fff; border-top: 1px solid #E2E0D8; padding: 8px 6px 0; z-index: 20; }
     .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; color: var(--ink-3); font-size: 11px; font-weight: 600; }
-    .tabbar a[aria-current='page'] { color: var(--slate); font-weight: 800; }
-    .plus { width: 48px; height: 48px; border-radius: 50%; background: var(--slate); color: var(--chalk); display: flex; align-items: center; justify-content: center; margin-top: -18px; border: 3px solid #fff; }
+    .tabbar a[aria-current='page'] { color: var(--accent); font-weight: 800; }
+    .plus { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; margin-top: -18px; border: 3px solid #fff; }
   }
 </style>

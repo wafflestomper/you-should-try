@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { getItem } from '$lib/server/data.js';
 import { saveToTry, removeFromTry, sendRecommendation } from '$lib/server/actions.js';
 import { myLibraries, libraryActions } from '$lib/server/libs.js';
+import { getBoard, react } from '$lib/server/board.js';
 import { streaming, library, libbySearchUrl } from '$lib/server/where.js';
 
 export async function load({ params, platform, locals }) {
@@ -29,10 +30,21 @@ export async function load({ params, platform, locals }) {
     }
     return null;
   })();
-  return { ...data, saved: !!saved, done: done?.reaction ?? null, people: people.results, sentTo: sent.results, libs, where, hasTmdb: !!env.TMDB_KEY };
+  const card = (await getBoard(db, me, { view: 'any', itemId: params.id }))[0] ?? null;
+  return { ...data, card, saved: !!saved, done: done?.reaction ?? null, people: people.results, sentTo: sent.results, libs, where, hasTmdb: !!env.TMDB_KEY };
 }
 
 export const actions = {
+  metoo: async ({ platform, locals, params }) => {
+    const db = platform.env.DB;
+    const has = await db.prepare('SELECT 1 FROM recs WHERE item_id = ? AND by_user_id = ?').bind(params.id, locals.user.id).first();
+    if (!has) await db.prepare('INSERT INTO recs (id, item_id, by_user_id, added_by) VALUES (?, ?, ?, ?)').bind(crypto.randomUUID(), params.id, locals.user.id, locals.user.id).run();
+  },
+  react: async ({ request, platform, locals, params }) => {
+    const f = await request.formData();
+    try { await react(platform.env.DB, locals.user.id, params.id, String(f.get('state')), f.get('reaction') ? String(f.get('reaction')) : null); }
+    catch (e) { return fail(400, { error: e.message }); }
+  },
   ...libraryActions,
   try: async ({ request, platform, locals, params }) => {
     const f = await request.formData();

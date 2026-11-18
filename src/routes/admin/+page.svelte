@@ -10,7 +10,13 @@
 </script>
 
 <svelte:head><title>Admin · You Should Try</title></svelte:head>
-<h1 class="slab" style="font-size:48px;margin:32px 0 0">Admin</h1>
+<h1 class="slab" style="font-size:32px;margin:20px 0 0">Admin</h1>
+<form method="POST" action="?/matchMin" class="mm">
+  <label for="mm">Taste match kicks in after</label>
+  <input id="mm" name="n" type="number" min="1" max="50" value={data.matchMin} />
+  <span>shared reactions</span>
+  <button class="btn sm">Save</button>
+</form>
 <p class="muted" style="margin:6px 0 0">New people get full access right away. Check them here and keep or revoke.</p>
 {#if form?.message}<p class="err" role="alert">{form.message}</p>{/if}
 
@@ -56,6 +62,8 @@
 {/if}
 
 <style>
+  .mm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0 20px; }
+  .mm input { width: 70px; min-height: 36px; font-size: 16px; padding: 0 8px; }
   .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--line); }
   .pill { font-size: 12px; font-weight: 700; border: 1px solid #CFCDC4; border-radius: 10px; padding: 1px 8px; }
   .danger { color: #B42318; border-color: #E3B3AE; }
