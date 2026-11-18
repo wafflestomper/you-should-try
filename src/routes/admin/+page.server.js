@@ -1,3 +1,4 @@
+import { defaultLibraries, defaultLibraryActions } from '$lib/server/libs.js';
 import { possibleDups, mergeItems } from '$lib/server/dups.js';
 import { error, fail } from '@sveltejs/kit';
 
@@ -17,14 +18,16 @@ export async function load({ locals, platform, url }) {
     db.prepare(`SELECT COUNT(*) AS n FROM users WHERE id LIKE 'u-%' AND email IS NULL AND google_sub IS NULL AND id != ?`).bind(locals.realUser.id).first()
   ]);
   const dups = await possibleDups(platform.env.DB);
+  const defaultLibs = await defaultLibraries(platform.env.DB);
   const mm = await platform.env.DB.prepare("SELECT value FROM settings WHERE key = 'match_min_shared'").first();
-  return { newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups };
+  return { newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups, defaultLibs };
 }
 
 const guard = (locals) => { if (!locals.realUser?.is_admin) error(403, 'Admins only.'); };
 const field = async (request, k) => String((await request.formData()).get(k) || '');
 
 export const actions = {
+  ...defaultLibraryActions,
   merge: async ({ request, platform, locals }) => {
     if (!locals.realUser?.is_admin) return;
     const f = await request.formData();

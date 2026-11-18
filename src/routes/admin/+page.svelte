@@ -1,4 +1,5 @@
 <script>
+  import Libraries from '$lib/components/Libraries.svelte';
   import { enhance } from '$app/forms';
   import Avatar from '$lib/components/Avatar.svelte';
   let { data, form } = $props();
@@ -11,6 +12,12 @@
 
 <svelte:head><title>Admin · You Should Try</title></svelte:head>
 <h1 class="slab" style="font-size:32px;margin:20px 0 0">Admin</h1>
+<section class="deflibs">
+  <h2 class="h2">Libraries for everyone</h2>
+  <p class="small muted">Everyone checks these until they pick their own. Search by name, or paste a Libby link like libbyapp.com/library/henrico.</p>
+  <Libraries libs={data.defaultLibs} label="Group libraries" admin />
+</section>
+
 <section class="dups" id="duplicates">
   <h2 class="h2">Possible duplicates {#if data.dups.length}<span class="cnt">{data.dups.length}</span>{/if}</h2>
   {#if !data.dups.length}<p class="muted small">Nothing looks doubled up right now.</p>{/if}
@@ -79,6 +86,7 @@
 {/if}
 
 <style>
+  .deflibs { margin: 16px 0 24px; }
   .dups { margin: 16px 0 24px; }
   .cnt { background: #C2410C; color: #fff; border-radius: 10px; font-size: 13px; padding: 1px 8px; vertical-align: middle; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #fff; border: 1px solid #E6E5E0; border-radius: 12px; padding: 12px; margin-top: 10px; }

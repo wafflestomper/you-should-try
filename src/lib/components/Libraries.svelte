@@ -2,7 +2,8 @@
   // Pick the Libby libraries to check. Search uses the Shelf Check worker; a pasted Libby link works too.
   import { enhance } from '$app/forms';
   import { tick } from 'svelte';
-  let { libs = [], compact = false } = $props();
+  let { libs = [], compact = false, label = 'Your Libby libraries', admin = false } = $props();
+  let usingDefaults = $derived(libs.length > 0 && libs.every((l) => l.isDefault));
 
   let q = $state('');
   let results = $state([]);
@@ -35,7 +36,8 @@
 </script>
 
 <div class="libs" class:compact>
-  {#if !compact}<div class="lab">Your Libby libraries</div>{/if}
+  {#if !compact}<div class="lab">{label}</div>{/if}
+  {#if usingDefaults && !admin}<div class="sm">Checking the group's libraries. Add or remove one to make the list your own.</div>{/if}
   <div class="row">
     {#each libs as l (l.key)}
       <form method="POST" action="?/removeLib" use:enhance class="chip">
@@ -57,6 +59,9 @@
       {/if}
     </div>
   </div>
+  {#if !usingDefaults && !admin}
+    <form method="POST" action="?/resetLibs" use:enhance class="reset"><button class="rl">Use the group's libraries instead</button></form>
+  {/if}
   <form method="POST" action="?/addLib" use:enhance bind:this={addForm} hidden>
     <input name="key" value={pending.key} /><input name="name" value={pending.name} />
   </form>
@@ -65,6 +70,9 @@
 <style>
   .libs { margin: 18px 0 6px; }
   .lab { font: 600 14px var(--body); margin-bottom: 6px; }
+  .reset { margin-top: 6px; }
+  .rl { background: none; border: 0; padding: 0; font: 13px var(--body); color: var(--ink-2); text-decoration: underline; cursor: pointer; }
+  .sm { font-size: 13px; color: var(--ink-2); margin: -2px 0 6px; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 6px 0 12px; border-radius: 17px; background: var(--green); color: #fff; font: 600 14px var(--body); }
   .chip button { background: none; border: 0; color: #fff; font-size: 18px; cursor: pointer; width: 26px; height: 26px; border-radius: 13px; }
