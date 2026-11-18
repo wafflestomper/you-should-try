@@ -1,10 +1,11 @@
 <script>
+  import { enhance } from '$app/forms';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { onMount } from 'svelte';
   import RecCard from '$lib/components/RecCard.svelte';
   import { KIND_INFO } from '$lib/kinds.js';
-  let { data } = $props();
+  let { data, form } = $props();
 
   let addedCard = $derived(data.addedTitle ? { item: { title: data.addedTitle } } : null);
   let view = $state('cards');
@@ -59,6 +60,10 @@
     <a class="btn dark sm" href="/people?guest={data.invitee.id}#invite">{data.invitee.invited ? 'Invite again' : `Invite ${f}`}</a>
   </p>
 {/if}
+{#if form?.removed}
+  <div class="toast invitee" role="status"><span>Deleted <b>{form.removed}</b>.</span>
+    <form method="POST" action="?/undoRemove" use:enhance><input type="hidden" name="undo" value={form.undo} /><button class="btn sm">Undo</button></form></div>
+{:else if form?.restored}<p class="toast" role="status">Put back.</p>{/if}
 {#if page.url.searchParams.get('removed')}<p class="toast" role="status">Removed from the board.</p>{/if}
 
 <div class="filters" role="group" aria-label="Show">
@@ -100,7 +105,7 @@
 
 {#if data.cards.length}
   <div class="list" class:stack={view === 'stack'}>
-    {#each data.cards as card (card.item.id)}<RecCard {card} stacked={view === 'stack'} />{/each}
+    {#each data.cards as card (card.item.id)}<RecCard {card} stacked={view === 'stack'} swipe />{/each}
   </div>
 {:else}
   <p class="empty">{personName ? `Nothing from ${personName} here yet.` : 'Nothing here yet.'} Heard something good? <a href="/add">Add it</a>.</p>
@@ -129,9 +134,9 @@
   .filters2 select { min-height: 36px; border-radius: 10px; padding: 0 8px; font: 14px Manrope, sans-serif; max-width: 190px; border: 1px solid var(--line); }
   .list { display: grid; gap: 14px; padding-top: 6px; }
   .list.stack { gap: 0; padding-top: 10px; }
-  .list.stack > :global(.rc.collapsed + .rc) { margin-top: -26px; }
-  .list.stack > :global(.rc:not(.collapsed) + .rc.collapsed) { margin-top: 14px; }
-  :global(.look-dark) .list.stack > :global(.rc.collapsed + .rc:not(.collapsed)) { margin-top: -12px; }
-  :global(.look-light) .list.stack > :global(.rc.collapsed + .rc:not(.collapsed)) { margin-top: 44px; }
+  .list.stack > :global(.rcw.collapsed + .rcw) { margin-top: -26px; }
+  .list.stack > :global(.rcw:not(.collapsed) + .rcw.collapsed) { margin-top: 14px; }
+  :global(.look-dark) .list.stack > :global(.rcw.collapsed + .rcw:not(.collapsed)) { margin-top: -12px; }
+  :global(.look-light) .list.stack > :global(.rcw.collapsed + .rcw:not(.collapsed)) { margin-top: 44px; }
   .empty { padding: 30px 0; color: var(--ink-2); }
 </style>

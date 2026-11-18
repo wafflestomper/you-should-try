@@ -4,7 +4,41 @@
   import { enhance } from '$app/forms';
   import Cover from './Cover.svelte';
   import { KIND as KI, kindColor, kindDeep } from '$lib/kinds.js';
-  let { card, action = '?/react', stacked = false } = $props();
+  let { card, action = '?/react', stacked = false, swipe = false } = $props();
+
+  // Swipe left to reveal Delete (things I entered) or Not for me (everyone else's)
+  const ACT = 92;
+  let dx = $state(0), dragging = $state(false);
+  let sx = 0, sy = 0, base = 0, axis = null, pid = null, moved = false;
+  let canDelete = $derived(card.iAdded || card.private);
+  function down(e) {
+    if (!swipe || e.button > 0) return;
+    sx = e.clientX; sy = e.clientY; base = dx; axis = null; pid = e.pointerId; moved = false;
+  }
+  function move(e) {
+    if (pid !== e.pointerId) return;
+    const mx = e.clientX - sx, my = e.clientY - sy;
+    if (!axis && Math.hypot(mx, my) > 8) axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
+    if (axis !== 'x') return;
+    if (!dragging) { dragging = true; e.currentTarget.setPointerCapture?.(e.pointerId); }
+    moved = true;
+    dx = Math.max(-ACT - 30, Math.min(0, base + mx));
+  }
+  function up(e) {
+    if (pid !== e.pointerId) return;
+    pid = null;
+    if (dragging) { dragging = false; dx = dx < -ACT / 2 ? -ACT : 0; if (dx) window.dispatchEvent(new CustomEvent('yst-swipe', { detail: it.id })); }
+  }
+  // While open, a tap on the card closes it instead of opening the card
+  function clickCapture(e) {
+    if (moved || dx) { e.preventDefault(); e.stopPropagation(); if (!moved) dx = 0; moved = false; }
+  }
+  $effect(() => {
+    if (!swipe) return;
+    const other = (e) => { if (e.detail !== it.id) dx = 0; };
+    window.addEventListener('yst-swipe', other);
+    return () => window.removeEventListener('yst-swipe', other);
+  });
 
   const DONE = { book: 'Read it', audiobook: 'Listened', movie: 'Watched it', tv: 'Watched it', podcast: 'Listened', restaurant: 'Been there', recipe: 'Made it', place: 'Been there', other: 'Tried it' };
   const first = (n) => n.split(' ')[0];
@@ -25,8 +59,31 @@
   let collapsed = $derived(stacked && !open);
 </script>
 
-<article class="rc" class:starred={mine?.state === 'starred'} class:collapsed class:stacked
-  style="--kc:{kindColor(it.kind)};--kd:{kindDeep(it.kind)}">
+<div class="rcw" class:collapsed><div class="swbox">
+{#if swipe}
+  <div class="swact" class:del={canDelete} aria-hidden={dx === 0}>
+    {#if canDelete}
+      <form method="POST" action="?/removeMine" use:enhance={() => async ({ update }) => { dx = 0; await update(); }}>
+        <input type="hidden" name="item" value={it.id} />
+        <button tabindex={dx ? 0 : -1} aria-label="Delete {it.title}">
+          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Delete</span>
+        </button>
+      </form>
+    {:else}
+      <form method="POST" {action} use:enhance={() => async ({ update }) => { dx = 0; await update(); }}>
+        <input type="hidden" name="item" value={it.id} /><input type="hidden" name="state" value="hidden" />
+        <button tabindex={dx ? 0 : -1} aria-label="Not for me: {it.title}">
+          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6.1A9.9 9.9 0 0 1 12 6c5 0 9 4.5 10 6-.5.8-1.6 2.2-3.2 3.5M6.3 7.6C4.4 8.9 2.9 10.7 2 12c1 1.5 5 6 10 6 1.5 0 2.9-.4 4.1-1M9.9 10a3 3 0 0 0 4.1 4.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Not for me</span>
+        </button>
+      </form>
+    {/if}
+  </div>
+{/if}
+<article class="rc" class:starred={mine?.state === 'starred'} class:collapsed class:stacked class:swipe class:dragging
+  style="--kc:{kindColor(it.kind)};--kd:{kindDeep(it.kind)};{dx ? `transform:translateX(${dx}px)` : ''}"
+  onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={up} onclickcapture={clickCapture} ondragstart={(e) => { if (swipe) e.preventDefault(); }}>
   {#if collapsed}
     <button class="strip" onclick={() => (open = true)} aria-expanded="false" aria-label="{it.title}, {KI[it.kind]?.label}. Open">
       <span class="st-txt"><span class="k">{KI[it.kind]?.label ?? it.kind}</span><span class="st-title" class:long={it.title.length > 28}>{it.title}</span><span class="st-who">{whoLine}</span></span>
@@ -107,9 +164,19 @@
     </div>
   {/if}
 </article>
+</div></div>
 
 <style>
   .rc { position: relative; border-radius: 22px; isolation: isolate; }
+  .swbox { position: relative; }
+  .rc.swipe :global(img), .rc.swipe a { -webkit-user-drag: none; user-select: none; -webkit-touch-callout: none; }
+  .rc.swipe { touch-action: pan-y; transition: transform .22s ease; z-index: 1; }
+  .rc.swipe.dragging { transition: none; }
+  .swact { position: absolute; inset: 0; border-radius: 22px; display: flex; justify-content: flex-end; background: #57534E; overflow: hidden; }
+  .swact.del { background: #D92D20; }
+  .collapsed .swact { border-radius: 20px; }
+  .swact form { margin: 0; display: flex; }
+  .swact button { width: 92px; border: 0; background: none; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font: 800 13px Manrope, sans-serif; cursor: pointer; }
   .rc :global(.cover-img), .rc :global(.cover) { border-radius: 8px; box-shadow: 0 10px 22px rgba(0,0,0,.28); }
   .rc :global(.cover-img.round), .rc :global(.cover.restaurant), .rc :global(.cover.recipe) { border-radius: 50%; }
   .cov { text-decoration: none; }

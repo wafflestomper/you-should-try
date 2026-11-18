@@ -24,6 +24,32 @@ export async function load({ platform, locals, url }) {
 }
 
 export const actions = {
+  // Swipe left > Delete: take back what I entered (added it by mistake), or drop a "just for me" pick
+  removeMine: async ({ request, platform, locals }) => {
+    const db = platform.env.DB, me = locals.user.id;
+    const id = String((await request.formData()).get('item') || '');
+    const item = await db.prepare('SELECT title FROM items WHERE id = ?').bind(id).first();
+    if (!item) return fail(404, { error: 'That card is gone already.' });
+    const recs = (await db.prepare('SELECT id, by_user_id, by_guest_id, note, created_at FROM recs WHERE item_id = ? AND added_by = ?').bind(id, me).all()).results;
+    const want = await db.prepare("SELECT 1 FROM reactions WHERE user_id = ? AND item_id = ? AND state = 'wanted'").bind(me, id).first();
+    await db.batch([
+      db.prepare('DELETE FROM recs WHERE item_id = ? AND added_by = ?').bind(id, me),
+      db.prepare("DELETE FROM reactions WHERE user_id = ? AND item_id = ? AND state = 'wanted'").bind(me, id)
+    ]);
+    return { removed: item.title, undo: JSON.stringify({ item: id, recs, want: !!want }) };
+  },
+  // Put back exactly what Delete took off (only things this person had entered)
+  undoRemove: async ({ request, platform, locals }) => {
+    const db = platform.env.DB, me = locals.user.id;
+    let u; try { u = JSON.parse(String((await request.formData()).get('undo') || '')); } catch { return fail(400, { error: "Couldn't undo that." }); }
+    if (!(await db.prepare('SELECT 1 FROM items WHERE id = ?').bind(u.item).first())) return fail(400, { error: "Couldn't undo that." });
+    const stmts = (u.recs || []).slice(0, 20).map((r) => db.prepare(
+      'INSERT OR IGNORE INTO recs (id, item_id, by_user_id, by_guest_id, added_by, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .bind(String(r.id), u.item, r.by_user_id ?? null, r.by_guest_id ?? null, me, r.note ?? null, r.created_at ?? new Date().toISOString().slice(0, 19).replace('T', ' ')));
+    if (u.want) stmts.push(db.prepare("INSERT OR IGNORE INTO reactions (user_id, item_id, state) VALUES (?, ?, 'wanted')").bind(me, u.item));
+    if (stmts.length) await db.batch(stmts);
+    return { restored: true };
+  },
   react: async ({ request, platform, locals }) => {
     const f = await request.formData();
     try {

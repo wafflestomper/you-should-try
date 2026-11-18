@@ -172,6 +172,7 @@ export async function getBoard(db, me, opts = {}) {
     recs: c.recs.map((r) => ({ id: r.id, by_user_id: r.by_user_id, by_guest_id: r.by_guest_id, by_name: shorts[r.by_user_id ? `u:${r.by_user_id}` : `g:${r.by_guest_id}`] ?? r.by_name, by_color: r.by_color, note: r.note, rating: r.rating, created_at: r.created_at, added_name: r.added_by !== r.by_user_id ? r.added_name : null })),
     loved: c.loved.map((l) => l.name),
     liked: c.liked.map((l) => l.name),
+    iAdded: c.recs.some((r) => r.added_by === me),
     mine: c.mine,
     newest: c.newest,
     private: c.private,
