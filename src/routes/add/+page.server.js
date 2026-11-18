@@ -60,6 +60,11 @@ export const actions = {
       await db.prepare('INSERT INTO recs (id, item_id, by_user_id, by_guest_id, added_by, note) VALUES (?, ?, ?, ?, ?, ?)')
         .bind(crypto.randomUUID(), itemId, who.user ?? null, who.guest ?? null, locals.user.id, note).run();
       if (!before.n) await flagIfDup(db, locals.user.id, itemId).catch(() => {});
+      else if (who.user) {
+        const earlier = (await db.prepare('SELECT DISTINCT by_user_id FROM recs WHERE item_id = ? AND by_user_id IS NOT NULL AND by_user_id != ?').bind(itemId, who.user).all()).results;
+        if (earlier.length) await db.batch(earlier.map((o) => db.prepare(
+          `INSERT INTO notifications (id, user_id, type, actor_id, item_id) VALUES (?, ?, 'joined_your_pick', ?, ?)`).bind(crypto.randomUUID(), o.by_user_id, who.user, itemId)));
+      }
     } else if (note) {
       // Same person again: keep their newest note
       await db.prepare('UPDATE recs SET note = ? WHERE id = ?').bind(note, dup.id).run();

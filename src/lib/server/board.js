@@ -166,6 +166,12 @@ export async function react(db, me, itemId, state, reaction = null) {
      ON CONFLICT (user_id, item_id) DO UPDATE SET state = excluded.state,
        reaction = COALESCE(excluded.reaction, CASE WHEN excluded.state = 'done' THEN reactions.reaction ELSE reactions.reaction END),
        updated_at = datetime('now')`).bind(me, itemId, state, reaction).run();
+  if (state === 'done' && (reaction === 'loved' || reaction === 'liked')) {
+    const owners = (await db.prepare('SELECT DISTINCT by_user_id FROM recs WHERE item_id = ? AND by_user_id IS NOT NULL AND by_user_id != ?').bind(itemId, me).all()).results;
+    if (owners.length) await db.batch(owners.map((o) => db.prepare(
+      `INSERT INTO notifications (id, user_id, type, actor_id, item_id, data) VALUES (?, ?, 'loved_your_pick', ?, ?, ?)`)
+      .bind(crypto.randomUUID(), o.by_user_id, me, itemId, JSON.stringify({ reaction }))));
+  }
 }
 
 /** Who already has each of these items on the board. */
