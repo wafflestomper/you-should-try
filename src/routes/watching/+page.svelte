@@ -8,6 +8,15 @@
   import { tick } from 'svelte';
   import { page } from '$app/state';
   let { data } = $props();
+  // Sharing: off unless you turn it on. On means every show, except ones you keep private on the show's page.
+  let sharing = $state(data.sharing);
+  $effect(() => { sharing = data.sharing; });
+  async function setSharing(on) {
+    sharing = on;
+    showToast(on ? 'Friends can now see your shows.' : 'Your shows are private again.');
+    try { const r = await fetch('/api/me/sharing', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ on }) }); if (!r.ok) throw 0; }
+    catch { sharing = !on; showToast("That didn't save. Try again."); }
+  }
 
   // Local copy so taps show instantly; the saves happen behind it
   let shows = $state(structuredClone(data.shows));
@@ -96,6 +105,16 @@
   {#if shows.length}<button class="btn addbtn" onclick={openAdd} aria-expanded={addOpen}>{addOpen ? 'Close' : '+ Add a show'}</button>{/if}
 </div>
 
+<div class="share" class:on={sharing}>
+  {#if sharing}
+    <p><b>Friends can see your shows</b> and which episode, never when. Hide any show from its page.</p>
+    <button class="lnk" onclick={() => setSharing(false)}>Turn off</button>
+  {:else}
+    <p><b>Your shows are private.</b> Share them so friends see what you're watching and which episode, never when. You can still hide any show.</p>
+    <button class="btn sm" onclick={() => setSharing(true)}>Share my shows</button>
+  {/if}
+</div>
+
 {#if addOpen || pick}
 <section class="add" class:top={shows.length > 0}>
   {#if !shows.length}<h2>Keep your place in a show</h2>{/if}
@@ -145,6 +164,22 @@
   {#key toast.id}<div class="toast quick" role="status"><span>{toast.text}</span>{#if toast.undo}<button class="btn sm" onclick={() => { const u = toast.undo; toast.undo = null; u(); }}>Undo</button>{/if}</div>{/key}
 {/if}
 
+{#if finished.length || unknown.length}
+  <section>
+    <h2>Finished</h2>
+    <ul class="shows">
+      {#each [...finished, ...unknown] as x (x.id)}
+        <li class="show quiet fin">
+          <a href="/item/{x.id}" class="cov"><Cover title={x.title} kind="tv" image={x.image} w={44} /></a>
+          <div class="mid"><a href="/item/{x.id}" class="t">{x.title}</a>
+            {#if x.st}<RateFinish itemId={x.id} title={x.title} onBoard={x.onBoard} compact ondone={() => (shows = shows.filter((y) => y.id !== x.id))} />
+            {:else}<span class="left">Checking episodes…</span>{/if}</div>
+        </li>
+      {/each}
+    </ul>
+  </section>
+{/if}
+
 {#if upNext.length}
   <section>
     <div class="uh"><h2>Up next</h2>
@@ -182,26 +217,18 @@
   </section>
 {/if}
 
-{#if finished.length || unknown.length}
-  <section>
-    <h2>Finished</h2>
-    <ul class="shows">
-      {#each [...finished, ...unknown] as x (x.id)}
-        <li class="show quiet fin">
-          <a href="/item/{x.id}" class="cov"><Cover title={x.title} kind="tv" image={x.image} w={44} /></a>
-          <div class="mid"><a href="/item/{x.id}" class="t">{x.title}</a>
-            {#if x.st}<RateFinish itemId={x.id} title={x.title} onBoard={x.onBoard} compact ondone={() => (shows = shows.filter((y) => y.id !== x.id))} />
-            {:else}<span class="left">Checking episodes…</span>{/if}</div>
-        </li>
-      {/each}
-    </ul>
-  </section>
-{/if}
+
 
 
 
 <style>
   h1 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; margin: 14px 0 6px; }
+  .share { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1.5px dashed var(--line); border-radius: 14px; padding: 10px 14px; margin: 4px 0 8px; }
+  .share p { margin: 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.45; }
+  .share p b { color: var(--ink); }
+  .share.on { border-style: solid; }
+  .share .lnk { white-space: nowrap; }
+  .share .btn { white-space: nowrap; min-height: 38px; padding: 0 12px; }
   .uh { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .seg { display: flex; background: var(--surface); border-radius: 12px; padding: 3px; }
   .seg button { border: 0; background: none; color: var(--ink-2); font: 700 13.5px Manrope, sans-serif; padding: 7px 12px; border-radius: 9px; cursor: pointer; }

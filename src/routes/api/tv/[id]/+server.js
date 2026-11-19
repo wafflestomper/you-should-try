@@ -4,6 +4,7 @@ import { json, error } from '@sveltejs/kit';
 import { showInfo, seasonEpisodes, setProgress } from '$lib/server/tv.js';
 import { nextAfter, standing } from '$lib/tvmath.js';
 import { react } from '$lib/server/board.js';
+import { alsoWatching } from '$lib/server/watchShare.js';
 
 async function load(platform, id) {
   const item = await platform.env.DB.prepare('SELECT * FROM items WHERE id = ?').bind(id).first();
@@ -16,12 +17,15 @@ export async function GET({ params, platform, locals, url }) {
   const db = platform.env.DB, item = await load(platform, params.id);
   const n = url.searchParams.get('season');
   if (n != null) return json({ episodes: await seasonEpisodes(db, platform.env, item, Number(n)) });
-  const [info, p, recs] = await Promise.all([
+  const [info, p, recs, meRow] = await Promise.all([
     showInfo(db, platform.env, item),
-    db.prepare("SELECT season AS s, episode AS e, caught_up_at FROM tv_progress WHERE user_id = ? AND item_id = ? AND status = 'watching'").bind(locals.user.id, item.id).first(),
-    db.prepare('SELECT COUNT(*) AS n FROM recs WHERE item_id = ?').bind(item.id).first()
+    db.prepare("SELECT season AS s, episode AS e, caught_up_at, private FROM tv_progress WHERE user_id = ? AND item_id = ? AND status = 'watching'").bind(locals.user.id, item.id).first(),
+    db.prepare('SELECT COUNT(*) AS n FROM recs WHERE item_id = ?').bind(item.id).first(),
+    db.prepare('SELECT share_watching FROM users WHERE id = ?').bind(locals.user.id).first()
   ]);
-  return json({ info, progress: p ?? null, standing: p && info ? standing(info, p.s, p.e) : null, onBoard: recs.n > 0, title: item.title });
+  const others = await alsoWatching(db, locals.user.id, item.id, info);
+  return json({ info, progress: p ? { s: p.s, e: p.e } : null, private: !!p?.private, standing: p && info ? standing(info, p.s, p.e) : null,
+    onBoard: recs.n > 0, title: item.title, others, sharing: !!meRow?.share_watching });
 }
 
 export async function POST({ params, platform, locals, request }) {
@@ -30,6 +34,10 @@ export async function POST({ params, platform, locals, request }) {
   const body = await request.json().catch(() => ({}));
   const saved = await db.prepare('SELECT data FROM tv_meta WHERE item_id = ?').bind(item.id).first();
   const info = saved ? JSON.parse(saved.data) : await showInfo(db, platform.env, item);
+  if (body.op === 'private') {
+    await db.prepare('UPDATE tv_progress SET private = ? WHERE user_id = ? AND item_id = ?').bind(body.value ? 1 : 0, me, item.id).run();
+    return json({ ok: true });
+  }
   if (body.op === 'rate') {
     // Finished it: record the rating like the board's "Watched it" (and optionally recommend it), then it leaves Watching
     const r = ['loved', 'liked', 'not_for_me'].includes(body.reaction) ? body.reaction : null;

@@ -5,6 +5,7 @@
   let { itemId } = $props();
 
   let info = $state(null), progress = $state(null), loaded = $state(false), failed = $state(false), onBoard = $state(false), title = $state(''), rated = $state(null);
+  let others = $state([]), sharing = $state(false), isPrivate = $state(false);
   let picking = $state(false), pickS = $state(1), pickE = $state(1);
   let openSeason = $state(null), episodes = $state({}), msg = $state('');
 
@@ -16,7 +17,7 @@
     const id = itemId;
     loaded = false;
     fetch(`/api/tv/${id}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => {
-      info = d.info; progress = d.progress; onBoard = d.onBoard; title = d.title; loaded = true;
+      info = d.info; progress = d.progress; onBoard = d.onBoard; title = d.title; others = d.others || []; sharing = d.sharing; isPrivate = d.private; loaded = true;
       // The pickers start at the very beginning: Season 1, Episode 1
       pickS = (d.info?.seasons || []).filter((x) => x.n >= 1 && x.count > 0).map((x) => x.n).sort((a, b) => a - b)[0] ?? 1; pickE = 1;
     }).catch(() => { failed = true; loaded = true; });
@@ -33,6 +34,13 @@
   function setTo(s, e) { const before = progress; progress = { s, e }; msg = ''; picking = false; save({ op: 'set', s, e }, before); }
   function watchedNext() { if (st?.ep) setTo(st.ep.s, st.ep.e); }
   function allOfIt() { const l = info?.last; if (l) setTo(l.s, l.e); }
+  async function setPrivate(v) {
+    isPrivate = v;
+    try { const r = await fetch(`/api/tv/${itemId}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op: 'private', value: v }) }); if (!r.ok) throw 0; }
+    catch { isPrivate = !v; msg = "That didn't save. Try again."; }
+  }
+  // Is someone further along than you? (so you know not to ask them about the ending yet)
+  const ahead = (o) => progress && !o.finished && (o.s > progress.s || (o.s === progress.s && o.e > progress.e));
   function stop() { const before = progress; progress = null; save({ op: 'stop' }, before); }
 
   const watched = (s, e) => progress && (s < progress.s || (s === progress.s && e <= progress.e));
@@ -66,6 +74,18 @@
 </script>
 
 <section class="tvp">
+  {#if others.length}
+    <div class="also">
+      <h3>Also watching</h3>
+      <ul>
+        {#each others as o (o.id)}
+          <li><a href="/people/{o.id}">{o.name}</a>
+            <span class="where">{o.finished ? 'finished' : o.e === 0 ? 'just started' : `S${o.s} E${o.e}`}{o.caughtUp ? ', caught up' : ''}</span>
+            {#if ahead(o)}<span class="ahead">ahead of you</span>{:else if progress && !o.finished && (o.s < progress.s || (o.s === progress.s && o.e < progress.e))}<span class="behind">behind you</span>{/if}</li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
   <h2 class="h2">Your episodes</h2><div class="rule"></div>
   {#if !loaded}
     <p class="muted">Getting the episode list…</p>
@@ -137,12 +157,33 @@
         </li>
       {/each}
     </ul>
+    {#if sharing}
+      <label class="priv"><input type="checkbox" checked={!isPrivate} onchange={(e) => setPrivate(!e.currentTarget.checked)} />
+        <span>Friends can see I'm watching this<span class="muted sub">{isPrivate ? 'Kept private: only you see this show.' : 'They see the episode you\'re on, never when you watched.'}</span></span></label>
+    {:else}
+      <p class="muted small sharenote">Only you see your episodes. <a href="/watching">Sharing is off</a>.</p>
+    {/if}
     <button class="lnk stop" onclick={stop}>Stop tracking this show</button>
   {/if}
 </section>
 
 <style>
   .tvp { margin: 22px 0; }
+  .also { background: var(--surface); border-radius: 16px; padding: 12px 14px; margin-bottom: 18px; }
+  .also h3 { margin: 0 0 6px; font-size: 14px; font-weight: 800; color: var(--ink-2); }
+  .also ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .also li { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 15.5px; }
+  .also a { color: var(--ink); font-weight: 800; text-decoration: none; }
+  .also .where { color: var(--ink); }
+  .ahead, .behind { font-size: 12px; font-weight: 800; border-radius: 999px; padding: 1px 8px; }
+  .ahead { background: #FDECEC; color: #A3123A; }
+  .behind { background: var(--surface-2); color: var(--ink-2); }
+  :global(.look-dark) .ahead { background: #3B1A22; color: #FDA4AF; }
+  .priv { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-weight: 700; font-size: 14.5px; cursor: pointer; }
+  .priv input { width: 20px; height: 20px; margin-top: 1px; accent-color: var(--ink); }
+  .priv .sub { display: block; font-weight: 500; font-size: 13px; margin-top: 2px; }
+  .sharenote { margin: 14px 0 0; }
+  .sharenote a { color: var(--ink); font-weight: 700; }
   .lead { margin: 0 0 12px; color: var(--ink-2); }
   .choices { display: flex; gap: 8px; flex-wrap: wrap; }
   .choices .btn { min-height: 46px; padding: 0 16px; }

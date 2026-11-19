@@ -20,5 +20,6 @@ export async function load({ platform, locals }) {
   const shows = rows.results.map((r) => ({ id: r.item_id, title: r.title, year: r.year, image: r.image_url, s: r.s, e: r.e, caughtUp: !!r.caught_up_at, onBoard: !!r.on_board, at: r.updated_at, info: r.info ? JSON.parse(r.info) : null }));
   const job = refreshTracked(db, platform.env, me).catch(() => {});
   if (platform.context?.waitUntil) platform.context.waitUntil(job); else if (platform.ctx?.waitUntil) platform.ctx.waitUntil(job);
-  return { shows, epNames };
+  const meRow = await db.prepare('SELECT share_watching FROM users WHERE id = ?').bind(me).first();
+  return { shows, epNames, sharing: !!meRow?.share_watching };
 }
