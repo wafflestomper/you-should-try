@@ -1,13 +1,14 @@
 import { defaultLibraries, defaultLibraryActions } from '$lib/server/libs.js';
 import { possibleDups, mergeItems } from '$lib/server/dups.js';
 import { error, fail } from '@sveltejs/kit';
+import { mergePeople } from '$lib/server/mergePeople.js';
 
 const all = async (db, sql, ...a) => (await db.prepare(sql).bind(...a).all()).results;
 
 export async function load({ locals, platform, url }) {
   if (!locals.realUser?.is_admin) error(403, 'Admins only.');
   const db = platform.env.DB;
-  const [requests, newbies, invites, circles, demo, videos] = await Promise.all([
+  const [requests, newbies, invites, circles, demo, videos, members, guests] = await Promise.all([
     all(db, `SELECT * FROM invite_requests WHERE status = 'new' ORDER BY created_at DESC LIMIT 50`),
     all(db, `SELECT u.id, u.name, u.color, u.is_guest, u.knows_note, u.joined_at, i.name AS invited_by_name,
                     (SELECT GROUP_CONCAT(c.name, ', ') FROM circle_members m JOIN circles c ON c.id = m.circle_id WHERE m.user_id = u.id) AS circles
@@ -17,18 +18,28 @@ export async function load({ locals, platform, url }) {
               WHERE v.used_by IS NULL AND v.expires_at > datetime('now') ORDER BY v.created_at DESC`),
     all(db, `SELECT c.*, u.name AS by_name FROM circles c LEFT JOIN users u ON u.id = c.suggested_by WHERE c.status = 'pending'`),
     db.prepare(`SELECT COUNT(*) AS n FROM users WHERE id LIKE 'u-%' AND email IS NULL AND google_sub IS NULL AND id != ?`).bind(locals.realUser.id).first(),
-    all(db, 'SELECT * FROM videos ORDER BY sort')
+    all(db, 'SELECT * FROM videos ORDER BY sort'),
+    all(db, `SELECT u.id, u.name, u.joined_at, (SELECT COUNT(*) FROM recs r WHERE r.by_user_id = u.id) AS picks FROM users u WHERE u.status = 'active' ORDER BY u.name`),
+    all(db, `SELECT g.id, g.name, (SELECT COUNT(*) FROM recs r WHERE r.by_guest_id = g.id) AS picks FROM guests g WHERE g.user_id IS NULL ORDER BY g.name`)
   ]);
   const dups = await possibleDups(platform.env.DB);
   const defaultLibs = await defaultLibraries(platform.env.DB);
   const mm = await platform.env.DB.prepare("SELECT value FROM settings WHERE key = 'match_min_shared'").first();
-  return { videos, videoReady: !!platform.env.VIDEOS, requests, newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups, defaultLibs };
+  return { members, guests, videos, videoReady: !!platform.env.VIDEOS, requests, newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups, defaultLibs };
 }
 
 const guard = (locals) => { if (!locals.realUser?.is_admin) error(403, 'Admins only.'); };
 const field = async (request, k) => String((await request.formData()).get(k) || '');
 
 export const actions = {
+  mergePeople: async ({ request, locals, platform }) => {
+    guard(locals);
+    const f = await request.formData();
+    try {
+      const r = await mergePeople(platform.env.DB, String(f.get('from') || ''), String(f.get('to') || ''));
+      return { merged: `${r.name} is now part of ${String(f.get('toName') || 'them')}.` };
+    } catch (e) { return fail(400, { mergeError: e.message }); }
+  },
   videoSave: async ({ request, locals, platform }) => {
     guard(locals);
     const f = await request.formData();

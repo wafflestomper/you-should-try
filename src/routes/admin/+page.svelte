@@ -5,6 +5,9 @@
   import VideoUpload from '$lib/components/VideoUpload.svelte';
   import { VIDEO_TOPICS, topicLabel, clock } from '$lib/videoTopics.js';
   let editing = $state(null);
+  let mFrom = $state(''), mTo = $state('');
+  const fromName = $derived(mFrom ? (mFrom.startsWith('g:') ? data.guests.find((g) => 'g:' + g.id === mFrom)?.name : data.members.find((u) => 'u:' + u.id === mFrom)?.name) : '');
+  const toName = $derived(data.members.find((u) => u.id === mTo)?.name ?? '');
   import { makeCover } from '$lib/videoTools.js';
   import { invalidateAll } from '$app/navigation';
   import { onMount } from 'svelte';
@@ -65,6 +68,30 @@
 </form>
 <p class="muted" style="margin:6px 0 0">New people get full access right away. Check them here and keep or revoke.</p>
 {#if form?.message}<p class="err" role="alert">{form.message}</p>{/if}
+
+<section class="merge" id="merge">
+  <h2 class="h2">Same person, two names</h2>
+  <p class="small muted">When someone shows up twice (like "Amy" with picks and "Amy Loving" who joined), move the first into the second. Their picks, reactions and shows all go with them.</p>
+  <form method="POST" action="?/mergePeople" use:enhance={({ cancel }) => { if (!confirm(`Move everything from "${fromName}" into ${toName}? This can't be undone.`)) cancel(); return async ({ update }) => { await update(); mFrom = ''; mTo = ''; }; }}>
+    <label>Move everything from
+      <select name="from" bind:value={mFrom} required>
+        <option value="">Choose…</option>
+        {#if data.guests.length}<optgroup label="Not on here yet">{#each data.guests as g (g.id)}<option value="g:{g.id}">{g.name} ({g.picks} pick{g.picks === 1 ? '' : 's'})</option>{/each}</optgroup>{/if}
+        <optgroup label="Joined">{#each data.members as u (u.id)}<option value="u:{u.id}">{u.name} ({u.picks} pick{u.picks === 1 ? '' : 's'})</option>{/each}</optgroup>
+      </select>
+    </label>
+    <label>into
+      <select name="to" bind:value={mTo} required>
+        <option value="">Choose…</option>
+        {#each data.members.filter((u) => 'u:' + u.id !== mFrom) as u (u.id)}<option value={u.id}>{u.name}</option>{/each}
+      </select>
+    </label>
+    <input type="hidden" name="toName" value={toName} />
+    <button class="btn" disabled={!mFrom || !mTo}>Merge</button>
+  </form>
+  {#if form?.merged}<p class="mok">{form.merged}</p>{/if}
+  {#if form?.mergeError}<p class="err">{form.mergeError}</p>{/if}
+</section>
 
 <section class="vids" id="videos">
   <h2 class="h2">How-to videos</h2>
@@ -160,6 +187,10 @@
 {/if}
 
 <style>
+  .merge form { display: grid; gap: 10px; background: var(--surface); border-radius: 14px; padding: 14px; }
+  .merge label { display: grid; gap: 4px; font-weight: 700; font-size: 14px; }
+  .merge select { min-height: 46px; border-radius: 12px; border: 1px solid var(--line); padding: 0 10px; font: 16px Manrope, sans-serif; background: var(--surface-2); color: var(--ink); }
+  .mok { color: #0D9488; font-weight: 700; }
   .vids { display: grid; gap: 12px; }
   .vrow { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start; background: var(--surface); border-radius: 14px; padding: 10px; }
   .vthumb { position: relative; display: block; width: 64px; aspect-ratio: 9 / 16; border-radius: 10px; overflow: hidden; background: var(--surface-2); }
