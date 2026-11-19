@@ -37,7 +37,7 @@
   {:else}
     <p class="note">Google sign-in isn't switched on yet.</p>
   {/if}
-  <p class="note">It's invite only. New here? Open the invite link a friend sent you, or <a href="/request">request an invite</a>.</p>
+  <p class="note">It's invite only. New here? Open the invite link a friend sent you, or <a href="/request">request an invite</a>. <a href="/about">What is this?</a></p>
   <p class="note small"><a href="/privacy">Privacy</a></p>
   {#if data.dev}
     <p class="note">Local testing: <a href="/auth/dev?user=u-z">sign in as Z</a> · <a href="/auth/dev?user=u-sarah">as Sarah</a></p>

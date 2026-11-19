@@ -1,5 +1,6 @@
 <script>
   import Logo from '$lib/components/Logo.svelte';
+  import Welcome from '$lib/components/Welcome.svelte';
   let { data, form } = $props();
   let first = $derived((data.invite?.name || '').split(' ')[0]);
 </script>
@@ -19,6 +20,7 @@
       {#if data.invite.email}<p class="acct">This invite went to <b>{data.invite.email}</b>. Pick that Google account if you have it, and use the same one every time you sign in.</p>{/if}
       <p class="small">Just signs you in. Nothing gets posted anywhere.</p>
     {/if}
+    <a class="seehow" href="#how-h">New to this? See how it works</a>
     <details class="alt">
       <summary>Not a Google person?</summary>
       <form method="POST" action="?/guest" class="guest">
@@ -28,6 +30,14 @@
         <p class="small">Works on this device only. You can sign in with Google later.</p>
       </form>
     </details>
+    <Welcome />
+    {#if data.googleReady}
+      <div class="again">
+        <p><b>Ready?</b> It takes about ten seconds.</p>
+        <form method="POST" action="?/google"><button class="btn dark big join">Join with Google</button></form>
+        {#if data.invite.email}<p class="small">Use the Google account for {data.invite.email} if you have one.</p>{/if}
+      </div>
+    {/if}
   {:else}
     <h1>This invite has run out</h1>
     <p class="lead">Invite links work once and last two weeks. Ask your friend to send a new one.</p>
@@ -36,8 +46,11 @@
 </div>
 
 <style>
+  .seehow { margin-top: 6px; font-weight: 700; color: var(--ink); }
+  .again { margin: 30px 0 10px; padding: 18px; border-radius: 18px; background: var(--surface); display: grid; gap: 10px; }
+  .again p { margin: 0; }
   .acct { margin: 2px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--surface); font-size: 14.5px; }
-  .wrapi { max-width: 460px; margin: 28px auto 0; display: flex; flex-direction: column; gap: 10px; }
+  .wrapi { max-width: 520px; margin: 28px auto 40px; display: flex; flex-direction: column; gap: 10px; }
   .from { margin: 18px 0 0; font-weight: 800; color: var(--ink-2); }
   h1 { margin: 0; font-size: 30px; line-height: 1.1; font-weight: 800; letter-spacing: -.025em; }
   .knows { margin: 4px 0 0; font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-size: 22px; }

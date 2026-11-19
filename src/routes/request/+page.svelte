@@ -16,7 +16,7 @@
     <a class="back" href="/signin">Back to sign in</a>
   {:else}
     <h1>Request an invite</h1>
-    <p class="lead">You Should Try is for a group of friends and coworkers. Tell Z who you are and who you know here.</p>
+    <p class="lead">You Should Try is for a group of friends and coworkers. Tell Z who you are and who you know here. <a href="/about">What is this?</a></p>
 
     <form method="POST" class="f" use:enhance={() => { busy = true; return async ({ update }) => { await update({ reset: false }); busy = false; }; }}>
       <label for="r-name">Your name</label>
