@@ -63,13 +63,13 @@
             <input type="hidden" name="id" value={v.id} />
             <input name="title" value={v.title} required maxlength="80" aria-label="Title" />
             <input name="blurb" value={v.blurb ?? ''} maxlength="200" placeholder="One line about it" aria-label="One line about it" />
-            <select name="topic" aria-label="Show me link on">{#each VIDEO_TOPICS as [k, label]}<option value={k} selected={(v.topic ?? '') === k}>{k ? `"Show me" on ${label}` : 'Just the How-to page'}</option>{/each}</select>
+            <select name="topic" aria-label="Show me link on">{#each VIDEO_TOPICS as [k, label]}<option value={k} selected={(v.topic ?? '') === k}>{k ? `How-to page + "Show me" on ${label}` : 'Just the How-to page'}</option>{/each}</select>
             <div class="vbtns"><button class="btn sm">Save</button><button type="button" class="lnkb" onclick={() => (editing = null)}>Cancel</button></div>
           </form>
         {:else}
           <div class="vinfo">
             <b>{v.title}</b>
-            <span class="small muted">{topicLabel(v.topic)} · {(v.bytes / 1048576).toFixed(1)} MB</span>
+             <span class="small muted">{v.topic ? `How-to page + ${topicLabel(v.topic)}` : 'How-to page'} · {(v.bytes / 1048576).toFixed(1)} MB</span>
             <div class="vbtns">
               <button class="lnkb" onclick={() => (editing = v.id)}>Edit</button>
               <form method="POST" action="?/videoMove" use:enhance><input type="hidden" name="id" value={v.id} /><input type="hidden" name="dir" value="up" /><button class="lnkb" disabled={i === 0} aria-label="Move {v.title} up">Up</button></form>

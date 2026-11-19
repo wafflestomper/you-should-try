@@ -128,9 +128,9 @@
   </label>
   <label>Title<input bind:value={title} required maxlength="80" placeholder="Track a show you're watching" disabled={busy} /></label>
   <label>One line about it (optional)<input bind:value={blurb} maxlength="200" placeholder="Mark episodes and see what's next" disabled={busy} /></label>
-  <label>Show a "Show me" link on
+  <label>It always goes on the How-to page. Also add a "Show me" link on
     <select bind:value={topic} disabled={busy}>
-      {#each VIDEO_TOPICS as [k, label]}<option value={k}>{k ? label : 'Nowhere, just the How-to page'}</option>{/each}
+      {#each VIDEO_TOPICS as [k, label]}<option value={k}>{k ? label : 'No other page'}</option>{/each}
     </select>
   </label>
   {#if busy}
