@@ -6,7 +6,7 @@
   import { KIND as KI, kindColor, kindDeep } from '$lib/kinds.js';
   import { invalidateAll } from '$app/navigation';
   import { showToast, postAction } from '$lib/toast.svelte.js';
-  let { card, action = '?/react', stacked = false, swipe = false } = $props();
+  let { card, action = '?/react', stacked = false, swipe = false, fresh = false } = $props();
 
   // Swipe left to reveal Delete (things I entered) or Not for me (everyone else's)
   const ACT = 92;
@@ -97,7 +97,7 @@
   let collapsed = $derived(stacked && !open);
 </script>
 
-<div class="rcw" class:collapsed class:gone><div class="swbox">
+<div class="rcw" class:collapsed class:gone data-id={card.item.id}><div class="swbox">
 {#if swipe}
   <div class="swact" class:del={canDelete} aria-hidden={dx === 0}>
     {#if canDelete}
@@ -124,7 +124,7 @@
   onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={up} onclickcapture={clickCapture} ondragstart={(e) => { if (swipe) e.preventDefault(); }}>
   {#if collapsed}
     <button class="strip" onclick={() => (open = true)} aria-expanded="false" aria-label="{it.title}, {KI[it.kind]?.label}. Open">
-      <span class="st-txt"><span class="k">{KI[it.kind]?.label ?? it.kind}</span><span class="st-title" class:long={it.title.length > 28}>{it.title}</span><span class="st-who">{whoLine}</span></span>
+      <span class="st-txt"><span class="k">{KI[it.kind]?.label ?? it.kind}{#if card.fresh}<em class="new" class:out={!fresh}>New</em>{/if}</span><span class="st-title" class:long={it.title.length > 28}>{it.title}</span><span class="st-who">{whoLine}</span></span>
       {#if mine?.state === 'wanted'}<span class="star-dot qm" aria-label="Just for you">?</span>{/if}
       {#if mine?.state === 'starred'}<span class="star-dot" aria-label="Starred"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8Z"/></svg></span>{/if}
       <span class="st-cov"><Cover title={it.title} kind={it.kind} image={it.image_url} w={42} /></span>
@@ -135,7 +135,7 @@
       <div class="blur" aria-hidden="true">{#if it.image_url}<img src={it.image_url} alt="" loading="lazy" />{/if}</div>
       <a href="/item/{it.id}" class="cov" tabindex="-1" aria-hidden="true"><Cover title={it.title} kind={it.kind} image={it.image_url} w={96} /></a>
       <div class="ht">
-        <span class="k"><i aria-hidden="true"></i>{KI[it.kind]?.label ?? it.kind}</span>
+        <span class="kline"><span class="k"><i aria-hidden="true"></i>{KI[it.kind]?.label ?? it.kind}</span>{#if card.fresh}<em class="new" class:out={!fresh}>New</em>{/if}</span>
         <h3 class:long={it.title.length > 32}><a href="/item/{it.id}">{it.title}</a></h3>
         {#if it.creator}<div class="sub">{it.creator}</div>{/if}
       </div>
@@ -245,6 +245,12 @@
   .starbadge { position: absolute; top: 12px; right: 12px; z-index: 3; width: 32px; height: 32px; border-radius: 50%; background: #F5C518; color: #fff; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
   .starbadge.qm, .star-dot.qm { background: #2563EB; color: #fff; font: 800 17px Manrope, sans-serif; }
   .star-dot.qm { font-size: 14px; }
+  .kline { display: flex; align-items: center; gap: 8px; }
+  .new { font-style: normal; display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: #E11D48; color: #fff;
+    font: 800 11px Manrope, sans-serif; letter-spacing: .04em; text-transform: none; vertical-align: 1px; transition: opacity .8s ease, transform .8s ease; }
+  .kline .new { margin-left: 0; }
+  .new.out { opacity: 0; transform: scale(.85); }
+  @media (prefers-reduced-motion: reduce) { .new { transition: opacity .3s; } .new.out { transform: none; } }
   .close { position: absolute; top: 10px; left: 10px; z-index: 3; width: 36px; height: 36px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; }
 
   /* ---------- Stack (wallet) ---------- */

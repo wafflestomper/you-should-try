@@ -12,6 +12,9 @@ export async function load({ params, platform, locals }) {
   const data = await getItem(db, params.id);
   if (!data) error(404, 'We could not find that.');
   const me = locals.user.id;
+  // Opening a pick counts as seeing it on the board
+  const seenNow = db.prepare("INSERT INTO board_seen (user_id, item_id) VALUES (?, ?) ON CONFLICT (user_id, item_id) DO UPDATE SET seen_at = datetime('now')").bind(me, params.id).run().catch(() => {});
+  (platform.context?.waitUntil ?? platform.ctx?.waitUntil)?.call(platform.context ?? platform.ctx, seenNow);
   const [saved, done, people, sent] = await Promise.all([
     db.prepare("SELECT 1 FROM try_items WHERE user_id = ? AND item_id = ? AND status = 'open'").bind(me, params.id).first(),
     db.prepare("SELECT reaction FROM try_items WHERE user_id = ? AND item_id = ? AND status = 'done'").bind(me, params.id).first(),

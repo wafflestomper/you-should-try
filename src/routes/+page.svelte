@@ -6,7 +6,35 @@
   import RecCard from '$lib/components/RecCard.svelte';
   import { toast } from '$lib/toast.svelte.js';
   import { KIND_INFO } from '$lib/kinds.js';
+  import { seen, pinFresh, markSeen } from '$lib/seen.svelte.js';
   let { data, form } = $props();
+
+  // New cards stay at the top for this visit (so nothing jumps), then settle into place next time
+  const pinned = $derived(pinFresh(data.cards));
+  const cards = $derived.by(() => {
+    if (!pinned.length) return data.cards;
+    const at = new Map(pinned.map((id, i) => [id, i]));
+    const top = data.cards.filter((c) => at.has(c.item.id)).sort((a, b) => at.get(a.item.id) - at.get(b.item.id));
+    return [...top, ...data.cards.filter((c) => !at.has(c.item.id))].map((c) => (at.has(c.item.id) ? { ...c, fresh: true } : c));
+  });
+  const freshCount = $derived(cards.filter((c) => c.fresh).length);
+  const unseen = $derived(cards.filter((c) => c.fresh && !seen.local.has(c.item.id)).length);
+  let listEl = $state();
+  // Once a new card has been mostly on screen for a moment, it counts as seen and its badge fades
+  $effect(() => {
+    if (!listEl || !unseen) return;
+    const timers = new Map();
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        const id = e.target.dataset.id;
+        if (e.isIntersecting) { if (!timers.has(id)) timers.set(id, setTimeout(() => { markSeen(id); io.unobserve(e.target); }, 1500)); }
+        else { clearTimeout(timers.get(id)); timers.delete(id); }
+      }
+    }, { threshold: 0.6 });
+    const freshIds = new Set(cards.filter((c) => c.fresh && !seen.local.has(c.item.id)).map((c) => c.item.id));
+    for (const el of listEl.querySelectorAll('.rcw[data-id]')) if (freshIds.has(el.dataset.id)) io.observe(el);
+    return () => { io.disconnect(); for (const t of timers.values()) clearTimeout(t); };
+  });
 
   let addedCard = $derived(data.addedTitle ? { item: { title: data.addedTitle } } : null);
   let view = $state('cards');
@@ -186,9 +214,10 @@
   </div>
 {/if}
 
+{#if freshCount}<p class="newline" class:done={!unseen}>{freshCount} new since you last looked</p>{/if}
 {#if data.cards.length}
-  <div class="list" class:stack={view === 'stack'}>
-    {#each data.cards as card (card.item.id)}<RecCard {card} stacked={view === 'stack'} swipe />{/each}
+  <div class="list" class:stack={view === 'stack'} bind:this={listEl}>
+    {#each cards as card (card.item.id)}<RecCard {card} stacked={view === 'stack'} swipe fresh={card.fresh && !seen.local.has(card.item.id)} />{/each}
   </div>
 {:else}
   <p class="empty">{personName ? `Nothing from ${personName} here yet.` : 'Nothing here yet.'} Heard something good? <a href="/add">Add it</a>.</p>
@@ -247,6 +276,8 @@
   .filters2 label { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--ink-2); font-weight: 700; }
   .filters2 select { min-height: 36px; border-radius: 10px; padding: 0 8px; font: 14px Manrope, sans-serif; max-width: 190px; border: 1px solid var(--line); }
   .list { display: grid; gap: 14px; padding-top: 6px; }
+  .newline { margin: 4px 0 2px; font: 800 14px Manrope, sans-serif; color: #E11D48; transition: color .8s; }
+  .newline.done { color: var(--ink-2); font-weight: 700; }
   .list.stack { gap: 0; padding-top: 10px; }
   .list.stack > :global(.rcw.collapsed + .rcw) { margin-top: -26px; }
   .list.stack > :global(.rcw:not(.collapsed) + .rcw.collapsed) { margin-top: 14px; }

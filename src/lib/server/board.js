@@ -97,12 +97,20 @@ export async function getBoard(db, me, opts = {}) {
       // Plus things only I have: my "just for me" picks (and ones I've finished privately)
       db.prepare(`SELECT x.item_id, x.updated_at FROM reactions x WHERE x.user_id = ? AND NOT EXISTS (SELECT 1 FROM recs r WHERE r.item_id = x.item_id)`).bind(me),
       db.prepare(`SELECT id, kind, title, creator, year, narrator, city, url, image_url, details IS NOT NULL AS has_details FROM items WHERE id IN (${onMyBoard})`).bind(realm, me),
-      db.prepare(`SELECT x.user_id, x.item_id, x.state, x.reaction, u.name FROM reactions x JOIN users u ON u.id = x.user_id WHERE x.item_id IN (${onMyBoard})`).bind(realm, me)
+      db.prepare(`SELECT x.user_id, x.item_id, x.state, x.reaction, u.name FROM reactions x JOIN users u ON u.id = x.user_id WHERE x.item_id IN (${onMyBoard})`).bind(realm, me),
+      db.prepare('SELECT item_id, seen_at FROM board_seen WHERE user_id = ?').bind(me),
+      db.prepare('SELECT seen_base FROM users WHERE id = ?').bind(me)
     ]),
     tasteMatches(db, me, realm),
     shortNames(db)
   ]);
   const recs = batch[0].results, privateRows = batch[1].results, items = batch[2], reacts = batch[3];
+  const seenAt = Object.fromEntries(batch[4].results.map((r) => [r.item_id, r.seen_at]));
+  const seenBase = batch[5].results[0]?.seen_base ?? null;
+  // First visit: everything already here counts as seen, so a newcomer's board isn't all "New"
+  if (!seenBase && !opts.viewOnly) await db.prepare("UPDATE users SET seen_base = datetime('now') WHERE id = ? AND seen_base IS NULL").bind(me).run();
+  // New to me: someone else added it (or added their recommendation to it) since I last saw it
+  const isFresh = (c) => !!seenBase && c.recs.some((r) => r.added_by !== me && r.by_user_id !== me && r.created_at > (seenAt[c.item.id] ?? seenBase));
   const privateAt = Object.fromEntries(privateRows.map((r) => [r.item_id, r.updated_at]));
   if (!recs.length && !privateRows.length) return [];
 
@@ -181,6 +189,9 @@ export async function getBoard(db, me, opts = {}) {
   // Your starred ones first, then your "just for me" ones (only for you)
   const st = (c) => (c.mine?.state === 'starred' ? 2 : c.mine?.state === 'wanted' ? 1 : 0);
   list.sort((a, b) => st(b) - st(a));
+  // New things go to the very top, newest first
+  for (const c of list) c.fresh = isFresh(c);
+  list.sort((a, b) => (b.fresh - a.fresh) || (b.fresh && a.fresh ? (b.newest || '').localeCompare(a.newest || '') : 0));
 
   // Trim what goes to the page
   return list.map((c) => ({
@@ -194,6 +205,7 @@ export async function getBoard(db, me, opts = {}) {
     iAdded: c.recs.some((r) => r.added_by === me),
     mine: c.mine,
     newest: c.newest,
+    fresh: c.fresh,
     private: c.private,
     boosted: c.boost > 1.05
   }));
