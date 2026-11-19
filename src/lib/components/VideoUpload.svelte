@@ -1,6 +1,7 @@
 <script>
   import { invalidateAll } from '$app/navigation';
   import { VIDEO_TOPICS } from '$lib/videoTopics.js';
+  import { makeCover } from '$lib/videoTools.js';
 
   let file = $state(null), title = $state(''), topic = $state(''), blurb = $state('');
   let stage = $state(''), pct = $state(0), err = $state(''), note = $state('');
@@ -92,7 +93,8 @@
       const blob = small ?? copy;
       note = small ? `Shrunk from ${mb(file.size)} to ${mb(small.size)}.` : `Kept the original (${mb(file.size)}).`;
       step = 'making the cover picture';
-      const info = await inspect(blob);
+      let info = await makeCover(blob).catch(() => null);
+      if (!info?.poster) { const old = await inspect(blob); info = { ...old, ...(info ?? {}), poster: old.poster }; }
       stage = 'upload'; pct = 0;
       step = 'uploading the cover picture';
       const poster = info.poster ? (await call('PUT', { op: 'poster' }, info.poster, false)).key : null;

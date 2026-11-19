@@ -5,6 +5,25 @@
   import VideoUpload from '$lib/components/VideoUpload.svelte';
   import { VIDEO_TOPICS, topicLabel, clock } from '$lib/videoTopics.js';
   let editing = $state(null);
+  import { makeCover } from '$lib/videoTools.js';
+  import { invalidateAll } from '$app/navigation';
+  import { onMount } from 'svelte';
+  let covering = $state(new Set());
+  // Videos that came up without a cover picture get one made here, from the stored video
+  async function fixCover(v) {
+    if (covering.has(v.id)) return;
+    covering = new Set([...covering, v.id]);
+    try {
+      const info = await makeCover(`/v/${v.file_key}`);
+      if (!info?.poster) throw new Error('no frame');
+      const r = await fetch('/api/videos?op=poster', { method: 'PUT', body: info.poster });
+      const { key } = await r.json();
+      await fetch('/api/videos?op=cover', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: v.id, poster: key, seconds: info.seconds, width: info.width, height: info.height }) });
+      await invalidateAll();
+    } catch (e) { console.warn('cover failed', e); }
+    covering = new Set([...covering].filter((x) => x !== v.id));
+  }
+  onMount(() => { for (const v of data.videos ?? []) if (!v.poster_key) fixCover(v); });
   let { data, form } = $props();
   let confirmDemo = $state(false);
   let copied = $state(null);
@@ -57,7 +76,7 @@
     {#if form?.videoError}<p class="small" style="color:#E11D48">{form.videoError}</p>{/if}
     {#each data.videos as v, i (v.id)}
       <div class="vrow">
-        <a href="/help?v={v.id}" class="vthumb">{#if v.poster_key}<img src="/v/{v.poster_key}" alt="" />{/if}<span>{clock(v.seconds)}</span></a>
+        <a href="/help?v={v.id}" class="vthumb">{#if v.poster_key}<img src="/v/{v.poster_key}" alt="" />{:else}<em class="mk">{covering.has(v.id) ? 'Making cover…' : 'No cover'}</em>{/if}<span>{clock(v.seconds)}</span></a>
         {#if editing === v.id}
           <form method="POST" action="?/videoSave" class="vedit" use:enhance={() => async ({ update }) => { await update({ reset: false }); editing = null; }}>
             <input type="hidden" name="id" value={v.id} />
@@ -145,6 +164,7 @@
   .vrow { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start; background: var(--surface); border-radius: 14px; padding: 10px; }
   .vthumb { position: relative; display: block; width: 64px; aspect-ratio: 9 / 16; border-radius: 10px; overflow: hidden; background: var(--surface-2); }
   .vthumb img { width: 100%; height: 100%; object-fit: cover; }
+  .mk { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font: 700 10.5px Manrope, sans-serif; color: var(--ink-2); padding: 4px; }
   .vthumb span { position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,.7); color: #fff; font: 800 11px Manrope, sans-serif; padding: 1px 5px; border-radius: 6px; }
   .vinfo, .vedit { display: grid; gap: 6px; }
   .vedit input, .vedit select { min-height: 42px; border-radius: 10px; border: 1px solid var(--line); padding: 0 10px; font: 15px Manrope, sans-serif; background: var(--surface-2); color: var(--ink); }

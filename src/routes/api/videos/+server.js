@@ -31,6 +31,14 @@ export async function POST({ url, request, platform, locals }) {
         b.bytes | 0, Number(b.seconds) || null, b.width | 0 || null, b.height | 0 || null, top.n).run();
     return json({ id });
   }
+  if (op === 'cover') {
+    // Add a cover picture (and length) to a video that was uploaded without one
+    const b = await request.json();
+    if (!okKey(b.poster)) error(400);
+    await platform.env.DB.prepare('UPDATE videos SET poster_key = ?, seconds = COALESCE(NULLIF(seconds, 0), ?), width = COALESCE(width, ?), height = COALESCE(height, ?) WHERE id = ? AND poster_key IS NULL')
+      .bind(b.poster, Number(b.seconds) || null, b.width | 0 || null, b.height | 0 || null, String(b.id)).run();
+    return json({ ok: true });
+  }
   if (op === 'abort') {
     const b = await request.json();
     if (okKey(b.key)) await bucket.resumeMultipartUpload(b.key, b.uploadId).abort().catch(() => {});
