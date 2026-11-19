@@ -42,6 +42,11 @@
     editing = f ?? 'new';
     fName = f?.name ?? ''; fPeople = [...(f?.people ?? [])]; fKinds = [...(f?.kinds ?? [])]; fVia = f ? f.via : true;
   }
+  // A real name for the example under the checkbox: someone checked in this filter who has added picks for others
+  let viaExample = $derived((() => {
+    const p = data.people.filter((x) => fPeople.includes(x.key) && x.key.startsWith('u:')).sort((a, b) => b.v - a.v)[0];
+    return p ? p.name.split(' ')[0] : 'Amy';
+  })());
   const toggle = (arr, v) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   // First name, or the full name when two people share a first name
   const nameOf = (key) => {
@@ -54,6 +59,7 @@
     data.active.people.length ? data.active.people.map(nameOf).join(', ') : 'Everyone',
     data.active.kinds.length ? data.active.kinds.map((k) => KIND_INFO.find((x) => x.key === k)?.plural ?? k).join(', ') : 'all types'
   ].join(' · ') : '');
+  let sumVia = $derived(data.active?.via && data.active.people.length ? ', plus picks they added for others' : '');
   let more = $state(false);
   import { install, detect } from '$lib/install.svelte.js';
   let homeTip = $state(false);
@@ -109,7 +115,7 @@
   <button class="sf add" onclick={() => openEditor(null)} aria-label="Make a filter">+ Filter</button>
 </div>
 {#if data.active && !editing}
-  <p class="fsum">{summary}{data.active.via ? ', plus what they pass along' : ''} · <button class="lnk" onclick={() => openEditor(data.active)}>Edit</button></p>
+  <p class="fsum">{summary}{sumVia} · <button class="lnk" onclick={() => openEditor(data.active)}>Edit</button></p>
 {/if}
 {#if editing}
   <form class="fed" method="POST" action="?/saveFilter" use:enhance={() => async ({ result, update }) => {
@@ -123,10 +129,10 @@
     <div class="pp">
       {#each data.people as p (p.key)}
         <label class="pc" class:on={fPeople.includes(p.key)}><input type="checkbox" name="people" value={p.key} checked={fPeople.includes(p.key)} onchange={() => (fPeople = toggle(fPeople, p.key))} />
-          <span>{p.name}</span><span class="pn">{p.n}{p.v ? ` +${p.v} via` : ''}</span></label>
+          <span>{p.name}</span><span class="pn">{[p.n ? `${p.n} ${p.n === 1 ? 'pick' : 'picks'}` : '', p.v ? `added ${p.v} for others` : ''].filter(Boolean).join(' · ')}</span></label>
       {/each}
     </div>
-    <label class="via"><input type="checkbox" bind:checked={fVia} /><span>Include what they pass along<span class="muted vsub">Things they entered for someone else, shown "via" them on the card</span></span></label>
+    <label class="via"><input type="checkbox" bind:checked={fVia} /><span>Also show picks they added for other people<span class="muted vsub">Like "Warren · via {viaExample}": Warren recommended it, {viaExample} added it.</span></span></label>
     <input type="hidden" name="via" value={fVia ? '1' : '0'} />
     <span class="fl">Types <span class="muted">(none picked means all)</span></span>
     <div class="kk">
