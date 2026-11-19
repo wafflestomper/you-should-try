@@ -62,7 +62,7 @@
   onMount(() => {
     if (location.search) return;
     let id = ''; try { id = localStorage.getItem('yst_filter') || ''; } catch {}
-    if (id && data.filters.some((f) => f.id === id)) goto(`/?f=${id}`, { replaceState: true, keepFocus: true, noScroll: true });
+    if (id && data.filters.some((f) => f.id === id)) goto(`/?f=${encodeURIComponent(id)}`, { replaceState: true, keepFocus: true, noScroll: true });
   });
   // The filter editor: null (closed), 'new', or a saved filter
   let editing = $state(null);
@@ -140,10 +140,12 @@
 
 <div class="saved" role="group" aria-label="Saved filters">
   <button class="sf" aria-pressed={!data.active} onclick={() => useFilter('')}>Everyone</button>
-  {#each data.filters as f (f.id)}<button class="sf" aria-pressed={data.active?.id === f.id} onclick={() => useFilter(f.id)}>{f.name}</button>{/each}
+  {#each data.filters as f (f.id)}<button class="sf" class:grp={f.group} aria-pressed={data.active?.id === f.id} onclick={() => useFilter(f.id)}>{#if f.group}<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" fill="currentColor"/><circle cx="16.5" cy="9" r="2.6" fill="currentColor" opacity=".6"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M14.5 14c3 0 6.5 1.6 6.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>{/if}{f.name}</button>{/each}
   <button class="sf add" onclick={() => openEditor(null)} aria-label="Make a filter">+ Filter</button>
 </div>
-{#if data.active && !editing}
+{#if data.active?.group}
+  <p class="fsum">Everyone in {data.active.name}: {data.active.size} {data.active.size === 1 ? 'person' : 'people'}{data.active.people.length < data.active.size ? ', counting you' : ''}</p>
+{:else if data.active && !editing}
   <form class="fsum" method="POST" action="?/deleteFilter" use:enhance={({ cancel }) => { if (!confirm(`Delete the "${data.active.name}" filter?`)) return cancel(); return async ({ update }) => { await update({ reset: false, invalidateAll: true }); useFilter(''); }; }}>
     {summary}{sumVia} · <button type="button" class="lnk" onclick={() => openEditor(data.active)}>Edit</button> · <input type="hidden" name="id" value={data.active.id} /><button class="lnk">Delete</button>
   </form>
@@ -246,6 +248,7 @@
   .sf { flex: none; min-height: 34px; padding: 0 14px; border-radius: 10px; border: 1.5px solid var(--line); background: none; color: var(--ink-2); font: 800 13.5px Manrope, sans-serif; cursor: pointer; }
   .sf[aria-pressed='true'] { border-color: var(--ink); color: var(--ink); background: var(--surface); }
   .sf.add { border-style: dashed; }
+  .sf.grp { display: inline-flex; align-items: center; gap: 6px; }
   .fsum { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); }
   .lnk { background: none; border: 0; padding: 0; font: 700 13.5px Manrope, sans-serif; color: var(--ink); text-decoration: underline; cursor: pointer; }
   .fed { display: grid; gap: 8px; background: var(--surface); border-radius: 16px; padding: 14px; margin: 4px 0 10px; }

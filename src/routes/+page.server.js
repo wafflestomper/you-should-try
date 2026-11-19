@@ -3,6 +3,7 @@ import { getBoard, boardPeople, react, KINDS } from '$lib/server/board.js';
 import { fillCovers } from '$lib/server/covers.js';
 import { warmWhere } from '$lib/server/where.js';
 import { myLibraries } from '$lib/server/libs.js';
+import { groupsOf } from '$lib/groups.js';
 
 export async function load({ platform, locals, url }) {
   const db = platform.env.DB;
@@ -17,9 +18,19 @@ export async function load({ platform, locals, url }) {
     sort: ['best', 'new', 'loved'].includes(q.get('sort')) ? q.get('sort') : 'best'
   };
   // A saved filter (?f=<id>) sets several people and types at once
-  const filters = (await db.prepare('SELECT id, name, people, kinds, via FROM saved_filters WHERE user_id = ? ORDER BY name').bind(locals.user.id).all()).results
-    .map((f) => ({ ...f, people: JSON.parse(f.people), kinds: JSON.parse(f.kinds), via: !!f.via }));
+  const [saved, members] = await Promise.all([
+    db.prepare('SELECT id, name, people, kinds, via FROM saved_filters WHERE user_id = ? ORDER BY name').bind(locals.user.id).all(),
+    db.prepare("SELECT id, how_known FROM users WHERE status = 'active' AND how_known IS NOT NULL AND how_known != ''").all()
+  ]);
+  // Every group (St. Chris, Tennis…) is a ready-made filter, kept up to date as people join it
+  const groups = new Map();
+  for (const m of members.results) for (const g of groupsOf(m.how_known)) (groups.get(g) ?? groups.set(g, []).get(g)).push(m.id);
+  const groupFilters = [...groups].sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, ids]) => ({ id: `grp:${name}`, name, group: true, size: ids.length, people: ids.filter((id) => id !== locals.user.id).map((id) => `u:${id}`), kinds: [], via: false }));
+  const filters = [...groupFilters, ...saved.results.map((f) => ({ ...f, people: JSON.parse(f.people), kinds: JSON.parse(f.kinds), via: !!f.via }))];
   const active = filters.find((f) => f.id === q.get('f')) ?? null;
+  // A group with nobody else in it yet shows an empty board, not everyone
+  if (active?.group && !active.people.length) active.people = ['u:-nobody-'];
   if (active) Object.assign(opts, { people: active.people, kinds: active.kinds, via: active.via, filter: active.id });
   const [cards, people] = await Promise.all([getBoard(db, locals.user.id, opts), boardPeople(db)]);
   // In the background: look up where to watch or borrow the top few, so opening them is instant
