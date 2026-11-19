@@ -54,10 +54,26 @@
     });
   }
 
+  let step = '';
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  // Each request gets three tries: phone connections drop for a second all the time
   async function call(method, qs, body, isJson = true) {
-    const r = await fetch(`/api/videos?${new URLSearchParams(qs)}`, { method, body: isJson ? JSON.stringify(body) : body, headers: isJson ? { 'content-type': 'application/json' } : {} });
-    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).message || `Upload step failed (${r.status})`);
-    return r.json();
+    let last;
+    for (let i = 0; i < 3; i++) {
+      try {
+        const r = await fetch(`/api/videos?${new URLSearchParams(qs)}`, { method, body: isJson ? JSON.stringify(body) : body, headers: isJson ? { 'content-type': 'application/json' } : {} });
+        if (r.ok) return r.json();
+        last = new Error((await r.json().catch(() => ({}))).message || `the server said ${r.status}`);
+        if (r.status < 500) break;
+      } catch (e) { last = e; }
+      await wait(1500 * (i + 1));
+    }
+    throw last;
+  }
+  // Keep the screen awake: a locked phone cuts the upload off
+  let lock = null;
+  async function stayAwake(on) {
+    try { if (on) lock = await navigator.wakeLock?.request('screen'); else { await lock?.release(); lock = null; } } catch {}
   }
 
   async function go(e) {
@@ -65,21 +81,31 @@
     if (!file || !title.trim()) return;
     err = ''; note = ''; pct = 0;
     let up = null;
+    await stayAwake(true);
     try {
+      // Read the whole file now, while the phone still lets us (picked files can stop being readable later)
+      step = 'reading the video from your phone';
       stage = 'shrink';
-      const small = await shrink(file);
-      const blob = small ?? file;
+      const copy = new Blob([await file.arrayBuffer()], { type: file.type || 'video/mp4' });
+      step = 'shrinking it';
+      const small = await shrink(copy);
+      const blob = small ?? copy;
       note = small ? `Shrunk from ${mb(file.size)} to ${mb(small.size)}.` : `Kept the original (${mb(file.size)}).`;
+      step = 'making the cover picture';
       const info = await inspect(blob);
       stage = 'upload'; pct = 0;
+      step = 'uploading the cover picture';
       const poster = info.poster ? (await call('PUT', { op: 'poster' }, info.poster, false)).key : null;
+      step = 'starting the upload';
       up = await call('POST', { op: 'start' }, { type: blob.type || 'video/mp4' });
       const parts = [];
       const count = Math.ceil(blob.size / PART);
       for (let i = 0; i < count; i++) {
+        step = `uploading piece ${i + 1} of ${count}`;
         parts.push(await call('PUT', { op: 'part', key: up.key, uploadId: up.uploadId, n: i + 1 }, blob.slice(i * PART, (i + 1) * PART), false));
         pct = Math.round(((i + 1) / count) * 100);
       }
+      step = 'finishing up';
       await call('POST', { op: 'done' }, { ...up, parts, title, topic, blurb, poster, bytes: blob.size, seconds: info.seconds, width: info.width, height: info.height });
       stage = 'done';
       file = null; title = ''; blurb = ''; topic = '';
@@ -87,8 +113,10 @@
       await invalidateAll();
     } catch (x) {
       if (up) call('POST', { op: 'abort' }, up).catch(() => {});
-      err = x.message || 'The upload stopped. Try again.';
+      err = `It stopped while ${step}${x?.message ? ` (${x.message})` : ''}. ${note} Try again, and keep this screen open.`;
       stage = '';
+    } finally {
+      stayAwake(false);
     }
   }
 </script>
@@ -110,7 +138,7 @@
       <span>{stage === 'shrink' ? 'Shrinking it for phones' : 'Uploading'}… {pct}%</span>
       <i style="width:{pct}%"></i>
     </div>
-    <p class="small muted">Keep this page open until it finishes.</p>
+    <p class="small muted">Keep this screen open and don't switch apps until it finishes.</p>
   {:else}
     <button class="btn" disabled={!file || !title.trim()}>Add video</button>
   {/if}
