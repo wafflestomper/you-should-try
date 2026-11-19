@@ -21,5 +21,7 @@
       "database_id": "26f46a52-8c78-481e-a3d2-f82a81f38e30",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  // How-to videos (Storage & databases > R2 > yst-videos)
+  "r2_buckets": [{ "binding": "VIDEOS", "bucket_name": "yst-videos" }]
 }

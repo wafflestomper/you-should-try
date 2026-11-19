@@ -7,7 +7,7 @@ const all = async (db, sql, ...a) => (await db.prepare(sql).bind(...a).all()).re
 export async function load({ locals, platform, url }) {
   if (!locals.realUser?.is_admin) error(403, 'Admins only.');
   const db = platform.env.DB;
-  const [requests, newbies, invites, circles, demo] = await Promise.all([
+  const [requests, newbies, invites, circles, demo, videos] = await Promise.all([
     all(db, `SELECT * FROM invite_requests WHERE status = 'new' ORDER BY created_at DESC LIMIT 50`),
     all(db, `SELECT u.id, u.name, u.color, u.is_guest, u.knows_note, u.joined_at, i.name AS invited_by_name,
                     (SELECT GROUP_CONCAT(c.name, ', ') FROM circle_members m JOIN circles c ON c.id = m.circle_id WHERE m.user_id = u.id) AS circles
@@ -16,18 +16,46 @@ export async function load({ locals, platform, url }) {
     all(db, `SELECT v.code, v.name, v.created_at, v.expires_at, u.name AS from_name FROM invites v JOIN users u ON u.id = v.created_by
               WHERE v.used_by IS NULL AND v.expires_at > datetime('now') ORDER BY v.created_at DESC`),
     all(db, `SELECT c.*, u.name AS by_name FROM circles c LEFT JOIN users u ON u.id = c.suggested_by WHERE c.status = 'pending'`),
-    db.prepare(`SELECT COUNT(*) AS n FROM users WHERE id LIKE 'u-%' AND email IS NULL AND google_sub IS NULL AND id != ?`).bind(locals.realUser.id).first()
+    db.prepare(`SELECT COUNT(*) AS n FROM users WHERE id LIKE 'u-%' AND email IS NULL AND google_sub IS NULL AND id != ?`).bind(locals.realUser.id).first(),
+    all(db, 'SELECT * FROM videos ORDER BY sort')
   ]);
   const dups = await possibleDups(platform.env.DB);
   const defaultLibs = await defaultLibraries(platform.env.DB);
   const mm = await platform.env.DB.prepare("SELECT value FROM settings WHERE key = 'match_min_shared'").first();
-  return { requests, newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups, defaultLibs };
+  return { videos, videoReady: !!platform.env.VIDEOS, requests, newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups, defaultLibs };
 }
 
 const guard = (locals) => { if (!locals.realUser?.is_admin) error(403, 'Admins only.'); };
 const field = async (request, k) => String((await request.formData()).get(k) || '');
 
 export const actions = {
+  videoSave: async ({ request, locals, platform }) => {
+    guard(locals);
+    const f = await request.formData();
+    const title = String(f.get('title') || '').trim();
+    if (!title) return fail(400, { videoError: 'A video needs a title.' });
+    await platform.env.DB.prepare('UPDATE videos SET title = ?, blurb = ?, topic = ? WHERE id = ?')
+      .bind(title.slice(0, 80), String(f.get('blurb') || '').trim().slice(0, 200) || null, String(f.get('topic') || '') || null, String(f.get('id'))).run();
+  },
+  videoMove: async ({ request, locals, platform }) => {
+    guard(locals);
+    const f = await request.formData();
+    const db = platform.env.DB;
+    const list = (await db.prepare('SELECT id FROM videos ORDER BY sort').all()).results.map((r) => r.id);
+    const i = list.indexOf(String(f.get('id'))), j = i + (f.get('dir') === 'up' ? -1 : 1);
+    if (i < 0 || j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    await db.batch(list.map((id, n) => db.prepare('UPDATE videos SET sort = ? WHERE id = ?').bind(n + 1, id)));
+  },
+  videoDelete: async ({ request, locals, platform }) => {
+    guard(locals);
+    const id = String((await request.formData()).get('id'));
+    const db = platform.env.DB;
+    const v = await db.prepare('SELECT file_key, poster_key FROM videos WHERE id = ?').bind(id).first();
+    if (!v) return;
+    await db.prepare('DELETE FROM videos WHERE id = ?').bind(id).run();
+    await platform.env.VIDEOS?.delete([v.file_key, v.poster_key].filter(Boolean)).catch(() => {});
+  },
   ...defaultLibraryActions,
   merge: async ({ request, platform, locals }) => {
     if (!locals.realUser?.is_admin) return;

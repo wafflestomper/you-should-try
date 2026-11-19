@@ -55,6 +55,7 @@
           <a href="/admin" class="small">Admin page</a>
         </form>
       {/if}
+      <a href="/help" class="small">How-to videos</a>
       <a href="/people" class="small">People and invites</a>
       <a href="/me" class="small">Your profile</a>
       <a href="/install" class="small">Add to home screen</a>

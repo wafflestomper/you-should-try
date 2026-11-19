@@ -1,4 +1,5 @@
 <script>
+  import ShowMe from '$lib/components/ShowMe.svelte';
   import { enhance } from '$app/forms';
   import { inviteBody, inviteSubject } from '$lib/inviteText.js';
   let { data, form } = $props();
@@ -32,6 +33,7 @@
 
 <section class="box" id="invite">
   <h2>Invite someone</h2>
+  <ShowMe topic="invite" />
   {#if link}
     <p class="sub">Invite for <b>{form.name}</b> is ready. It works once and lasts two weeks.{#if form.picks}{' '}Their {form.picks} picks move to their account when they join.{/if}</p>
     {#if data.canSend}

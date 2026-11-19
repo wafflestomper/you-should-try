@@ -1,4 +1,5 @@
 <script>
+  import ShowMe from '$lib/components/ShowMe.svelte';
   import { enhance } from '$app/forms';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
@@ -151,6 +152,7 @@
       else if (result.type === 'success' && result.data?.deletedFilter) { await update({ reset: false, invalidateAll: true }); useFilter(''); }
       else await update({ reset: false }); }}>
     {#if editing !== 'new'}<input type="hidden" name="id" value={editing.id} />{/if}
+    <ShowMe topic="filter" />
     <label class="fl" for="f-name">Name</label>
     <input id="f-name" name="name" bind:value={fName} maxlength="40" placeholder="Three Amigos" autocomplete="off" />
     <span class="fl">People</span>
@@ -219,6 +221,7 @@
   <div class="list" class:stack={view === 'stack'} bind:this={listEl}>
     {#each cards as card (card.item.id)}<RecCard {card} stacked={view === 'stack'} swipe fresh={card.fresh && !seen.local.has(card.item.id)} />{/each}
   </div>
+  <div class="boardhelp"><ShowMe topic="board" label="Show me how the board works" /></div>
 {:else}
   <p class="empty">{personName ? `Nothing from ${personName} here yet.` : 'Nothing here yet.'} Heard something good? <a href="/add">Add it</a>.</p>
 {/if}
@@ -276,6 +279,7 @@
   .filters2 label { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--ink-2); font-weight: 700; }
   .filters2 select { min-height: 36px; border-radius: 10px; padding: 0 8px; font: 14px Manrope, sans-serif; max-width: 190px; border: 1px solid var(--line); }
   .list { display: grid; gap: 14px; padding-top: 6px; }
+  .boardhelp { text-align: center; margin-top: 16px; }
   .newline { margin: 4px 0 2px; font: 800 14px Manrope, sans-serif; color: #E11D48; transition: color .8s; }
   .newline.done { color: var(--ink-2); font-weight: 700; }
   .list.stack { gap: 0; padding-top: 10px; }

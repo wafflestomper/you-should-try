@@ -2,6 +2,9 @@
   import Libraries from '$lib/components/Libraries.svelte';
   import { enhance } from '$app/forms';
   import Avatar from '$lib/components/Avatar.svelte';
+  import VideoUpload from '$lib/components/VideoUpload.svelte';
+  import { VIDEO_TOPICS, topicLabel, clock } from '$lib/videoTopics.js';
+  let editing = $state(null);
   let { data, form } = $props();
   let confirmDemo = $state(false);
   let copied = $state(null);
@@ -43,6 +46,42 @@
 </form>
 <p class="muted" style="margin:6px 0 0">New people get full access right away. Check them here and keep or revoke.</p>
 {#if form?.message}<p class="err" role="alert">{form.message}</p>{/if}
+
+<section class="vids" id="videos">
+  <h2 class="h2">How-to videos</h2>
+  {#if !data.videoReady}
+    <p class="muted small">Video storage isn't connected yet.</p>
+  {:else}
+    <p class="small muted">Everyone sees these on the <a href="/help">How-to page</a>. One task per video, under 90 seconds if you can.</p>
+    <VideoUpload />
+    {#if form?.videoError}<p class="small" style="color:#E11D48">{form.videoError}</p>{/if}
+    {#each data.videos as v, i (v.id)}
+      <div class="vrow">
+        <a href="/help?v={v.id}" class="vthumb">{#if v.poster_key}<img src="/v/{v.poster_key}" alt="" />{/if}<span>{clock(v.seconds)}</span></a>
+        {#if editing === v.id}
+          <form method="POST" action="?/videoSave" class="vedit" use:enhance={() => async ({ update }) => { await update({ reset: false }); editing = null; }}>
+            <input type="hidden" name="id" value={v.id} />
+            <input name="title" value={v.title} required maxlength="80" aria-label="Title" />
+            <input name="blurb" value={v.blurb ?? ''} maxlength="200" placeholder="One line about it" aria-label="One line about it" />
+            <select name="topic" aria-label="Show me link on">{#each VIDEO_TOPICS as [k, label]}<option value={k} selected={(v.topic ?? '') === k}>{k ? `"Show me" on ${label}` : 'Just the How-to page'}</option>{/each}</select>
+            <div class="vbtns"><button class="btn sm">Save</button><button type="button" class="lnkb" onclick={() => (editing = null)}>Cancel</button></div>
+          </form>
+        {:else}
+          <div class="vinfo">
+            <b>{v.title}</b>
+            <span class="small muted">{topicLabel(v.topic)} · {(v.bytes / 1048576).toFixed(1)} MB</span>
+            <div class="vbtns">
+              <button class="lnkb" onclick={() => (editing = v.id)}>Edit</button>
+              <form method="POST" action="?/videoMove" use:enhance><input type="hidden" name="id" value={v.id} /><input type="hidden" name="dir" value="up" /><button class="lnkb" disabled={i === 0} aria-label="Move {v.title} up">Up</button></form>
+              <form method="POST" action="?/videoMove" use:enhance><input type="hidden" name="id" value={v.id} /><input type="hidden" name="dir" value="down" /><button class="lnkb" disabled={i === data.videos.length - 1} aria-label="Move {v.title} down">Down</button></form>
+              <form method="POST" action="?/videoDelete" use:enhance={({ cancel }) => { if (!confirm(`Delete "${v.title}"?`)) cancel(); }}><input type="hidden" name="id" value={v.id} /><button class="lnkb del">Delete</button></form>
+            </div>
+          </div>
+        {/if}
+      </div>
+    {/each}
+  {/if}
+</section>
 
 <section id="requests">
 <h2 class="h2" style="margin-top:28px">Invite requests {#if data.requests.length}<span class="cnt">{data.requests.length}</span>{/if}</h2><div class="rule"></div>
@@ -102,6 +141,17 @@
 {/if}
 
 <style>
+  .vids { display: grid; gap: 12px; }
+  .vrow { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start; background: var(--surface); border-radius: 14px; padding: 10px; }
+  .vthumb { position: relative; display: block; width: 64px; aspect-ratio: 9 / 16; border-radius: 10px; overflow: hidden; background: var(--surface-2); }
+  .vthumb img { width: 100%; height: 100%; object-fit: cover; }
+  .vthumb span { position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,.7); color: #fff; font: 800 11px Manrope, sans-serif; padding: 1px 5px; border-radius: 6px; }
+  .vinfo, .vedit { display: grid; gap: 6px; }
+  .vedit input, .vedit select { min-height: 42px; border-radius: 10px; border: 1px solid var(--line); padding: 0 10px; font: 15px Manrope, sans-serif; background: var(--surface-2); color: var(--ink); }
+  .vbtns { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .vbtns form { display: contents; }
+  .lnkb.del { color: #E11D48; }
+  .lnkb:disabled { opacity: .35; }
   .deflibs { margin: 16px 0 24px; }
   #requests .row { flex-wrap: wrap; }
   .reqbtns { display: flex; gap: 8px; align-items: center; }

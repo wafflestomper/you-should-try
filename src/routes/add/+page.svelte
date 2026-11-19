@@ -1,4 +1,5 @@
 <script>
+  import ShowMe from '$lib/components/ShowMe.svelte';
   import { onDestroy, tick } from 'svelte';
   import Cover from '$lib/components/Cover.svelte';
   let { data, form } = $props();
@@ -173,6 +174,7 @@
   <section class="start">
     <h1>Who said what?</h1>
     <p class="hint">Like: “Warren said read <i>Green Eggs and Ham</i>.”</p>
+    <ShowMe topic="add" />
 
     <button class="bigmic" class:on={step === 'listening'} style="--lvl:{level}"
       onclick={() => (step === 'listening' ? stopListening() : startListening())}

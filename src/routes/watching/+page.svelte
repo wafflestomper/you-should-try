@@ -1,4 +1,5 @@
 <script>
+  import ShowMe from '$lib/components/ShowMe.svelte';
   import { standing, epCode } from '$lib/tvmath.js';
   import Cover from '$lib/components/Cover.svelte';
   import RateFinish from '$lib/components/RateFinish.svelte';
@@ -104,6 +105,7 @@
   <h1>Watching</h1>
   {#if shows.length}<button class="btn addbtn" onclick={openAdd} aria-expanded={addOpen}>{addOpen ? 'Close' : '+ Add a show'}</button>{/if}
 </div>
+<ShowMe topic="watching" />
 
 <div class="share" class:on={sharing}>
   {#if sharing}
