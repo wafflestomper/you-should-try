@@ -159,15 +159,15 @@
   .reqbtns form { margin: 0; }
   .dups { margin: 16px 0 24px; }
   .cnt { background: #C2410C; color: #fff; border-radius: 10px; font-size: 13px; padding: 1px 8px; vertical-align: middle; }
-  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #fff; border: 1px solid #E6E5E0; border-radius: 12px; padding: 12px; margin-top: 10px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-top: 10px; }
   .side { display: grid; gap: 4px; align-content: start; }
   .side form { margin-top: 4px; }
-  .nd { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; border-top: 1px solid #EEE; padding-top: 8px; }
+  .nd { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; border-top: 1px solid var(--line); padding-top: 8px; }
   .lnkb { background: none; border: 0; text-decoration: underline; cursor: pointer; font: inherit; color: var(--ink-2); padding: 4px 0; }
   .mm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0 20px; }
   .mm input { width: 70px; min-height: 36px; font-size: 16px; padding: 0 8px; }
   .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--line); }
-  .pill { font-size: 12px; font-weight: 700; border: 1px solid #CFCDC4; border-radius: 10px; padding: 1px 8px; }
+  .pill { font-size: 12px; font-weight: 700; border: 1px solid var(--line); border-radius: 10px; padding: 1px 8px; }
   .danger { color: #B42318; border-color: #E3B3AE; }
   .err { color: #B42318; font-weight: 600; }
   code { word-break: break-all; color: var(--ink-2); }
