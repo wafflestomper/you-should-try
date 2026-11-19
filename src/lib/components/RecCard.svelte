@@ -88,6 +88,10 @@
   let mine = $derived(card.mine);
   let names = $derived([...new Set(card.recs.map((r) => r.by_name))]);
   let whoLine = $derived(card.private ? 'Just for you' : names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(' and '));
+  // Who passed it along: "Warren · via Amy". "via you" only shows when the card is open, since you entered so many.
+  let vias = $derived([...new Set(card.recs.map((r) => r.via).filter(Boolean))]);
+  let viaLine = $derived(vias.length === 1 ? `via ${vias[0]}` : vias.length > 1 ? `via ${vias.slice(0, 2).join(' and ')}` : '');
+  let viaShort = $derived(vias.length && !(vias.length === 1 && vias[0] === 'you') ? viaLine.replace(/\byou\b/, 'you') : '');
   let shareStep = $state(null); // 'loved' | 'liked' while asking whether to recommend a private pick
   // Clearing a private pick would make it vanish, so it goes back to "just for me" instead
   let backTo = $derived(card.private ? 'wanted' : 'clear');
@@ -121,7 +125,7 @@
   onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={up} onclickcapture={clickCapture} ondragstart={(e) => { if (swipe) e.preventDefault(); }}>
   {#if collapsed}
     <button class="strip" onclick={() => (open = true)} aria-expanded="false" aria-label="{it.title}, {KI[it.kind]?.label}. Open">
-      <span class="st-txt"><span class="k">{KI[it.kind]?.label ?? it.kind}</span><span class="st-title" class:long={it.title.length > 28}>{it.title}</span><span class="st-who">{whoLine}</span></span>
+      <span class="st-txt"><span class="k">{KI[it.kind]?.label ?? it.kind}</span><span class="st-title" class:long={it.title.length > 28}>{it.title}</span><span class="st-who">{whoLine}{viaShort ? ` · ${viaShort}` : ''}</span></span>
       {#if mine?.state === 'wanted'}<span class="star-dot qm" aria-label="Just for you">?</span>{/if}
       {#if mine?.state === 'starred'}<span class="star-dot" aria-label="Starred"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8Z"/></svg></span>{/if}
       <span class="st-cov"><Cover title={it.title} kind={it.kind} image={it.image_url} w={42} /></span>
@@ -147,7 +151,7 @@
         <p class="rlink">{#if it.url}<a href={it.url} target="_blank" rel="noopener">Open the recipe ↗</a>{:else if it.has_details}<a href="/item/{it.id}#details">See the recipe</a>{:else}<a href="/item/{it.id}#details">+ Add the recipe</a>{/if}</p>
       {/if}
       <div class="meta">
-        <span><b>{whoLine}</b>{card.private ? ', nobody else sees it yet' : ''} · {ago(card.newest)}{#if card.boosted}<span class="match" title="People with taste like yours are behind this one">your kind of thing</span>{/if}</span>
+        <span><b>{whoLine}</b>{card.private ? ', nobody else sees it yet' : ''}{viaLine ? ` · ${viaLine}` : ''} · {ago(card.newest)}{#if card.boosted}<span class="match" title="People with taste like yours are behind this one">your kind of thing</span>{/if}</span>
         {#if card.loved.length || card.liked.length}
           <span class="lv"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21s-7.5-4.6-10-9.3C.4 8.4 2.4 4.5 6.1 4.5c2.2 0 3.6 1.2 4.4 2.4h3c.8-1.2 2.2-2.4 4.4-2.4 3.7 0 5.7 3.9 4.1 7.2C19.5 16.4 12 21 12 21Z"/></svg>{[...card.loved, ...card.liked].join(', ')}</span>
         {/if}

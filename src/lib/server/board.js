@@ -162,6 +162,15 @@ export async function getBoard(db, me, opts = {}) {
   if (opts.itemId) list = list.filter((c) => c.item.id === opts.itemId);
   if (opts.kind) list = list.filter((c) => c.item.kind === opts.kind || (opts.kind === 'book' && c.item.kind === 'audiobook'));
   if (opts.person) list = list.filter((c) => c.people.includes(opts.person));
+  // Saved filters: several people (their own picks, and with via, what they passed along) and several types
+  if (opts.people?.length) {
+    const who = new Set(opts.people);
+    list = list.filter((c) => c.recs.some((r) => who.has(r.by_user_id ? `u:${r.by_user_id}` : `g:${r.by_guest_id}`) || (opts.via && r.added_by && who.has(`u:${r.added_by}`))));
+  }
+  if (opts.kinds?.length) {
+    const ks = new Set(opts.kinds); if (ks.has('book')) ks.add('audiobook');
+    list = list.filter((c) => ks.has(c.item.kind));
+  }
   if (opts.days) list = list.filter((c) => c.recs.some((r) => days(r.created_at) <= opts.days));
 
   const sort = opts.sort || 'best';
@@ -176,7 +185,10 @@ export async function getBoard(db, me, opts = {}) {
   // Trim what goes to the page
   return list.map((c) => ({
     item: c.item,
-    recs: c.recs.map((r) => ({ id: r.id, by_user_id: r.by_user_id, by_guest_id: r.by_guest_id, by_name: shorts[r.by_user_id ? `u:${r.by_user_id}` : `g:${r.by_guest_id}`] ?? r.by_name, by_color: r.by_color, note: r.note, rating: r.rating, created_at: r.created_at, added_name: r.added_by !== r.by_user_id ? r.added_name : null })),
+    recs: c.recs.map((r) => ({ id: r.id, by_user_id: r.by_user_id, by_guest_id: r.by_guest_id, by_name: shorts[r.by_user_id ? `u:${r.by_user_id}` : `g:${r.by_guest_id}`] ?? r.by_name, by_color: r.by_color, note: r.note, rating: r.rating, created_at: r.created_at,
+      // "via": who entered it, when that's someone other than the recommender
+      via: r.added_by && r.added_by !== r.by_user_id ? (r.added_by === me ? 'you' : shorts[`u:${r.added_by}`] ?? r.added_name) : null,
+      added_name: r.added_by !== r.by_user_id ? r.added_name : null })),
     loved: c.loved.map((l) => l.name),
     liked: c.liked.map((l) => l.name),
     iAdded: c.recs.some((r) => r.added_by === me),
@@ -189,11 +201,20 @@ export async function getBoard(db, me, opts = {}) {
 
 /** People to filter by: members and non-member recommenders who have recommended something. */
 export async function boardPeople(db) {
-  return (await db.prepare(
+  const [rows, via] = await db.batch([db.prepare(
     `SELECT 'u:' || u.id AS key, u.name, u.how_known, COUNT(*) AS n FROM recs r JOIN users u ON u.id = r.by_user_id GROUP BY u.id
      UNION ALL
      SELECT 'g:' || g.id AS key, g.name, 'Not on here yet' AS how_known, COUNT(*) AS n FROM recs r JOIN guests g ON g.id = r.by_guest_id GROUP BY g.id
-     ORDER BY name`).all()).results;
+     ORDER BY name`),
+    db.prepare(`SELECT 'u:' || u.id AS key, u.name, u.how_known, COUNT(*) AS v FROM recs r JOIN users u ON u.id = r.added_by
+                 WHERE r.by_user_id IS NULL OR r.by_user_id != r.added_by GROUP BY u.id`)
+  ]);
+  const out = rows.results.map((r) => ({ ...r, v: 0 }));
+  for (const x of via.results) {
+    const hit = out.find((r) => r.key === x.key);
+    if (hit) hit.v = x.v; else out.push({ key: x.key, name: x.name, how_known: x.how_known, n: 0, v: x.v });
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function react(db, me, itemId, state, reaction = null, share = false) {

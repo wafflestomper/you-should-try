@@ -20,6 +20,40 @@
     goto(u.pathname + u.search, { keepFocus: true, noScroll: true });
   }
   let personName = $derived(data.people.find((p) => p.key === data.opts.person)?.name);
+
+  // Saved filters: the board reopens on the last one you picked
+  function useFilter(id) {
+    try { localStorage.setItem('yst_filter', id || ''); } catch {}
+    const u = new URL(location.href);
+    for (const k of ['f', 'kind', 'person']) u.searchParams.delete(k);
+    if (id) u.searchParams.set('f', id);
+    editing = null;
+    goto(u.pathname + u.search, { keepFocus: true, noScroll: true });
+  }
+  onMount(() => {
+    if (location.search) return;
+    let id = ''; try { id = localStorage.getItem('yst_filter') || ''; } catch {}
+    if (id && data.filters.some((f) => f.id === id)) goto(`/?f=${id}`, { replaceState: true, keepFocus: true, noScroll: true });
+  });
+  // The filter editor: null (closed), 'new', or a saved filter
+  let editing = $state(null);
+  let fName = $state(''), fPeople = $state([]), fKinds = $state([]), fVia = $state(true);
+  function openEditor(f) {
+    editing = f ?? 'new';
+    fName = f?.name ?? ''; fPeople = [...(f?.people ?? [])]; fKinds = [...(f?.kinds ?? [])]; fVia = f ? f.via : true;
+  }
+  const toggle = (arr, v) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+  // First name, or the full name when two people share a first name
+  const nameOf = (key) => {
+    const full = data.people.find((p) => p.key === key)?.name ?? 'Someone', first = full.split(' ')[0];
+    return data.people.filter((p) => p.name.split(' ')[0] === first).length > 1 ? full : first;
+  };
+  let activeKinds = $derived(data.active?.kinds?.length ? new Set(data.active.kinds) : null);
+  let shownKinds = $derived(activeKinds ? KINDS.filter(([k]) => !k || activeKinds.has(k)) : KINDS);
+  let summary = $derived(data.active ? [
+    data.active.people.length ? data.active.people.map(nameOf).join(', ') : 'Everyone',
+    data.active.kinds.length ? data.active.kinds.map((k) => KIND_INFO.find((x) => x.key === k)?.plural ?? k).join(', ') : 'all types'
+  ].join(' · ') : '');
   let more = $state(false);
   import { install, detect } from '$lib/install.svelte.js';
   let homeTip = $state(false);
@@ -69,8 +103,48 @@
 {/if}
 {#if page.url.searchParams.get('removed')}<p class="toast" role="status">Removed from the board.</p>{/if}
 
+<div class="saved" role="group" aria-label="Saved filters">
+  <button class="sf" aria-pressed={!data.active} onclick={() => useFilter('')}>Everyone</button>
+  {#each data.filters as f (f.id)}<button class="sf" aria-pressed={data.active?.id === f.id} onclick={() => useFilter(f.id)}>{f.name}</button>{/each}
+  <button class="sf add" onclick={() => openEditor(null)} aria-label="Make a filter">+ Filter</button>
+</div>
+{#if data.active && !editing}
+  <p class="fsum">{summary}{data.active.via ? ', plus what they pass along' : ''} · <button class="lnk" onclick={() => openEditor(data.active)}>Edit</button></p>
+{/if}
+{#if editing}
+  <form class="fed" method="POST" action="?/saveFilter" use:enhance={() => async ({ result, update }) => {
+      if (result.type === 'success' && result.data?.savedFilter) { await update({ reset: false, invalidateAll: true }); useFilter(result.data.savedFilter); }
+      else if (result.type === 'success' && result.data?.deletedFilter) { await update({ reset: false, invalidateAll: true }); useFilter(''); }
+      else await update({ reset: false }); }}>
+    {#if editing !== 'new'}<input type="hidden" name="id" value={editing.id} />{/if}
+    <label class="fl" for="f-name">Name</label>
+    <input id="f-name" name="name" bind:value={fName} maxlength="40" placeholder="Three Amigos" autocomplete="off" />
+    <span class="fl">People</span>
+    <div class="pp">
+      {#each data.people as p (p.key)}
+        <label class="pc" class:on={fPeople.includes(p.key)}><input type="checkbox" name="people" value={p.key} checked={fPeople.includes(p.key)} onchange={() => (fPeople = toggle(fPeople, p.key))} />
+          <span>{p.name}</span><span class="pn">{p.n}{p.v ? ` +${p.v} via` : ''}</span></label>
+      {/each}
+    </div>
+    <label class="via"><input type="checkbox" bind:checked={fVia} /><span>Include what they pass along<span class="muted vsub">Things they entered for someone else, shown "via" them on the card</span></span></label>
+    <input type="hidden" name="via" value={fVia ? '1' : '0'} />
+    <span class="fl">Types <span class="muted">(none picked means all)</span></span>
+    <div class="kk">
+      {#each KIND_INFO.filter((k) => k.key !== 'other') as k (k.key)}
+        <label class="chip" style="--c:{k.color}" class:on={fKinds.includes(k.key)}><input type="checkbox" name="kinds" value={k.key} checked={fKinds.includes(k.key)} onchange={() => (fKinds = toggle(fKinds, k.key))} /><span class="dot"></span>{k.plural}</label>
+      {/each}
+    </div>
+    {#if form?.filterError}<p class="err" role="alert">{form.filterError}</p>{/if}
+    <div class="fbtns">
+      <button class="btn dark">{editing === 'new' ? 'Save filter' : 'Save changes'}</button>
+      <button type="button" class="btn" onclick={() => (editing = null)}>Cancel</button>
+      {#if editing !== 'new'}<button type="submit" class="btn del" formaction="?/deleteFilter" onclick={() => { try { localStorage.setItem('yst_filter', ''); } catch {} }}>Delete</button>{/if}
+    </div>
+  </form>
+{/if}
+
 <div class="filters" role="group" aria-label="Show">
-  {#each KINDS as [k, label, color]}
+  {#each shownKinds as [k, label, color]}
     <button class="chip" style={color ? `--c:${color}` : ''} aria-pressed={(data.opts.kind ?? '') === k} onclick={() => set('kind', k)}>{#if color}<span class="dot"></span>{/if}{label}</button>
   {/each}
 </div>
@@ -128,6 +202,31 @@
   .invitee { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .invitee .btn { text-decoration: none; min-height: 38px; display: inline-flex; align-items: center; padding: 0 14px; }
   .toast { background: var(--surface); padding: 10px 14px; border-radius: 12px; margin: 4px 0 10px; font-weight: 600; }
+  .saved { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 2px -14px 6px; padding: 2px 14px; }
+  .sf { flex: none; min-height: 34px; padding: 0 14px; border-radius: 10px; border: 1.5px solid var(--line); background: none; color: var(--ink-2); font: 800 13.5px Manrope, sans-serif; cursor: pointer; }
+  .sf[aria-pressed='true'] { border-color: var(--ink); color: var(--ink); background: var(--surface); }
+  .sf.add { border-style: dashed; }
+  .fsum { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); }
+  .lnk { background: none; border: 0; padding: 0; font: 700 13.5px Manrope, sans-serif; color: var(--ink); text-decoration: underline; cursor: pointer; }
+  .fed { display: grid; gap: 8px; background: var(--surface); border-radius: 16px; padding: 14px; margin: 4px 0 10px; }
+  .fl { font-weight: 800; font-size: 14px; margin-top: 4px; }
+  .fed input[name='name'] { min-height: 46px; border-radius: 12px; border: 1px solid var(--line); padding: 0 12px; font: 16px Manrope, sans-serif; background: var(--surface-2); color: var(--ink); }
+  .pp { display: grid; gap: 4px; max-height: 260px; overflow-y: auto; }
+  .pc { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; min-height: 42px; padding: 0 10px; border-radius: 10px; background: var(--surface-2); cursor: pointer; }
+  .pc.on { outline: 2px solid var(--ink); }
+  .pc input, .kk input { width: 18px; height: 18px; accent-color: var(--ink); }
+  .pn { font-size: 12.5px; color: var(--ink-3); }
+  .via { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; font-weight: 600; }
+  .vsub { display: block; font-weight: 500; font-size: 13px; margin-top: 2px; }
+  .via input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--ink); }
+  .kk { display: flex; gap: 6px; flex-wrap: wrap; }
+  .kk .chip { background: var(--surface-2); }
+  .kk .chip.on { background: var(--ink); color: var(--bg); }
+  .kk input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .fbtns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .fbtns .btn { min-height: 44px; padding: 0 16px; }
+  .fbtns .del { color: #B42318; margin-left: auto; }
+  .err { color: #B42318; font-weight: 700; margin: 0; }
   .filters { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 2px; scrollbar-width: none; margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
   .filters::-webkit-scrollbar { display: none; }
   .chip { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 18px; border: 0; background: var(--surface); color: var(--ink); font: 700 14px Manrope, sans-serif; cursor: pointer; }

@@ -16,6 +16,11 @@ export async function load({ platform, locals, url }) {
     days: Number(q.get('days')) || null,
     sort: ['best', 'new', 'loved'].includes(q.get('sort')) ? q.get('sort') : 'best'
   };
+  // A saved filter (?f=<id>) sets several people and types at once
+  const filters = (await db.prepare('SELECT id, name, people, kinds, via FROM saved_filters WHERE user_id = ? ORDER BY name').bind(locals.user.id).all()).results
+    .map((f) => ({ ...f, people: JSON.parse(f.people), kinds: JSON.parse(f.kinds), via: !!f.via }));
+  const active = filters.find((f) => f.id === q.get('f')) ?? null;
+  if (active) Object.assign(opts, { people: active.people, kinds: active.kinds, via: active.via, filter: active.id });
   const [cards, people] = await Promise.all([getBoard(db, locals.user.id, opts), boardPeople(db)]);
   // In the background: look up where to watch or borrow the top few, so opening them is instant
   const warm = myLibraries(db, locals.user.id).then((libs) => warmWhere(db, platform.env, libs, cards.slice(0, 12).map((c) => c.item.id))).catch(() => {});
@@ -25,10 +30,40 @@ export async function load({ platform, locals, url }) {
   const invitee = q.get('guest') ? await db.prepare(
     `SELECT g.id, g.name, (SELECT COUNT(*) FROM invites i WHERE i.guest_id = g.id AND i.used_by IS NULL AND i.expires_at > datetime('now')) AS invited
        FROM guests g WHERE g.id = ? AND g.user_id IS NULL`).bind(q.get('guest')).first() : null;
-  return { cards, people, opts, addedTitle: added?.title ?? null, invitee };
+  return { cards, people, opts, addedTitle: added?.title ?? null, invitee, filters, active };
+}
+
+const KEYS = /^[ug]:[\w-]{1,60}$/;
+const TYPES = new Set(Object.keys(KINDS));
+function readFilter(f) {
+  const name = String(f.get('name') || '').trim().slice(0, 40);
+  const people = [...new Set(f.getAll('people').map(String).filter((k) => KEYS.test(k)))].slice(0, 40);
+  const kinds = [...new Set(f.getAll('kinds').map(String).filter((k) => TYPES.has(k)))];
+  return { name, people, kinds, via: f.get('via') === '1' };
 }
 
 export const actions = {
+  saveFilter: async ({ request, platform, locals }) => {
+    const db = platform.env.DB, f = await request.formData();
+    const { name, people, kinds, via } = readFilter(f);
+    if (!name) return fail(400, { filterError: 'Give the filter a name, like "Three Amigos".' });
+    if (!people.length && !kinds.length) return fail(400, { filterError: 'Pick at least one person or one type.' });
+    const id = String(f.get('id') || '');
+    if (id) {
+      await db.prepare("UPDATE saved_filters SET name = ?, people = ?, kinds = ?, via = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?")
+        .bind(name, JSON.stringify(people), JSON.stringify(kinds), via ? 1 : 0, id, locals.user.id).run();
+      return { savedFilter: id };
+    }
+    const nid = crypto.randomUUID();
+    await db.prepare('INSERT INTO saved_filters (id, user_id, name, people, kinds, via) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind(nid, locals.user.id, name, JSON.stringify(people), JSON.stringify(kinds), via ? 1 : 0).run();
+    return { savedFilter: nid };
+  },
+  deleteFilter: async ({ request, platform, locals }) => {
+    const id = String((await request.formData()).get('id') || '');
+    await platform.env.DB.prepare('DELETE FROM saved_filters WHERE id = ? AND user_id = ?').bind(id, locals.user.id).run();
+    return { deletedFilter: id };
+  },
   // Swipe left > Delete: take back what I entered (added it by mistake), or drop a "just for me" pick
   removeMine: async ({ request, platform, locals }) => {
     const db = platform.env.DB, me = locals.user.id;
