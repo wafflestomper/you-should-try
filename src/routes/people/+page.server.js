@@ -7,8 +7,8 @@ export async function load({ platform, locals, url }) {
   const db = platform.env.DB;
   const me = locals.user.id;
   const [members, guests, matches, shorts] = await Promise.all([
-    db.prepare(`SELECT u.id, u.name, u.how_known, (SELECT COUNT(DISTINCT item_id) FROM recs r WHERE r.by_user_id = u.id) AS picks
-                FROM users u WHERE u.status = 'active' AND u.id != ? ORDER BY u.name`).bind(me).all(),
+    db.prepare(`SELECT u.id, u.name, u.how_known, u.joined_at, (SELECT COUNT(DISTINCT item_id) FROM recs r WHERE r.by_user_id = u.id) AS picks
+                FROM users u WHERE u.status = 'active' AND u.id != ? ORDER BY u.joined_at DESC, u.name`).bind(me).all(),
     db.prepare(`SELECT g.id, g.name, (SELECT COUNT(*) FROM recs r WHERE r.by_guest_id = g.id) AS picks,
                   (SELECT MAX(i.created_at) FROM invites i WHERE i.guest_id = g.id AND i.used_by IS NULL AND i.expires_at > datetime('now')) AS invited_at
                 FROM guests g WHERE g.user_id IS NULL ORDER BY picks DESC, g.name`).all(),

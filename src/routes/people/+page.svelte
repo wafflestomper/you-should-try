@@ -26,10 +26,14 @@
   async function copy() { try { await navigator.clipboard.writeText(link); copied = true; setTimeout(() => (copied = false), 2000); } catch {} }
   async function share() { try { await navigator.share({ title: subject, text: body.replace(link, '').trim(), url: link }); } catch {} }
   function inviteGuest(g) { name = g.name; guest = g.id; email = ''; document.getElementById('inv-email')?.focus(); document.getElementById('invite')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  const asDate = (t) => new Date(String(t).replace(' ', 'T') + (String(t).length > 10 ? 'Z' : 'T12:00:00Z'));
+  const joined = (t) => { if (!t) return ''; const d = asDate(t), now = new Date(); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(d.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}) }); };
+  const joinedRecently = (t) => t && Date.now() - asDate(t).getTime() < 7 * 864e5;
 </script>
 
 <svelte:head><title>People · You Should Try</title></svelte:head>
 <h1>People</h1>
+<a class="whohere" href="#members"><b>{data.people.length + 1} people</b> are on here, counting you. <span>See who joined</span></a>
 
 <section class="box" id="invite">
   <h2>Invite someone</h2>
@@ -87,12 +91,13 @@
   </section>
 {/if}
 
-<section>
-  <h2>On the board</h2>
+<section id="members">
+  <h2>Who's on here</h2>
+  <p class="hint">Newest first.</p>
   {#if data.people.length}
     <ul class="ppl">
       {#each data.people as p (p.id)}
-        <li><div><a class="pl" href="/people/{p.id}"><b>{p.short}</b></a>{#if p.short !== p.name}<span class="full">{p.name}</span>{/if}<div class="hint">{[p.how_known, `${p.picks} pick${p.picks === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}</div></div>
+        <li><div><a class="pl" href="/people/{p.id}"><b>{p.name}</b></a>{#if joinedRecently(p.joined_at)}<span class="nw">New</span>{/if}<div class="hint">{[`Joined ${joined(p.joined_at)}`, p.how_known, `${p.picks} pick${p.picks === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}</div></div>
           <span class="m">{p.match != null ? `${p.match}% match` : ''}</span></li>
       {/each}
     </ul>
@@ -123,6 +128,10 @@
   .preview summary { cursor: pointer; font-weight: 700; color: var(--ink-2); }
   pre { white-space: pre-wrap; font: 14px/1.5 Manrope, sans-serif; background: var(--surface-2); border-radius: 12px; padding: 12px; }
   .again { display: inline-block; margin-top: 12px; font-weight: 700; color: var(--ink); }
+  .whohere { display: block; background: var(--surface); border-radius: 14px; padding: 12px 14px; margin: 0 0 14px; color: var(--ink); text-decoration: none; }
+  .whohere span { display: inline-block; margin-left: 6px; color: var(--ink-2); font-weight: 700; text-decoration: underline; }
+  #members { scroll-margin-top: 80px; }
+  .nw { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: #E11D48; color: #fff; font: 800 11px Manrope, sans-serif; vertical-align: 2px; }
   .ppl { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .ppl li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--surface); border-radius: 14px; }
   .pl { color: var(--ink); text-decoration: none; }
