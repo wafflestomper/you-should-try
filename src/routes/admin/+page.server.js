@@ -9,7 +9,7 @@ const all = async (db, sql, ...a) => (await db.prepare(sql).bind(...a).all()).re
 export async function load({ locals, platform, url }) {
   if (!locals.realUser?.is_admin) error(403, 'Admins only.');
   const db = platform.env.DB;
-  const [requests, newbies, invites, circles, demo, videos, members, guests] = await Promise.all([
+  const [requests, newbies, invites, circles, demo, videos, members, guests, facetLeft] = await Promise.all([
     all(db, `SELECT * FROM invite_requests WHERE status = 'new' ORDER BY created_at DESC LIMIT 50`),
     all(db, `SELECT u.id, u.name, u.color, u.is_guest, u.knows_note, u.joined_at, i.name AS invited_by_name,
                     (SELECT GROUP_CONCAT(c.name, ', ') FROM circle_members m JOIN circles c ON c.id = m.circle_id WHERE m.user_id = u.id) AS circles
@@ -21,13 +21,14 @@ export async function load({ locals, platform, url }) {
     db.prepare(`SELECT COUNT(*) AS n FROM users WHERE id LIKE 'u-%' AND email IS NULL AND google_sub IS NULL AND id != ?`).bind(locals.realUser.id).first(),
     all(db, 'SELECT * FROM videos ORDER BY sort'),
     all(db, `SELECT u.id, u.name, u.joined_at, u.how_known, u.is_admin, u.email, (SELECT COUNT(*) FROM recs r WHERE r.by_user_id = u.id) AS picks FROM users u WHERE u.status = 'active' ORDER BY u.name`),
-    all(db, `SELECT g.id, g.name, (SELECT COUNT(*) FROM recs r WHERE r.by_guest_id = g.id) AS picks FROM guests g WHERE g.user_id IS NULL ORDER BY g.name`)
+    all(db, `SELECT g.id, g.name, (SELECT COUNT(*) FROM recs r WHERE r.by_guest_id = g.id) AS picks FROM guests g WHERE g.user_id IS NULL ORDER BY g.name`),
+    db.prepare('SELECT COUNT(*) AS n FROM items WHERE facets_at IS NULL AND id IN (SELECT item_id FROM recs UNION SELECT item_id FROM reactions)').first()
   ]);
   const dups = await possibleDups(platform.env.DB);
   const defaultLibs = await defaultLibraries(platform.env.DB);
   const mm = await platform.env.DB.prepare("SELECT value FROM settings WHERE key = 'match_min_shared'").first();
   const allGroups = [...new Set(members.flatMap((m) => groupsOf(m.how_known)))].sort((a, b) => a.localeCompare(b));
-  return { allGroups, me: locals.realUser.id, members, guests, videos, videoReady: !!platform.env.VIDEOS, requests, newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups, defaultLibs };
+  return { facetLeft: facetLeft.n, hasAI: !!platform.env.AI, allGroups, me: locals.realUser.id, members, guests, videos, videoReady: !!platform.env.VIDEOS, requests, newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups, defaultLibs };
 }
 
 const guard = (locals) => { if (!locals.realUser?.is_admin) error(403, 'Admins only.'); };

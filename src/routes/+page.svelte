@@ -78,6 +78,23 @@
     clearTimeout(gTimer);
     gTimer = setTimeout(() => useFilter('', picked), 350);
   }
+  // Genre & mood: works on top of whatever else is picked
+  let tagsOpen = $state(false);
+  let tagsPicked = $state([]);
+  $effect.pre(() => { tagsPicked = [...(data.tagsOn ?? [])]; });
+  let tTimer;
+  function toggleTag(t) {
+    tagsPicked = tagsPicked.includes(t) ? tagsPicked.filter((x) => x !== t) : [...tagsPicked, t];
+    clearTimeout(tTimer);
+    tTimer = setTimeout(() => setTags(tagsPicked), 350);
+  }
+  function setTags(list) {
+    const u = new URL(location.href);
+    u.searchParams.delete('t');
+    for (const t of list) u.searchParams.append('t', t);
+    goto(u.pathname + u.search, { keepFocus: true, noScroll: true, replaceState: true });
+  }
+  const hasTags = $derived((data.tagList?.genres.length ?? 0) + (data.tagList?.moods.length ?? 0) > 0);
   const andList = (xs) => xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`;
   // The filter editor: null (closed), 'new', or a saved filter
   let editing = $state(null);
@@ -156,15 +173,43 @@
 <div class="saved" role="group" aria-label="Saved filters">
   <button class="sf" aria-pressed={!data.active} onclick={() => useFilter('')}>Everyone</button>
   {#if data.groups.length}
-    <button class="sf grp" aria-pressed={picked.length > 0} aria-expanded={groupsOpen} aria-controls="grp-list" onclick={() => (groupsOpen = !groupsOpen)}>
+    <button class="sf grp" aria-pressed={picked.length > 0} aria-expanded={groupsOpen} aria-controls="grp-list" onclick={() => { groupsOpen = !groupsOpen; tagsOpen = false; }}>
       <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" fill="currentColor"/><circle cx="16.5" cy="9" r="2.6" fill="currentColor" opacity=".6"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M14.5 14c3 0 6.5 1.6 6.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       Groups{picked.length ? ` (${picked.length})` : ''}
       <svg class="chev" class:up={groupsOpen} width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
     </button>
   {/if}
+  {#if hasTags}
+    <button class="sf grp" aria-pressed={tagsPicked.length > 0} aria-expanded={tagsOpen} aria-controls="tag-list" onclick={() => { tagsOpen = !tagsOpen; groupsOpen = false; }}>
+      Genre & mood{tagsPicked.length ? ` (${tagsPicked.length})` : ''}
+      <svg class="chev" class:up={tagsOpen} width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+    </button>
+  {/if}
   {#each data.filters as f (f.id)}<button class="sf" aria-pressed={data.active?.id === f.id} onclick={() => useFilter(f.id)}>{f.name}</button>{/each}
   <button class="sf add" onclick={() => openEditor(null)} aria-label="Make a filter">+ Filter</button>
 </div>
+{#if tagsOpen}
+  <div class="glist tlist" id="tag-list" role="group" aria-label="Genre and mood">
+    {#each [['Genre', data.tagList.genres], ['Mood', data.tagList.moods]] as [label, list]}
+      {#if list.length}
+        <p class="tl-h">{label}</p>
+        <div class="tchips">
+          {#each list as t (t.tag)}
+            <button class="tchip" class:mood={label === 'Mood'} aria-pressed={tagsPicked.includes(t.tag)} onclick={() => toggleTag(t.tag)}>{t.tag}<span>{t.n}</span></button>
+          {/each}
+        </div>
+      {/if}
+    {/each}
+    <p class="tl-note">Genres come from movie and book databases. Moods are a computer's best guess; fix any on the pick's page.</p>
+    <div class="gfoot">
+      {#if tagsPicked.length}<button class="lnk" onclick={() => { tagsPicked = []; clearTimeout(tTimer); setTags([]); }}>Clear</button>{:else}<span></span>{/if}
+      <button class="btn sm" onclick={() => (tagsOpen = false)}>Done</button>
+    </div>
+  </div>
+{/if}
+{#if tagsPicked.length && !tagsOpen}
+  <p class="fsum">Only {andList(tagsPicked)} · <button type="button" class="lnk" onclick={() => { tagsPicked = []; setTags([]); }}>Clear</button></p>
+{/if}
 {#if groupsOpen}
   <div class="glist" id="grp-list" role="group" aria-label="Groups">
     {#each data.groups as g (g.name)}
@@ -293,6 +338,14 @@
   .gopt .box { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; }
   .gopt[aria-pressed='true'] .box { background: var(--ink); border-color: var(--ink); color: var(--bg, #fff); }
   .gs { color: var(--ink-2); font-size: 13px; font-weight: 700; }
+  .tl-h { margin: 6px 6px 2px; font: 800 13px Manrope, sans-serif; color: var(--ink-2); }
+  .tchips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 4px 6px; }
+  .tchip { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--line); background: none; color: var(--ink); font: 700 14px Manrope, sans-serif; cursor: pointer; }
+  .tchip span { color: var(--ink-2); font-size: 12px; }
+  .tchip.mood { border-style: dashed; }
+  .tchip[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); border-style: solid; color: var(--bg); }
+  .tchip[aria-pressed='true'] span { color: var(--bg); opacity: .7; }
+  .tl-note { margin: 4px 6px; font-size: 12.5px; color: var(--ink-2); }
   .gfoot { display: flex; justify-content: space-between; align-items: center; padding: 6px 4px 2px; }
   .fsum { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); }
   .lnk { background: none; border: 0; padding: 0; font: 700 13.5px Manrope, sans-serif; color: var(--ink); text-decoration: underline; cursor: pointer; }

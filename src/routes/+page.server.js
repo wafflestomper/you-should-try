@@ -4,6 +4,8 @@ import { fillCovers } from '$lib/server/covers.js';
 import { warmWhere } from '$lib/server/where.js';
 import { myLibraries } from '$lib/server/libs.js';
 import { groupsOf } from '$lib/groups.js';
+import { facetSome } from '$lib/server/facets.js';
+import { GENRES, MOODS } from '$lib/facetTags.js';
 
 export async function load({ platform, locals, url }) {
   const db = platform.env.DB;
@@ -37,16 +39,34 @@ export async function load({ platform, locals, url }) {
     active = { id: 'groups', group: true, names: picked, size: ids.size, counted: ids.has(locals.user.id), people: others.length ? others : ['u:-nobody-'], kinds: [], via: false };
   }
   if (active) Object.assign(opts, { people: active.people, kinds: active.kinds, via: active.via, filter: active.id });
-  const [cards, people] = await Promise.all([getBoard(db, locals.user.id, opts), boardPeople(db)]);
-  // In the background: look up where to watch or borrow the top few, so opening them is instant
-  const warm = myLibraries(db, locals.user.id).then((libs) => warmWhere(db, platform.env, libs, cards.slice(0, 12).map((c) => c.item.id))).catch(() => {});
+  const [allCards, people, facetRows] = await Promise.all([getBoard(db, locals.user.id, opts), boardPeople(db),
+    db.prepare('SELECT item_id, type, tag FROM item_facets WHERE item_id IN (SELECT item_id FROM recs UNION SELECT item_id FROM reactions WHERE user_id = ?)').bind(locals.user.id).all()]);
+  // Genres and moods: ?t=Thriller&t=Funny. Any picked genre AND any picked mood (when both kinds are picked).
+  const facetsOf = new Map();
+  for (const r of facetRows.results) (facetsOf.get(r.item_id) ?? facetsOf.set(r.item_id, { genre: [], mood: [] }).get(r.item_id))[r.type]?.push(r.tag);
+  const tagsOn = [...new Set(q.getAll('t'))].filter((t) => GENRES.includes(t) || MOODS.includes(t));
+  const wantG = tagsOn.filter((t) => GENRES.includes(t)), wantM = tagsOn.filter((t) => MOODS.includes(t));
+  const counts = new Map();
+  for (const c of allCards) { const f = facetsOf.get(c.item.id); if (f) for (const t of [...f.genre, ...f.mood]) counts.set(t, (counts.get(t) ?? 0) + 1); }
+  const cards = !tagsOn.length ? allCards : allCards.filter((c) => {
+    const f = facetsOf.get(c.item.id) ?? { genre: [], mood: [] };
+    return (!wantG.length || wantG.some((t) => f.genre.includes(t))) && (!wantM.length || wantM.some((t) => f.mood.includes(t)));
+  });
+  for (const c of cards) c.facets = facetsOf.get(c.item.id) ?? null;
+  const tagList = { genres: GENRES.filter((t) => counts.has(t) || tagsOn.includes(t)).map((t) => ({ tag: t, n: counts.get(t) ?? 0 })),
+    moods: MOODS.filter((t) => counts.has(t) || tagsOn.includes(t)).map((t) => ({ tag: t, n: counts.get(t) ?? 0 })) };
+  // In the background: look up where to watch or borrow the top few, so opening them is instant; and tag a few untagged picks
+  const warm = Promise.all([
+    myLibraries(db, locals.user.id).then((libs) => warmWhere(db, platform.env, libs, cards.slice(0, 12).map((c) => c.item.id))).catch(() => {}),
+    facetSome(db, platform.env, 2).catch(() => {})
+  ]);
   if (platform.context?.waitUntil) platform.context.waitUntil(warm); else if (platform.ctx?.waitUntil) platform.ctx.waitUntil(warm);
   const added = q.get('added') ? await db.prepare('SELECT title FROM items WHERE id = ?').bind(q.get('added')).first() : null;
   // They credited someone who isn't on the site yet: offer to invite them
   const invitee = q.get('guest') ? await db.prepare(
     `SELECT g.id, g.name, (SELECT COUNT(*) FROM invites i WHERE i.guest_id = g.id AND i.used_by IS NULL AND i.expires_at > datetime('now')) AS invited
        FROM guests g WHERE g.id = ? AND g.user_id IS NULL`).bind(q.get('guest')).first() : null;
-  return { cards, people, opts, addedTitle: added?.title ?? null, invitee, filters, active, groups: groupList };
+  return { cards, people, opts, addedTitle: added?.title ?? null, invitee, filters, active, groups: groupList, tagList, tagsOn };
 }
 
 const KEYS = /^[ug]:[\w-]{1,60}$/;

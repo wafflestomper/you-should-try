@@ -7,6 +7,7 @@
   import Libraries from '$lib/components/Libraries.svelte';
   import RecCard from '$lib/components/RecCard.svelte';
   import TvProgress from '$lib/components/TvProgress.svelte';
+  import Facets from '$lib/components/Facets.svelte';
   import { KIND_INFO } from '$lib/kinds.js';
   let { data, form } = $props();
   // Where to stream or borrow it: asked for after the page opens, and again if your libraries change
@@ -58,6 +59,7 @@
     <div class="cap" style="font-size:12px;color:var(--ink-2)">{KIND[data.item.kind]}{data.item.year ? ` · ${data.item.year}` : ''}</div>
     <h1 class="slab" style="font-size:clamp(34px,5vw,56px);margin:6px 0 0;line-height:1.05">{data.item.title}</h1>
     {#if data.item.creator}<p class="muted" style="font-size:18px;margin:6px 0 0">{data.item.creator}</p>{/if}
+    {#key data.item.id}<Facets item={data.item} genres={data.facets.genre} moods={data.facets.mood} byUser={!!data.item.moods_by_user} />{/key}
     {#if data.item.narrator}<p style="margin:8px 0 0">Read by <b>{data.item.narrator}</b>. Audiobook lists rank the performance as well as the story.</p>{/if}
     {#if data.dishes.length}<p class="script" style="font-size:28px;color:var(--green);margin:8px 0 0">get the {data.dishes[0].dish}</p>{/if}
     <div class="boardcard">

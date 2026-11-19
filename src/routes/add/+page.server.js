@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { ensureItem } from '$lib/server/lists.js';
 import { KINDS } from '$lib/server/board.js';
 import { flagIfDup } from '$lib/server/dups.js';
+import { facetSoon } from '$lib/server/facets.js';
 
 export async function load({ platform, locals }) {
   const db = platform.env.DB;
@@ -53,6 +54,7 @@ export const actions = {
     } catch (e) {
       return fail(400, { error: e.message });
     }
+    facetSoon(platform, itemId); // genres and moods, after the page has moved on
     const mode = String(f.get('mode') || 'someone');
     if (mode === 'mine') {
       // Only on my board until I try it

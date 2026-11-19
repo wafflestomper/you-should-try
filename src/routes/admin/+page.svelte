@@ -6,6 +6,22 @@
   import { VIDEO_TOPICS, topicLabel, clock } from '$lib/videoTopics.js';
   let editing = $state(null);
   let mFrom = $state(''), mTo = $state('');
+  // Genres & moods: tag everything now, a few at a time, with a running count
+  let tagRun = $state(null);
+  async function tagAll(redo = false) {
+    if (redo && !confirm('Redo genres and moods for every pick? Moods people fixed by hand stay as they are.')) return;
+    tagRun = { done: 0, left: data.facetLeft, busy: true, err: '' };
+    for (let round = 0; ; round++) {
+      const r = await fetch(`/api/facets/run${redo && round === 0 ? '?redo=1' : ''}`, { method: 'POST' }).catch(() => null);
+      if (!r?.ok) { tagRun = { ...tagRun, busy: false, err: 'It stopped partway. Tap again to pick up where it left off.' }; break; }
+      const j = await r.json();
+      const stuck = round > 0 && j.left >= tagRun.left; // nothing moved: stop instead of spinning
+      tagRun = { ...tagRun, done: j.done, left: j.left };
+      if (!j.left || stuck) break;
+    }
+    tagRun = { ...tagRun, busy: false };
+    invalidateAll();
+  }
   import { page } from '$app/state';
   import { groupsOf } from '$lib/groups.js';
   let pEdit = $state(page.url.searchParams.get('person'));
@@ -74,6 +90,20 @@
 </form>
 <p class="muted" style="margin:6px 0 0">New people get full access right away. Check them here and keep or revoke.</p>
 {#if form?.message}<p class="err" role="alert">{form.message}</p>{/if}
+
+<section class="tagger" id="tags">
+  <h2 class="h2">Genres and moods</h2>
+  <p class="small muted">New picks get these on their own. Genres come from TMDB and Open Library; moods are the AI's guess, and anyone can fix them on a pick's page.{#if !data.hasAI} The AI isn't connected here, so moods won't be guessed.{/if}</p>
+  {#if tagRun}
+    <p class="tstat" role="status">{tagRun.busy ? 'Working…' : tagRun.err || 'All done.'} {tagRun.done} tagged{tagRun.left ? `, ${tagRun.left} to go` : ''}.</p>
+  {:else}
+    <p class="tstat">{data.facetLeft ? `${data.facetLeft} picks don't have genres and moods yet.` : 'Every pick has genres and moods.'}</p>
+  {/if}
+  <div class="vbtns">
+    {#if data.facetLeft || tagRun?.left}<button class="btn" disabled={tagRun?.busy} onclick={() => tagAll(false)}>Tag them now</button>{/if}
+    <button class="lnkb" disabled={tagRun?.busy} onclick={() => tagAll(true)}>Redo all of them</button>
+  </div>
+</section>
 
 <section class="ped" id="people">
   <h2 class="h2">Edit people</h2>
@@ -231,6 +261,8 @@
 {/if}
 
 <style>
+  .tagger { display: grid; gap: 10px; }
+  .tstat { margin: 0; font-weight: 700; }
   .plist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .plist li { background: var(--surface); border-radius: 14px; padding: 10px 14px; scroll-margin-top: 90px; }
   .prow { display: flex; justify-content: space-between; align-items: center; gap: 10px; }

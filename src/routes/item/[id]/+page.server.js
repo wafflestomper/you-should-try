@@ -1,3 +1,4 @@
+import { facetSoon } from '$lib/server/facets.js';
 import { error, fail } from '@sveltejs/kit';
 import { getItem } from '$lib/server/data.js';
 import { saveToTry, removeFromTry, sendRecommendation } from '$lib/server/actions.js';
@@ -26,16 +27,20 @@ export async function load({ params, platform, locals }) {
   const env = platform.env;
   // Everything here comes from our own database, asked all at once. Streaming and library
   // lookups (outside services, sometimes slow) are fetched by the page after it opens.
-  const [libs, detailsBy, cards, mine] = await Promise.all([
+  const [libs, detailsBy, cards, mine, facetRows] = await Promise.all([
     myLibraries(db, me),
     data.item.details_by ? db.prepare('SELECT name FROM users WHERE id = ?').bind(data.item.details_by).first() : null,
     getBoard(db, me, { view: 'any', itemId: params.id }),
-    db.prepare('SELECT COUNT(*) AS n FROM recs WHERE item_id = ? AND (added_by = ? OR by_user_id = ?)').bind(params.id, me, me).first()
+    db.prepare('SELECT COUNT(*) AS n FROM recs WHERE item_id = ? AND (added_by = ? OR by_user_id = ?)').bind(params.id, me, me).first(),
+    db.prepare('SELECT type, tag FROM item_facets WHERE item_id = ?').bind(params.id).all()
   ]);
+  const facets = { genre: [], mood: [] };
+  for (const r of facetRows.results) facets[r.type]?.push(r.tag);
+  if (!data.item.facets_at) facetSoon(platform, params.id);
   const card = cards[0] ?? null;
   const mineRecs = mine.n;
   const canFix = mineRecs > 0 || !!locals.realUser?.is_admin;
-  return { ...data, card, canFix, mineRecs, isAdmin: !!locals.realUser?.is_admin, detailsBy: detailsBy?.name ?? null, saved: !!saved, done: done?.reaction ?? null, people: people.results, sentTo: sent.results, libs, hasTmdb: !!env.TMDB_KEY };
+  return { ...data, facets, card, canFix, mineRecs, isAdmin: !!locals.realUser?.is_admin, detailsBy: detailsBy?.name ?? null, saved: !!saved, done: done?.reaction ?? null, people: people.results, sentTo: sent.results, libs, hasTmdb: !!env.TMDB_KEY };
 }
 
 export const actions = {
