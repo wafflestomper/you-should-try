@@ -23,7 +23,7 @@ export async function load({ platform, locals, url }) {
     : null;
   const gid = url.searchParams.get('guest');
   const prefill = gid ? await db.prepare('SELECT id, name, email FROM guests WHERE id = ? AND user_id IS NULL').bind(gid).first() : null;
-  return { people, guests: guests.results, origin: url.origin, myName: locals.user.name, canSend: canSend(platform.env), req, prefill };
+  return { people, guests: guests.results, origin: url.origin, myName: locals.user.name, maker: !!locals.realUser?.is_admin, canSend: canSend(platform.env), req, prefill };
 }
 
 const text = (f, k, n) => String(f.get(k) || '').trim().slice(0, n);
@@ -60,7 +60,7 @@ export const actions = {
     if (!/^\S+@\S+\.\S+$/.test(to)) return fail(400, { ...keep, sendError: 'Add their email address first.' });
     if (inv.emailed_count >= 3) return fail(400, { ...keep, sendError: 'This invite has already been emailed 3 times. Text it or copy the link instead.' });
     const link = `${url.origin}/invite/${code}`;
-    const msg = inviteEmail({ toName: inv.name, fromName: locals.user.name, picks, link, email: to });
+    const msg = inviteEmail({ toName: inv.name, fromName: locals.user.name, picks, link, email: to, maker: !!locals.realUser?.is_admin });
     const r = await sendEmail(env, { to, ...msg, replyTo: locals.user.email, fromName: locals.user.name });
     if (!r.ok) return fail(502, { ...keep, sendError: r.error });
     await db.batch([

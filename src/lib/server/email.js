@@ -27,8 +27,8 @@ export async function sendEmail(env, { to, subject, text, html, replyTo, fromNam
   return { ok: true, id: out.id };
 }
 
-export function inviteEmail({ toName, fromName, picks, link, email }) {
-  const lines = inviteLines({ toName, fromName, picks, link, email });
+export function inviteEmail({ toName, fromName, picks, link, email, maker }) {
+  const lines = inviteLines({ toName, fromName, picks, link, email, maker });
   const text = lines.join('\n');
   const paras = []; let cur = [];
   for (const l of lines) { if (l === '') { if (cur.length) paras.push(cur); cur = []; } else cur.push(l); }

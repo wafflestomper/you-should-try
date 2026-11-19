@@ -2,7 +2,7 @@
   import { page } from '$app/state';
   import ShowMe from '$lib/components/ShowMe.svelte';
   import { enhance } from '$app/forms';
-  import { inviteBody, inviteSubject } from '$lib/inviteText.js';
+  import { inviteBody, inviteSubject, inviteText } from '$lib/inviteText.js';
   let { data, form } = $props();
 
   let name = $state(form?.name ?? data.req?.name ?? data.prefill?.name ?? '');
@@ -15,17 +15,18 @@
   let link = $derived(form?.code ? `${data.origin}/invite/${form.code}` : null);
   let first = $derived((form?.name || '').split(' ')[0]);
   let subject = $derived(inviteSubject(data.myName));
-  let body = $derived(link ? inviteBody({ toName: form?.name, fromName: data.myName, picks: form?.picks, link, email: form?.email }) : '');
+  let body = $derived(link ? inviteBody({ toName: form?.name, fromName: data.myName, picks: form?.picks, link, email: form?.email, maker: data.maker }) : '');
   let sendTo = $state(form?.email ?? '');
   $effect(() => { if (form?.code) sendTo = form.sent || form.email || ''; });
   let sending = $state(false);
   let mailto = $derived(`mailto:${encodeURIComponent(form?.email || '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-  let sms = $derived(`sms:?&body=${encodeURIComponent(`${first}, you should try this: our group's recommendation board. Your invite: ${link}${form?.email ? ` (sign in with Google as ${form.email})` : ''}`)}`);
+  let sms = $derived(`sms:?&body=${encodeURIComponent(inviteText({ toName: form?.name, fromName: data.myName, link, email: form?.email, maker: data.maker }))}`);
   let copied = $state(false);
   let canShare = $state(false);
   $effect(() => { canShare = !!navigator.share; });
   async function copy() { try { await navigator.clipboard.writeText(link); copied = true; setTimeout(() => (copied = false), 2000); } catch {} }
-  async function share() { try { await navigator.share({ title: subject, text: body.replace(link, '').trim(), url: link }); } catch {} }
+  // The share sheet usually goes to Messages, so share the short personal text (it has the link in it)
+  async function share() { try { await navigator.share({ text: inviteText({ toName: form?.name, fromName: data.myName, link, email: form?.email, maker: data.maker }) }); } catch {} }
   function inviteGuest(g) { name = g.name; guest = g.id; email = ''; document.getElementById('inv-email')?.focus(); document.getElementById('invite')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   const asDate = (t) => new Date(String(t).replace(' ', 'T') + (String(t).length > 10 ? 'Z' : 'T12:00:00Z'));
   const joined = (t) => { if (!t) return ''; const d = asDate(t), now = new Date(); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(d.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}) }); };
