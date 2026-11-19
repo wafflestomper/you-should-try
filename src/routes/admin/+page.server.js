@@ -2,6 +2,7 @@ import { defaultLibraries, defaultLibraryActions } from '$lib/server/libs.js';
 import { possibleDups, mergeItems } from '$lib/server/dups.js';
 import { error, fail } from '@sveltejs/kit';
 import { mergePeople } from '$lib/server/mergePeople.js';
+import { groupsOf, groupsText } from '$lib/groups.js';
 
 const all = async (db, sql, ...a) => (await db.prepare(sql).bind(...a).all()).results;
 
@@ -19,19 +20,39 @@ export async function load({ locals, platform, url }) {
     all(db, `SELECT c.*, u.name AS by_name FROM circles c LEFT JOIN users u ON u.id = c.suggested_by WHERE c.status = 'pending'`),
     db.prepare(`SELECT COUNT(*) AS n FROM users WHERE id LIKE 'u-%' AND email IS NULL AND google_sub IS NULL AND id != ?`).bind(locals.realUser.id).first(),
     all(db, 'SELECT * FROM videos ORDER BY sort'),
-    all(db, `SELECT u.id, u.name, u.joined_at, (SELECT COUNT(*) FROM recs r WHERE r.by_user_id = u.id) AS picks FROM users u WHERE u.status = 'active' ORDER BY u.name`),
+    all(db, `SELECT u.id, u.name, u.joined_at, u.how_known, u.is_admin, u.email, (SELECT COUNT(*) FROM recs r WHERE r.by_user_id = u.id) AS picks FROM users u WHERE u.status = 'active' ORDER BY u.name`),
     all(db, `SELECT g.id, g.name, (SELECT COUNT(*) FROM recs r WHERE r.by_guest_id = g.id) AS picks FROM guests g WHERE g.user_id IS NULL ORDER BY g.name`)
   ]);
   const dups = await possibleDups(platform.env.DB);
   const defaultLibs = await defaultLibraries(platform.env.DB);
   const mm = await platform.env.DB.prepare("SELECT value FROM settings WHERE key = 'match_min_shared'").first();
-  return { members, guests, videos, videoReady: !!platform.env.VIDEOS, requests, newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups, defaultLibs };
+  const allGroups = [...new Set(members.flatMap((m) => groupsOf(m.how_known)))].sort((a, b) => a.localeCompare(b));
+  return { allGroups, me: locals.realUser.id, members, guests, videos, videoReady: !!platform.env.VIDEOS, requests, newbies, invites, circles, demoCount: demo.n, origin: url.origin, matchMin: Number(mm?.value ?? 5), dups, defaultLibs };
 }
 
 const guard = (locals) => { if (!locals.realUser?.is_admin) error(403, 'Admins only.'); };
 const field = async (request, k) => String((await request.formData()).get(k) || '');
 
 export const actions = {
+  personSave: async ({ request, locals, platform }) => {
+    guard(locals);
+    const f = await request.formData();
+    const id = String(f.get('id') || ''), name = String(f.get('name') || '').trim().slice(0, 60);
+    if (!name) return fail(400, { personError: 'A person needs a name.' });
+    const groups = groupsText([...f.getAll('group').map(String), ...String(f.get('newgroup') || '').split(',')]);
+    const admin = id === locals.realUser.id ? 1 : f.get('admin') ? 1 : 0; // you can't take away your own admin
+    await platform.env.DB.prepare("UPDATE users SET name = ?, how_known = ?, is_admin = ? WHERE id = ? AND status = 'active'").bind(name, groups, admin, id).run();
+    return { personSaved: name };
+  },
+  personRemove: async ({ request, locals, platform }) => {
+    guard(locals);
+    const id = String((await request.formData()).get('id') || '');
+    if (id === locals.realUser.id) return fail(400, { personError: "You can't remove yourself." });
+    const db = platform.env.DB;
+    // Their picks stay on the board; they just can't sign in anymore
+    await db.batch([db.prepare("UPDATE users SET status = 'revoked' WHERE id = ?").bind(id), db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id)]);
+    return { personSaved: 'Removed' };
+  },
   mergePeople: async ({ request, locals, platform }) => {
     guard(locals);
     const f = await request.formData();

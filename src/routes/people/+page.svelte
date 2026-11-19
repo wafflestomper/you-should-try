@@ -1,4 +1,5 @@
 <script>
+  import { page } from '$app/state';
   import ShowMe from '$lib/components/ShowMe.svelte';
   import { enhance } from '$app/forms';
   import { inviteBody, inviteSubject } from '$lib/inviteText.js';
@@ -98,7 +99,7 @@
     <ul class="ppl">
       {#each data.people as p (p.id)}
         <li><div><a class="pl" href="/people/{p.id}"><b>{p.name}</b></a>{#if joinedRecently(p.joined_at)}<span class="nw">New</span>{/if}<div class="hint">{[`Joined ${joined(p.joined_at)}${p.inviter ? `, invited by ${p.inviter}` : ''}`, p.how_known, `${p.picks} pick${p.picks === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}</div></div>
-          <span class="m">{p.match != null ? `${p.match}% match` : ''}</span></li>
+          <span class="m">{p.match != null ? `${p.match}% match` : ''}{#if page.data.realUser?.is_admin}<a class="ed" href="/admin?person={p.id}#people">Edit</a>{/if}</span></li>
       {/each}
     </ul>
   {:else}<p class="hint">Nobody else yet. Invite someone above.</p>{/if}
@@ -132,6 +133,7 @@
   .whohere span { display: inline-block; margin-left: 6px; color: var(--ink-2); font-weight: 700; text-decoration: underline; }
   #members { scroll-margin-top: 80px; }
   .nw { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: #E11D48; color: #fff; font: 800 11px Manrope, sans-serif; vertical-align: 2px; }
+  .ed { display: block; margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--ink-2); text-align: right; }
   .ppl { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .ppl li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--surface); border-radius: 14px; }
   .pl { color: var(--ink); text-decoration: none; }

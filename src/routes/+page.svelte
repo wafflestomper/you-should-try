@@ -144,7 +144,9 @@
   <button class="sf add" onclick={() => openEditor(null)} aria-label="Make a filter">+ Filter</button>
 </div>
 {#if data.active && !editing}
-  <p class="fsum">{summary}{sumVia} · <button class="lnk" onclick={() => openEditor(data.active)}>Edit</button></p>
+  <form class="fsum" method="POST" action="?/deleteFilter" use:enhance={({ cancel }) => { if (!confirm(`Delete the "${data.active.name}" filter?`)) return cancel(); return async ({ update }) => { await update({ reset: false, invalidateAll: true }); useFilter(''); }; }}>
+    {summary}{sumVia} · <button type="button" class="lnk" onclick={() => openEditor(data.active)}>Edit</button> · <input type="hidden" name="id" value={data.active.id} /><button class="lnk">Delete</button>
+  </form>
 {/if}
 {#if editing}
   <form class="fed" method="POST" action="?/saveFilter" use:enhance={() => async ({ result, update }) => {

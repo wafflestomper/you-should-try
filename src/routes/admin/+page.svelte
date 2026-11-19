@@ -6,6 +6,12 @@
   import { VIDEO_TOPICS, topicLabel, clock } from '$lib/videoTopics.js';
   let editing = $state(null);
   let mFrom = $state(''), mTo = $state('');
+  import { page } from '$app/state';
+  import { groupsOf } from '$lib/groups.js';
+  let pEdit = $state(page.url.searchParams.get('person'));
+  let pGroups = $state([]);
+  function startEdit(u) { pEdit = u.id; pGroups = groupsOf(u.how_known); }
+  onMount(() => { const u = data.members.find((m) => m.id === pEdit); if (u) { startEdit(u); setTimeout(() => document.getElementById('p-' + u.id)?.scrollIntoView({ block: 'center' }), 50); } });
   const fromName = $derived(mFrom ? (mFrom.startsWith('g:') ? data.guests.find((g) => 'g:' + g.id === mFrom)?.name : data.members.find((u) => 'u:' + u.id === mFrom)?.name) : '');
   const toName = $derived(data.members.find((u) => u.id === mTo)?.name ?? '');
   import { makeCover } from '$lib/videoTools.js';
@@ -68,6 +74,44 @@
 </form>
 <p class="muted" style="margin:6px 0 0">New people get full access right away. Check them here and keep or revoke.</p>
 {#if form?.message}<p class="err" role="alert">{form.message}</p>{/if}
+
+<section class="ped" id="people">
+  <h2 class="h2">Edit people</h2>
+  <p class="small muted">Fix names and set which groups someone is in. Groups show on the People page next to their name.</p>
+  {#if form?.personError}<p class="err">{form.personError}</p>{/if}
+  <ul class="plist">
+    {#each data.members as u (u.id)}
+      <li id="p-{u.id}">
+        {#if pEdit === u.id}
+          <form method="POST" action="?/personSave" class="pform" use:enhance={() => async ({ result, update }) => { await update({ reset: false }); if (result.type === 'success') pEdit = null; }}>
+            <input type="hidden" name="id" value={u.id} />
+            <label>First and last name<input name="name" value={u.name} required maxlength="60" /></label>
+            <fieldset><legend>Groups</legend>
+              <div class="gchips">
+                {#each [...new Set([...data.allGroups, ...pGroups])] as g (g)}
+                  <label class="gchip"><input type="checkbox" name="group" value={g} checked={pGroups.includes(g)} onchange={(e) => (pGroups = e.currentTarget.checked ? [...pGroups, g] : pGroups.filter((x) => x !== g))} /><span>{g}</span></label>
+                {/each}
+              </div>
+              <input name="newgroup" placeholder="New group, like Book club" maxlength="40" aria-label="New group" />
+            </fieldset>
+            {#if u.id !== data.me}<label class="ck"><input type="checkbox" name="admin" checked={!!u.is_admin} /> Admin (can see this page)</label>{/if}
+            <div class="vbtns">
+              <button class="btn sm">Save</button>
+              <button type="button" class="lnkb" onclick={() => (pEdit = null)}>Cancel</button>
+              {#if u.id !== data.me}<button class="lnkb del" formaction="?/personRemove" onclick={(e) => { if (!confirm(`Remove ${u.name}? They won't be able to sign in. Their picks stay on the board.`)) e.preventDefault(); }}>Remove from the app</button>{/if}
+            </div>
+          </form>
+        {:else}
+          <div class="prow">
+            <div><b>{u.name}</b>{#if u.is_admin}<span class="pill">Admin</span>{/if}
+              <div class="small muted">{groupsOf(u.how_known).join(', ') || 'No group'} · {u.picks} pick{u.picks === 1 ? '' : 's'}</div></div>
+            <button class="lnkb" onclick={() => startEdit(u)}>Edit</button>
+          </div>
+        {/if}
+      </li>
+    {/each}
+  </ul>
+</section>
 
 <section class="merge" id="merge">
   <h2 class="h2">Same person, two names</h2>
@@ -187,6 +231,22 @@
 {/if}
 
 <style>
+  .plist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .plist li { background: var(--surface); border-radius: 14px; padding: 10px 14px; scroll-margin-top: 90px; }
+  .prow { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .prow .pill { margin-left: 8px; }
+  .pform { display: grid; gap: 10px; }
+  .pform label { display: grid; gap: 4px; font-weight: 700; font-size: 14px; }
+  .pform input[name='name'], .pform input[name='newgroup'] { min-height: 44px; border-radius: 10px; border: 1px solid var(--line); padding: 0 10px; font: 16px Manrope, sans-serif; background: var(--surface-2); color: var(--ink); }
+  .pform fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .pform legend { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .gchips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .gchip { display: inline-flex !important; cursor: pointer; }
+  .gchip input { position: absolute; opacity: 0; pointer-events: none; }
+  .gchip span { min-height: 36px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 10px; border: 1.5px solid var(--line); font: 700 14px Manrope, sans-serif; color: var(--ink-2); }
+  .gchip input:checked + span { border-color: var(--ink); color: var(--ink); background: var(--surface-2); }
+  .gchip input:focus-visible + span { outline: 3px solid #2563EB; outline-offset: 2px; }
+  .ck { display: flex !important; align-items: center; gap: 8px; font-weight: 600 !important; }
   .merge form { display: grid; gap: 10px; background: var(--surface); border-radius: 14px; padding: 14px; }
   .merge label { display: grid; gap: 4px; font-weight: 700; font-size: 14px; }
   .merge select { min-height: 46px; border-radius: 12px; border: 1px solid var(--line); padding: 0 10px; font: 16px Manrope, sans-serif; background: var(--surface-2); color: var(--ink); }
