@@ -37,10 +37,10 @@
   });
   // The filter editor: null (closed), 'new', or a saved filter
   let editing = $state(null);
-  let fName = $state(''), fPeople = $state([]), fKinds = $state([]), fVia = $state(true);
+  let fName = $state(''), fPeople = $state([]), fKinds = $state([]), fVia = $state(false);
   function openEditor(f) {
     editing = f ?? 'new';
-    fName = f?.name ?? ''; fPeople = [...(f?.people ?? [])]; fKinds = [...(f?.kinds ?? [])]; fVia = f ? f.via : true;
+    fName = f?.name ?? ''; fPeople = [...(f?.people ?? [])]; fKinds = [...(f?.kinds ?? [])]; fVia = f ? f.via : false;
   }
   // A real name for the example under the checkbox: someone checked in this filter who has added picks for others
   let viaExample = $derived((() => {
@@ -127,9 +127,9 @@
     <input id="f-name" name="name" bind:value={fName} maxlength="40" placeholder="Three Amigos" autocomplete="off" />
     <span class="fl">People</span>
     <div class="pp">
-      {#each data.people as p (p.key)}
+      {#each data.people.filter((x) => x.n || fVia || fPeople.includes(x.key)) as p (p.key)}
         <label class="pc" class:on={fPeople.includes(p.key)}><input type="checkbox" name="people" value={p.key} checked={fPeople.includes(p.key)} onchange={() => (fPeople = toggle(fPeople, p.key))} />
-          <span>{p.name}</span><span class="pn">{[p.n ? `${p.n} ${p.n === 1 ? 'pick' : 'picks'}` : '', p.v ? `added ${p.v} for others` : ''].filter(Boolean).join(' · ')}</span></label>
+          <span>{p.name}</span><span class="pn">{[p.n ? `${p.n} ${p.n === 1 ? 'pick' : 'picks'}` : '', fVia && p.v ? `added ${p.v} for others` : ''].filter(Boolean).join(' · ')}</span></label>
       {/each}
     </div>
     <label class="via"><input type="checkbox" bind:checked={fVia} /><span>Also show picks they added for other people<span class="muted vsub">Like "Warren · via {viaExample}": Warren recommended it, {viaExample} added it.</span></span></label>
