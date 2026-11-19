@@ -51,19 +51,34 @@
   let personName = $derived(data.people.find((p) => p.key === data.opts.person)?.name);
 
   // Saved filters: the board reopens on the last one you picked
-  function useFilter(id) {
-    try { localStorage.setItem('yst_filter', id || ''); } catch {}
+  function useFilter(id, groups = []) {
+    try { localStorage.setItem('yst_filter', groups.length ? 'grp:' + JSON.stringify(groups) : id || ''); } catch {}
     const u = new URL(location.href);
-    for (const k of ['f', 'kind', 'person']) u.searchParams.delete(k);
+    for (const k of ['f', 'g', 'kind', 'person']) u.searchParams.delete(k);
     if (id) u.searchParams.set('f', id);
+    for (const g of groups) u.searchParams.append('g', g);
     editing = null;
-    goto(u.pathname + u.search, { keepFocus: true, noScroll: true });
+    goto(u.pathname + u.search, { keepFocus: true, noScroll: true, replaceState: groups.length > 0 });
   }
   onMount(() => {
     if (location.search) return;
     let id = ''; try { id = localStorage.getItem('yst_filter') || ''; } catch {}
-    if (id && data.filters.some((f) => f.id === id)) goto(`/?f=${encodeURIComponent(id)}`, { replaceState: true, keepFocus: true, noScroll: true });
+    if (id.startsWith('grp:')) {
+      let gs = []; try { gs = JSON.parse(id.slice(4)).filter((g) => data.groups.some((x) => x.name === g)); } catch {}
+      if (gs.length) useFilter('', gs);
+    } else if (id && data.filters.some((f) => f.id === id)) goto(`/?f=${encodeURIComponent(id)}`, { replaceState: true, keepFocus: true, noScroll: true });
   });
+  // Groups: one button opens the list; pick any number, and the board updates as you go
+  let groupsOpen = $state(false);
+  let picked = $state([]);
+  $effect.pre(() => { picked = data.active?.group ? [...data.active.names] : []; });
+  let gTimer;
+  function toggleGroup(name) {
+    picked = picked.includes(name) ? picked.filter((g) => g !== name) : [...picked, name];
+    clearTimeout(gTimer);
+    gTimer = setTimeout(() => useFilter('', picked), 350);
+  }
+  const andList = (xs) => xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`;
   // The filter editor: null (closed), 'new', or a saved filter
   let editing = $state(null);
   let fName = $state(''), fPeople = $state([]), fKinds = $state([]), fVia = $state(false);
@@ -140,11 +155,32 @@
 
 <div class="saved" role="group" aria-label="Saved filters">
   <button class="sf" aria-pressed={!data.active} onclick={() => useFilter('')}>Everyone</button>
-  {#each data.filters as f (f.id)}<button class="sf" class:grp={f.group} aria-pressed={data.active?.id === f.id} onclick={() => useFilter(f.id)}>{#if f.group}<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" fill="currentColor"/><circle cx="16.5" cy="9" r="2.6" fill="currentColor" opacity=".6"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M14.5 14c3 0 6.5 1.6 6.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>{/if}{f.name}</button>{/each}
+  {#if data.groups.length}
+    <button class="sf grp" aria-pressed={picked.length > 0} aria-expanded={groupsOpen} aria-controls="grp-list" onclick={() => (groupsOpen = !groupsOpen)}>
+      <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2" fill="currentColor"/><circle cx="16.5" cy="9" r="2.6" fill="currentColor" opacity=".6"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M14.5 14c3 0 6.5 1.6 6.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Groups{picked.length ? ` (${picked.length})` : ''}
+      <svg class="chev" class:up={groupsOpen} width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+    </button>
+  {/if}
+  {#each data.filters as f (f.id)}<button class="sf" aria-pressed={data.active?.id === f.id} onclick={() => useFilter(f.id)}>{f.name}</button>{/each}
   <button class="sf add" onclick={() => openEditor(null)} aria-label="Make a filter">+ Filter</button>
 </div>
+{#if groupsOpen}
+  <div class="glist" id="grp-list" role="group" aria-label="Groups">
+    {#each data.groups as g (g.name)}
+      <button class="gopt" aria-pressed={picked.includes(g.name)} onclick={() => toggleGroup(g.name)}>
+        <span class="box" aria-hidden="true">{#if picked.includes(g.name)}<svg width="14" height="14" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>{/if}</span>
+        <span class="gn">{g.name}</span><span class="gs">{g.size}</span>
+      </button>
+    {/each}
+    <div class="gfoot">
+      {#if picked.length}<button class="lnk" onclick={() => { picked = []; clearTimeout(gTimer); useFilter(''); }}>Clear</button>{:else}<span></span>{/if}
+      <button class="btn sm" onclick={() => (groupsOpen = false)}>Done</button>
+    </div>
+  </div>
+{/if}
 {#if data.active?.group}
-  <p class="fsum">Everyone in {data.active.name}: {data.active.size} {data.active.size === 1 ? 'person' : 'people'}{data.active.people.length < data.active.size ? ', counting you' : ''}</p>
+  <p class="fsum">Everyone in {andList(data.active.names)}: {data.active.size} {data.active.size === 1 ? 'person' : 'people'}{data.active.counted ? ', counting you' : ''}</p>
 {:else if data.active && !editing}
   <form class="fsum" method="POST" action="?/deleteFilter" use:enhance={({ cancel }) => { if (!confirm(`Delete the "${data.active.name}" filter?`)) return cancel(); return async ({ update }) => { await update({ reset: false, invalidateAll: true }); useFilter(''); }; }}>
     {summary}{sumVia} · <button type="button" class="lnk" onclick={() => openEditor(data.active)}>Edit</button> · <input type="hidden" name="id" value={data.active.id} /><button class="lnk">Delete</button>
@@ -249,6 +285,15 @@
   .sf[aria-pressed='true'] { border-color: var(--ink); color: var(--ink); background: var(--surface); }
   .sf.add { border-style: dashed; }
   .sf.grp { display: inline-flex; align-items: center; gap: 6px; }
+  .chev { transition: transform .2s; }
+  .chev.up { transform: rotate(180deg); }
+  .glist { display: grid; gap: 4px; background: var(--surface); border-radius: 16px; padding: 8px; margin: 0 0 10px; max-height: 50vh; overflow-y: auto; }
+  .gopt { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; min-height: 46px; padding: 0 10px; border: 0; border-radius: 10px; background: none; color: var(--ink); font: 700 15px Manrope, sans-serif; text-align: left; cursor: pointer; }
+  .gopt:hover { background: var(--surface-2); }
+  .gopt .box { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--line); display: grid; place-items: center; }
+  .gopt[aria-pressed='true'] .box { background: var(--ink); border-color: var(--ink); color: var(--bg, #fff); }
+  .gs { color: var(--ink-2); font-size: 13px; font-weight: 700; }
+  .gfoot { display: flex; justify-content: space-between; align-items: center; padding: 6px 4px 2px; }
   .fsum { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); }
   .lnk { background: none; border: 0; padding: 0; font: 700 13.5px Manrope, sans-serif; color: var(--ink); text-decoration: underline; cursor: pointer; }
   .fed { display: grid; gap: 8px; background: var(--surface); border-radius: 16px; padding: 14px; margin: 4px 0 10px; }

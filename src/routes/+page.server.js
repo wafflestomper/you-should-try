@@ -25,12 +25,17 @@ export async function load({ platform, locals, url }) {
   // Every group (St. Chris, Tennis…) is a ready-made filter, kept up to date as people join it
   const groups = new Map();
   for (const m of members.results) for (const g of groupsOf(m.how_known)) (groups.get(g) ?? groups.set(g, []).get(g)).push(m.id);
-  const groupFilters = [...groups].sort(([a], [b]) => a.localeCompare(b))
-    .map(([name, ids]) => ({ id: `grp:${name}`, name, group: true, size: ids.length, people: ids.filter((id) => id !== locals.user.id).map((id) => `u:${id}`), kinds: [], via: false }));
-  const filters = [...groupFilters, ...saved.results.map((f) => ({ ...f, people: JSON.parse(f.people), kinds: JSON.parse(f.kinds), via: !!f.via }))];
-  const active = filters.find((f) => f.id === q.get('f')) ?? null;
-  // A group with nobody else in it yet shows an empty board, not everyone
-  if (active?.group && !active.people.length) active.people = ['u:-nobody-'];
+  const groupList = [...groups].sort(([a], [b]) => a.localeCompare(b)).map(([name, ids]) => ({ name, size: ids.length }));
+  const filters = saved.results.map((f) => ({ ...f, people: JSON.parse(f.people), kinds: JSON.parse(f.kinds), via: !!f.via }));
+  let active = filters.find((f) => f.id === q.get('f')) ?? null;
+  // ?g=St. Chris&g=Tennis: picks from everyone in any of those groups
+  const picked = [...new Set(q.getAll('g'))].filter((g) => groups.has(g));
+  if (!active && picked.length) {
+    const ids = new Set(picked.flatMap((g) => groups.get(g)));
+    const others = [...ids].filter((id) => id !== locals.user.id).map((id) => `u:${id}`);
+    // A group with nobody else in it yet shows an empty board, not everyone
+    active = { id: 'groups', group: true, names: picked, size: ids.size, counted: ids.has(locals.user.id), people: others.length ? others : ['u:-nobody-'], kinds: [], via: false };
+  }
   if (active) Object.assign(opts, { people: active.people, kinds: active.kinds, via: active.via, filter: active.id });
   const [cards, people] = await Promise.all([getBoard(db, locals.user.id, opts), boardPeople(db)]);
   // In the background: look up where to watch or borrow the top few, so opening them is instant
@@ -41,7 +46,7 @@ export async function load({ platform, locals, url }) {
   const invitee = q.get('guest') ? await db.prepare(
     `SELECT g.id, g.name, (SELECT COUNT(*) FROM invites i WHERE i.guest_id = g.id AND i.used_by IS NULL AND i.expires_at > datetime('now')) AS invited
        FROM guests g WHERE g.id = ? AND g.user_id IS NULL`).bind(q.get('guest')).first() : null;
-  return { cards, people, opts, addedTitle: added?.title ?? null, invitee, filters, active };
+  return { cards, people, opts, addedTitle: added?.title ?? null, invitee, filters, active, groups: groupList };
 }
 
 const KEYS = /^[ug]:[\w-]{1,60}$/;
