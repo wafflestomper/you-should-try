@@ -6,7 +6,7 @@ export async function load({ params, platform, locals }) {
   if (locals.realUser && !locals.realUser.is_guest) redirect(303, '/');
   const invite = await validInvite(platform.env.DB, params.code);
   return {
-    invite: invite && { name: invite.name, from: invite.from_name, knows: invite.knows_note, circle: invite.circle_name },
+    invite: invite && { name: invite.name, from: invite.from_name, knows: invite.knows_note, circle: invite.circle_name, email: invite.email },
     googleReady: !!platform.env.GOOGLE_CLIENT_ID
   };
 }

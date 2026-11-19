@@ -7,7 +7,9 @@ export async function load({ locals, url, platform }) {
     'try-again': 'Sign-in did not finish. Try again.'
   };
   return {
-    error: messages[url.searchParams.get('error')] ?? null,
+    error: url.searchParams.get('error') === 'invite' && url.searchParams.get('as')
+      ? `You signed in as ${url.searchParams.get('as').slice(0, 120)}, which isn't on You Should Try. Try again and pick the Google account you joined with (or the one your invite went to).`
+      : messages[url.searchParams.get('error')] ?? null,
     googleReady: !!platform.env.GOOGLE_CLIENT_ID,
     dev: platform.env.DEV_LOGIN === '1',
     guest: !!locals.realUser?.is_guest

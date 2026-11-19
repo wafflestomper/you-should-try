@@ -15,12 +15,12 @@
   let link = $derived(form?.code ? `${data.origin}/invite/${form.code}` : null);
   let first = $derived((form?.name || '').split(' ')[0]);
   let subject = $derived(inviteSubject(data.myName));
-  let body = $derived(link ? inviteBody({ toName: form?.name, fromName: data.myName, picks: form?.picks, link }) : '');
+  let body = $derived(link ? inviteBody({ toName: form?.name, fromName: data.myName, picks: form?.picks, link, email: form?.email }) : '');
   let sendTo = $state(form?.email ?? '');
   $effect(() => { if (form?.code) sendTo = form.sent || form.email || ''; });
   let sending = $state(false);
   let mailto = $derived(`mailto:${encodeURIComponent(form?.email || '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-  let sms = $derived(`sms:?&body=${encodeURIComponent(`${first}, you should try this: our group's recommendation board. Your invite: ${link}`)}`);
+  let sms = $derived(`sms:?&body=${encodeURIComponent(`${first}, you should try this: our group's recommendation board. Your invite: ${link}${form?.email ? ` (sign in with Google as ${form.email})` : ''}`)}`);
   let copied = $state(false);
   let canShare = $state(false);
   $effect(() => { canShare = !!navigator.share; });
@@ -41,6 +41,7 @@
   <ShowMe topic="invite" />
   {#if link}
     <p class="sub">Invite for <b>{form.name}</b> is ready. It works once and lasts two weeks.{#if form.picks}{' '}Their {form.picks} picks move to their account when they join.{/if}</p>
+    {#if form.email}<p class="acct">Tell {first} to sign in with Google as <b>{form.email}</b>. The message below already says so.</p>{:else}<p class="acct">No email on this invite. Tell {first} which Google account to use, and to stick with it.</p>{/if}
     {#if data.canSend}
       {#if form?.sent}
         <p class="ok" role="status">Sent to <b>{form.sent}</b>. If they reply, it comes to your email.</p>
@@ -134,6 +135,7 @@
   #members { scroll-margin-top: 80px; }
   .nw { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: #E11D48; color: #fff; font: 800 11px Manrope, sans-serif; vertical-align: 2px; }
   .ed { display: block; margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--ink-2); text-align: right; }
+  .acct { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 14.5px; }
   .ppl { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .ppl li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--surface); border-radius: 14px; }
   .pl { color: var(--ink); text-decoration: none; }

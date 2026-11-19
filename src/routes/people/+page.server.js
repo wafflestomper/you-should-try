@@ -60,7 +60,7 @@ export const actions = {
     if (!/^\S+@\S+\.\S+$/.test(to)) return fail(400, { ...keep, sendError: 'Add their email address first.' });
     if (inv.emailed_count >= 3) return fail(400, { ...keep, sendError: 'This invite has already been emailed 3 times. Text it or copy the link instead.' });
     const link = `${url.origin}/invite/${code}`;
-    const msg = inviteEmail({ toName: inv.name, fromName: locals.user.name, picks, link });
+    const msg = inviteEmail({ toName: inv.name, fromName: locals.user.name, picks, link, email: to });
     const r = await sendEmail(env, { to, ...msg, replyTo: locals.user.email, fromName: locals.user.name });
     if (!r.ok) return fail(502, { ...keep, sendError: r.error });
     await db.batch([

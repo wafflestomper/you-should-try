@@ -71,7 +71,7 @@ export async function GET({ url, cookies, platform }) {
       }
     }
   }
-  if (!user) fail('invite');
+  if (!user) redirect(303, `/signin?error=invite&as=${encodeURIComponent(email)}`);
   if (user.status === 'revoked') fail('revoked');
 
   cookies.delete('yst_invite', { path: '/' });
