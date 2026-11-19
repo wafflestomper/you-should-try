@@ -159,7 +159,7 @@
     {#if fxResults.length}
       <div class="fxres" role="radiogroup" aria-label="Pick the right one">
         {#each fxResults as m, i (i)}
-          <button type="button" role="radio" aria-checked={fxPick === m} class:sel={fxPick === m} onclick={async () => { fxPick = m; fxTitle = m.title; fxSaving = true; await tick(); fxForm.requestSubmit(); }}>
+          <button type="button" role="radio" aria-checked={fxPick === m} class:sel={fxPick === m} onclick={async () => { fxPick = m; fxTitle = m.title; if (m.kind) fxKind = m.kind; fxSaving = true; await tick(); fxForm.requestSubmit(); }}>
             <Cover title={m.title} kind={m.kind} image={m.image_url} w={36} /><span class="fxt"><b>{m.title}</b><br /><span class="small muted">{[m.creator, m.year].filter(Boolean).join(', ')}</span></span><span class="use">{fxSaving && fxPick === m ? 'Saving…' : 'Use this'}</span>
           </button>
         {/each}

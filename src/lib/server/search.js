@@ -48,9 +48,11 @@ async function searchOpenLibrary(kind, q) {
   }));
 }
 
-async function searchTmdb(kind, q, key) {
+async function searchTmdb(kind, q, key, year = null) {
   const type = kind === 'tv' ? 'tv' : 'movie';
-  const data = await tmdb(`/search/${type}`, { query: q, include_adult: 'false' }, key);
+  const params = { query: q, include_adult: 'false' };
+  if (year) params[type === 'tv' ? 'first_air_date_year' : 'primary_release_year'] = String(year);
+  const data = await tmdb(`/search/${type}`, params, key);
   return (data.results || []).slice(0, 8).map((m) => {
     const date = m.release_date || m.first_air_date || '';
     return {
@@ -66,16 +68,48 @@ async function searchTmdb(kind, q, key) {
   });
 }
 
-export async function search(db, env, kind, q) {
+/** "The Crash 2026" or "The Crash (2026)" → { title: 'The Crash', year: 2026 }. Leaves titles that are only a year (1917) alone. */
+export function splitYear(q) {
+  const m = String(q).trim().match(/^(.*?)[\s,(\[]+((?:19[2-9]|20[0-3])\d)[)\]]?\s*$/);
+  return m && m[1].trim().length >= 2 ? { title: m[1].trim(), year: Number(m[2]) } : { title: String(q).trim(), year: null };
+}
+
+const norm = (t) => String(t || '').toLowerCase().replace(/^(the|a|an)\s+/, '').replace(/[^a-z0-9]+/g, ' ').trim();
+
+export async function search(db, env, kind, q, { year: wantYear = null } = {}) {
   q = q.trim();
+  // A year typed after the title narrows the search ("The Crash 2026")
+  const sy = splitYear(q);
+  const year = wantYear || sy.year;
+  const plain = sy.year ? sy.title : q;
   if (q.length < 2) return { results: [], note: null };
-  const local = await searchLocal(db, kind, q);
+  const local = await searchLocal(db, kind, plain);
   let outside = [];
   let note = null;
   try {
-    if (kind === 'book' || kind === 'audiobook') outside = await searchOpenLibrary(kind, q);
+    if (kind === 'book' || kind === 'audiobook') {
+      outside = await searchOpenLibrary(kind, plain);
+      if (year) outside = outside.map((r, i) => ({ r, i })).sort((a, b) => (b.r.year === year) - (a.r.year === year) || a.i - b.i).map((x) => x.r);
+    }
     else if (kind === 'movie' || kind === 'tv') {
-      if (env.TMDB_KEY) outside = await searchTmdb(kind, q, env.TMDB_KEY);
+      if (env.TMDB_KEY) {
+        // Search the type they picked and the other one too: a documentary film is easy to file as a TV show
+        const other = kind === 'tv' ? 'movie' : 'tv';
+        const runs = await Promise.all([
+          searchTmdb(kind, plain, env.TMDB_KEY, year),
+          year ? searchTmdb(kind, plain, env.TMDB_KEY) : [],
+          searchTmdb(other, plain, env.TMDB_KEY, year).catch(() => []),
+          sy.year ? searchTmdb(kind, q, env.TMDB_KEY).catch(() => []) : []
+        ]);
+        const seen = new Set();
+        outside = runs.flat().filter((r) => { const k = `${r.source}|${r.source_id}`; if (seen.has(k)) return false; seen.add(k); return true; });
+        // Best first: exact title, the year asked for, then the type they picked
+        const want = norm(plain);
+        // With no year typed, recent titles get a small nudge: friends mostly recommend new things
+        const recent = new Date().getFullYear() - 2;
+        const score = (r) => (norm(r.title) === want ? 4 : 0) + (year && r.year === year ? 3 : 0) + (!year && r.year >= recent ? 1.5 : 0) + (r.kind === kind ? 1 : 0);
+        outside = outside.map((r, i) => ({ r, i })).sort((a, b) => score(b.r) - score(a.r) || a.i - b.i).map((x) => x.r);
+      }
       else note = 'Movie and TV search turns on once the TMDB key is added. For now you can add them by hand.';
     }
   } catch (e) {

@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { rulesParse, aiParse } from '$lib/server/parse.js';
-import { search } from '$lib/server/search.js';
+import { search, splitYear } from '$lib/server/search.js';
 import { onBoard } from '$lib/server/board.js';
 
 export async function POST({ request, platform, locals }) {
@@ -23,12 +23,17 @@ export async function POST({ request, platform, locals }) {
   }
   if (p.by?.type === 'user' && p.by.id === locals.user.id) p.by = { type: 'me', id: locals.user.id, name: locals.user.name };
 
+  // "Severance 2022": the year helps the search but isn't part of the title
+  if (p.title) { const sy = splitYear(p.title); if (sy.year) { p.title = sy.title; p.year = p.year || sy.year; } }
+
   // Find matching titles to pick from
   let matches = [];
   let note = null;
   if (p.title) {
     const kinds = p.kind ? [p.kind] : p.kindGuess ?? ['book', 'tv', 'movie'];
-    const found = await Promise.all(kinds.map((k) => search(db, platform.env, k, p.title).catch(() => ({ results: [] }))));
+    // A year said out loud ("the crash, 2026") narrows the search even if it didn't end up in the title
+    const spokenYear = Number((said.match(/\b((?:19[2-9]|20[0-3])\d)\b/) || [])[1]) || null;
+    const found = await Promise.all(kinds.map((k) => search(db, platform.env, k, p.title, { year: p.year || spokenYear }).catch(() => ({ results: [] }))));
     matches = found.flatMap((f) => f.results).slice(0, 6);
     note = found.find((f) => f.note)?.note ?? null;
   }

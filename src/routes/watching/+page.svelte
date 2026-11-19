@@ -68,7 +68,8 @@
     if (q.trim().length < 2) { results = []; return; }
     timer = setTimeout(async () => {
       searching = true;
-      try { results = (await (await fetch(`/api/search?kind=tv&q=${encodeURIComponent(q)}`)).json()).results.slice(0, 6); } catch { results = []; }
+      // TV shows only here (search also finds movies, for the add screen)
+      try { results = (await (await fetch(`/api/search?kind=tv&q=${encodeURIComponent(q)}`)).json()).results.filter((r) => r.kind === 'tv').slice(0, 6); } catch { results = []; }
       searching = false;
     }, 300);
   }
