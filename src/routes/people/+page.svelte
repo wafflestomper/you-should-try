@@ -97,7 +97,7 @@
   {#if data.people.length}
     <ul class="ppl">
       {#each data.people as p (p.id)}
-        <li><div><a class="pl" href="/people/{p.id}"><b>{p.name}</b></a>{#if joinedRecently(p.joined_at)}<span class="nw">New</span>{/if}<div class="hint">{[`Joined ${joined(p.joined_at)}`, p.how_known, `${p.picks} pick${p.picks === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}</div></div>
+        <li><div><a class="pl" href="/people/{p.id}"><b>{p.name}</b></a>{#if joinedRecently(p.joined_at)}<span class="nw">New</span>{/if}<div class="hint">{[`Joined ${joined(p.joined_at)}${p.inviter ? `, invited by ${p.inviter}` : ''}`, p.how_known, `${p.picks} pick${p.picks === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}</div></div>
           <span class="m">{p.match != null ? `${p.match}% match` : ''}</span></li>
       {/each}
     </ul>

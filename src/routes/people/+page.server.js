@@ -7,15 +7,15 @@ export async function load({ platform, locals, url }) {
   const db = platform.env.DB;
   const me = locals.user.id;
   const [members, guests, matches, shorts] = await Promise.all([
-    db.prepare(`SELECT u.id, u.name, u.how_known, u.joined_at, (SELECT COUNT(DISTINCT item_id) FROM recs r WHERE r.by_user_id = u.id) AS picks
-                FROM users u WHERE u.status = 'active' AND u.id != ? ORDER BY u.joined_at DESC, u.name`).bind(me).all(),
+    db.prepare(`SELECT u.id, u.name, u.how_known, u.joined_at, u.invited_by, i.name AS invited_by_name, (SELECT COUNT(DISTINCT item_id) FROM recs r WHERE r.by_user_id = u.id) AS picks
+                FROM users u LEFT JOIN users i ON i.id = u.invited_by WHERE u.status = 'active' AND u.id != ? ORDER BY u.joined_at DESC, u.name`).bind(me).all(),
     db.prepare(`SELECT g.id, g.name, (SELECT COUNT(*) FROM recs r WHERE r.by_guest_id = g.id) AS picks,
                   (SELECT MAX(i.created_at) FROM invites i WHERE i.guest_id = g.id AND i.used_by IS NULL AND i.expires_at > datetime('now')) AS invited_at
                 FROM guests g WHERE g.user_id IS NULL ORDER BY picks DESC, g.name`).all(),
     tasteMatches(db, me),
     shortNames(db)
   ]);
-  const people = members.results.map((m) => ({ ...m, short: shorts[`u:${m.id}`] ?? m.name, match: matches[m.id] ? Math.round(50 + 50 * matches[m.id].score) : null }))
+  const people = members.results.map((m) => ({ ...m, inviter: m.invited_by === me ? 'you' : m.invited_by ? (shorts[`u:${m.invited_by}`] ?? m.invited_by_name) : null, short: shorts[`u:${m.id}`] ?? m.name, match: matches[m.id] ? Math.round(50 + 50 * matches[m.id].score) : null }))
     .sort((a, b) => (b.match ?? -1) - (a.match ?? -1) || a.name.localeCompare(b.name));
   const reqId = url.searchParams.get('req');
   const req = reqId && locals.realUser?.is_admin
