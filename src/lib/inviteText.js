@@ -24,8 +24,8 @@ export function inviteLines({ toName, fromName, picks, link, email, maker = fals
     `Hi ${firstOf(toName)},`, '',
     `It's ${firstOf(fromName)}. ${whatItIs(maker, fromName)}`,
     picks ? `${picks} of your recommendations are already on it.` : '',
-    '', `Here's your own invite link. It works once and lasts two weeks:`, link, '',
-    `It's free, there are no ads, and only people we invite can see it. ${accountLine(email) || 'You sign in with Google.'}`,
+    '', `Here's your own invite link. It opens a page that shows more of what this is about. It works once and lasts two weeks:`, link, '',
+    `It's free. No ads, just a small group of friends. ${accountLine(email) || 'You sign in with Google.'}`,
     '', `If you have any questions, just ask me.`, '', `- ${firstOf(fromName)}`
   ].filter((l, i, a) => l !== '' || a[i - 1] !== '');
 }
@@ -35,6 +35,6 @@ export const inviteBody = (o) => inviteLines(o).join('\n');
 // Short enough for a text, personal enough not to look like spam
 export function inviteText({ toName, fromName, link, email, maker = false }) {
   const site = maker ? 'a little website I made' : "a little website we're using";
-  return `Hey ${firstOf(toName)}, it's ${firstOf(fromName)}! I'd love for you to join ${site} where a group of us save the shows, books and restaurants we recommend to each other. Here's your personal invite (works once): ${link}` +
-    (email ? `\n\nSign in with Google as ${email}.` : '') + `\n\nNo ads, just our group. Text me if you have questions.`;
+  return `Hey ${firstOf(toName)}, it's ${firstOf(fromName)}! I'd love for you to join ${site} where a group of us save the shows, books and restaurants we recommend to each other. Here's your personal invite (works once). It opens a page that shows more of what this is about: ${link}` +
+    (email ? `\n\nSign in with Google as ${email}.` : '') + `\n\nNo ads, just a small group of friends. Text me if you have questions.`;
 }
