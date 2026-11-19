@@ -7,6 +7,8 @@
   import Nav from '$lib/components/Nav.svelte';
   import Corners from '$lib/components/Corners.svelte';
   import Icon from '$lib/components/Icon.svelte';
+  import TapDots from '$lib/components/TapDots.svelte';
+  import { taps, setTaps } from '$lib/taps.svelte.js';
   let { data, children } = $props();
   let path = $derived(page.url.pathname);
   let look = $state(data.look ?? 'light');
@@ -24,6 +26,7 @@
 </script>
 
 <svelte:head><title>You Should Try</title></svelte:head>
+<TapDots />
 
 {#if data.dbMissing}
   <div class="wrap"><h1 class="h2">The database isn't connected yet</h1><p>Follow step 2 in the README to create the database and paste its ID into <code>wrangler.jsonc</code>.</p></div>
@@ -55,6 +58,7 @@
       <a href="/people" class="small">People and invites</a>
       <a href="/me" class="small">Your profile</a>
       <a href="/install" class="small">Add to home screen</a>
+      <button class="linkish small" onclick={() => setTaps(!taps.on)} aria-pressed={taps.on}>{taps.on ? 'Hide my taps' : 'Show my taps (for recording)'}</button>
       <form method="POST" action="/signout"><button class="linkish">Sign out</button></form>
       <span>You Should Try… · invite only</span>
     </footer>
