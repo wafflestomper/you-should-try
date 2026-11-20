@@ -11,7 +11,7 @@
     {
       img: 'board', alt: 'The board with recommendation cards for Slow Horses and Yellowjackets, each marked New, with a friend\'s note',
       title: 'It goes on the board, with who said it',
-      body: 'Everything friends recommend lands in one place, with their note about why. New ones are marked so you see them first. Tap Watched it, star the ones you want to get to, or say Not for me and it disappears.'
+      body: "Everything friends recommend lands in one place, with their note about why, and new ones are marked so you see them first. Picks other people added show up on your board too. If you've already seen one, tap Watched it and choose whether you loved it, liked it, or it wasn't for you. Those ratings help everyone else find the great ones."
     },
     {
       img: 'stack', alt: 'A compact stacked list of TV shows, each with who recommended it',
