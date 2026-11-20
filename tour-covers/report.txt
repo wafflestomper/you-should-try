@@ -1,0 +1,47 @@
+MISS 10 Cloverfield Lane
+OK   11/22/63  https://covers.openlibrary.org/b/id/10713447-L.jpg
+MISS 12 Angry Men
+OK   Band of Brothers  https://static.tvmaze.com/uploads/images/original_untouched/80/201679.jpg
+OK   Battlestar Galactica  https://static.tvmaze.com/uploads/images/original_untouched/0/2313.jpg
+OK   Better Call Saul  https://static.tvmaze.com/uploads/images/original_untouched/501/1253515.jpg
+OK   Breaking Bad  https://static.tvmaze.com/uploads/images/original_untouched/501/1253519.jpg
+OK   Brooklyn Nine-Nine  https://static.tvmaze.com/uploads/images/original_untouched/402/1007484.jpg
+OK   Brothers  https://static.tvmaze.com/uploads/images/original_untouched/642/1606577.jpg
+OK   Chernobyl  https://static.tvmaze.com/uploads/images/original_untouched/193/482599.jpg
+OK   Daisy Jones & the Six  https://static.tvmaze.com/uploads/images/original_untouched/447/1118912.jpg
+OK   Dark  https://static.tvmaze.com/uploads/images/original_untouched/504/1262352.jpg
+MISS Dungeons & Dragons: Honor Among Thieves
+MISS Fight Club
+OK   Fool Me Once  https://static.tvmaze.com/uploads/images/original_untouched/498/1245356.jpg
+OK   Gilmore Girls  https://static.tvmaze.com/uploads/images/original_untouched/4/11308.jpg
+OK   Gone Girl  https://covers.openlibrary.org/b/id/8368314-L.jpg
+OK   Killing Eve  https://static.tvmaze.com/uploads/images/original_untouched/397/994197.jpg
+OK   Maximum Pleasure Guaranteed  https://static.tvmaze.com/uploads/images/original_untouched/629/1573004.jpg
+OK   Nobody Wants This  https://static.tvmaze.com/uploads/images/original_untouched/646/1615448.jpg
+OK   Platonic  https://static.tvmaze.com/uploads/images/original_untouched/589/1473711.jpg
+OK   Presumed Innocent  https://static.tvmaze.com/uploads/images/original_untouched/520/1301035.jpg
+MISS Primal Fear
+OK   Razorblade Tears  https://covers.openlibrary.org/b/id/10480276-L.jpg
+OK   Reacher  https://static.tvmaze.com/uploads/images/original_untouched/636/1591350.jpg
+OK   Russian Doll  https://static.tvmaze.com/uploads/images/original_untouched/403/1009012.jpg
+OK   Safe  https://static.tvmaze.com/uploads/images/original_untouched/549/1374050.jpg
+OK   Silo  https://static.tvmaze.com/uploads/images/original_untouched/631/1577677.jpg
+OK   Slow Horses  https://static.tvmaze.com/uploads/images/original_untouched/641/1604425.jpg
+MISS Strangers: A Memoir of Marriage
+OK   The Diplomat  https://static.tvmaze.com/uploads/images/original_untouched/646/1615567.jpg
+OK   The Enigma of Room 622  https://covers.openlibrary.org/b/id/14784530-L.jpg
+OK   The Gilded Age  https://static.tvmaze.com/uploads/images/original_untouched/648/1622443.jpg
+OK   The Good Place  https://static.tvmaze.com/uploads/images/original_untouched/395/989291.jpg
+OK   The Leftovers  https://static.tvmaze.com/uploads/images/original_untouched/503/1259794.jpg
+OK   The Martian  https://covers.openlibrary.org/b/id/11447888-L.jpg
+OK   The Pitt  https://static.tvmaze.com/uploads/images/original_untouched/606/1516776.jpg
+MISS The Prestige
+OK   The Queen's Gambit  https://static.tvmaze.com/uploads/images/original_untouched/510/1275203.jpg
+OK   The Reformatory  https://covers.openlibrary.org/b/id/14546667-L.jpg
+MISS The Shawshank Redemption
+MISS The Usual Suspects
+OK   The Wire  https://static.tvmaze.com/uploads/images/original_untouched/504/1260189.jpg
+OK   Unbreakable Kimmy Schmidt  https://static.tvmaze.com/uploads/images/original_untouched/182/456853.jpg
+MISS Vera Wong's Vacation Hacks For Catching A Killer
+OK   Widow's Bay  https://static.tvmaze.com/uploads/images/original_untouched/623/1559488.jpg
+OK   Yellowjackets  https://static.tvmaze.com/uploads/images/original_untouched/647/1619412.jpg
