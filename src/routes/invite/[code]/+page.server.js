@@ -1,11 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { validInvite, acceptInvite } from '$lib/server/invites.js';
 import { createSession } from '$lib/server/auth.js';
+import { introVideo } from '$lib/server/introVideo.js';
 
 export async function load({ params, platform, locals }) {
   if (locals.realUser && !locals.realUser.is_guest) redirect(303, '/');
-  const invite = await validInvite(platform.env.DB, params.code);
+  const [invite, intro] = await Promise.all([validInvite(platform.env.DB, params.code), introVideo(platform.env.DB)]);
   return {
+    intro: invite ? intro : null,
     invite: invite && { name: invite.name, from: invite.from_name, knows: invite.knows_note, circle: invite.circle_name, email: invite.email },
     googleReady: !!platform.env.GOOGLE_CLIENT_ID
   };

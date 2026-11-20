@@ -172,7 +172,7 @@
   {#if !data.videoReady}
     <p class="muted small">Video storage isn't connected yet.</p>
   {:else}
-    <p class="small muted">Everyone sees these on the <a href="/help">How-to page</a>. One task per video, under 90 seconds if you can.</p>
+    <p class="small muted">Everyone sees these on the <a href="/help">How-to page</a>. One task per video, under 90 seconds if you can. Tap "Use on invite page" on one video to show it to people you invite, before they join. Only that one video can be watched without signing in.</p>
     <VideoUpload />
     {#if form?.videoError}<p class="small" style="color:#E11D48">{form.videoError}</p>{/if}
     {#each data.videos as v, i (v.id)}
@@ -189,11 +189,13 @@
         {:else}
           <div class="vinfo">
             <b>{v.title}</b>
-             <span class="small muted">{v.topic ? `How-to page + ${topicLabel(v.topic)}` : 'How-to page'} · {(v.bytes / 1048576).toFixed(1)} MB</span>
+             {#if v.on_invite}<span class="pill inv">On the invite page</span>{/if}
+            <span class="small muted">{v.topic ? `How-to page + ${topicLabel(v.topic)}` : 'How-to page'} · {(v.bytes / 1048576).toFixed(1)} MB</span>
             <div class="vbtns">
               <button class="lnkb" onclick={() => (editing = v.id)}>Edit</button>
               <form method="POST" action="?/videoMove" use:enhance><input type="hidden" name="id" value={v.id} /><input type="hidden" name="dir" value="up" /><button class="lnkb" disabled={i === 0} aria-label="Move {v.title} up">Up</button></form>
               <form method="POST" action="?/videoMove" use:enhance><input type="hidden" name="id" value={v.id} /><input type="hidden" name="dir" value="down" /><button class="lnkb" disabled={i === data.videos.length - 1} aria-label="Move {v.title} down">Down</button></form>
+              <form method="POST" action="?/videoInvite" use:enhance><input type="hidden" name="id" value={v.id} /><input type="hidden" name="on" value={v.on_invite ? '0' : '1'} /><button class="lnkb">{v.on_invite ? 'Take off invite page' : 'Use on invite page'}</button></form>
               <form method="POST" action="?/videoDelete" use:enhance={({ cancel }) => { if (!confirm(`Delete "${v.title}"?`)) cancel(); }}><input type="hidden" name="id" value={v.id} /><button class="lnkb del">Delete</button></form>
             </div>
           </div>
@@ -294,6 +296,7 @@
   .vbtns { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
   .vbtns form { display: contents; }
   .lnkb.del { color: #E11D48; }
+  .pill.inv { justify-self: start; background: #0D9488; color: #fff; border-color: #0D9488; }
   .lnkb:disabled { opacity: .35; }
   .deflibs { margin: 16px 0 24px; }
   #requests .row { flex-wrap: wrap; }

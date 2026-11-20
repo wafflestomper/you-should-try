@@ -2,6 +2,7 @@
   // Public "what is this?" page, linked from sign-in and the invite request page
   import Logo from '$lib/components/Logo.svelte';
   import Welcome from '$lib/components/Welcome.svelte';
+  import IntroVideo from '$lib/components/IntroVideo.svelte';
   let { data } = $props();
 </script>
 
@@ -12,6 +13,7 @@
   <h1>Keep track of what friends say you should try.</h1>
   <p class="lead">When someone says "you have to watch this" or "read this," it goes on one shared board for your group of friends. Later, when you're looking for something, it's all there with who said it.</p>
   <p class="cta"><a class="btn dark" href="/request">Ask for an invite</a> <a class="lnk" href="/signin">Already invited? Sign in</a></p>
+  <IntroVideo video={data.intro} />
   <Welcome />
   <p class="cta end"><a class="btn dark" href="/request">Ask for an invite</a></p>
 </div>

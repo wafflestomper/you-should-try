@@ -1,6 +1,7 @@
 <script>
   import Logo from '$lib/components/Logo.svelte';
   import Welcome from '$lib/components/Welcome.svelte';
+  import IntroVideo from '$lib/components/IntroVideo.svelte';
   let { data, form } = $props();
   let first = $derived((data.invite?.name || '').split(' ')[0]);
 </script>
@@ -20,7 +21,7 @@
       {#if data.invite.email}<p class="acct">This invite went to <b>{data.invite.email}</b>. Pick that Google account if you have it, and use the same one every time you sign in.</p>{/if}
       <p class="small">Just signs you in. Nothing gets posted anywhere.</p>
     {/if}
-    <a class="seehow" href="#how-h">New to this? See how it works</a>
+    <a class="seehow" href={data.intro ? '#intro' : '#how-h'}>New to this? {data.intro ? 'Watch a quick intro from Z' : 'See how it works'}</a>
     <details class="alt">
       <summary>Not a Google person?</summary>
       <form method="POST" action="?/guest" class="guest">
@@ -30,6 +31,7 @@
         <p class="small">Works on this device only. You can sign in with Google later.</p>
       </form>
     </details>
+    {#if data.intro}<div id="intro"><IntroVideo video={data.intro} /></div>{/if}
     <Welcome />
     {#if data.googleReady}
       <div class="again">

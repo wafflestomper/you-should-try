@@ -70,6 +70,14 @@ export const actions = {
     await platform.env.DB.prepare('UPDATE videos SET title = ?, blurb = ?, topic = ? WHERE id = ?')
       .bind(title.slice(0, 80), String(f.get('blurb') || '').trim().slice(0, 200) || null, String(f.get('topic') || '') || null, String(f.get('id'))).run();
   },
+  videoInvite: async ({ request, locals, platform }) => {
+    guard(locals);
+    const f = await request.formData();
+    const id = String(f.get('id')), on = f.get('on') === '1';
+    const db = platform.env.DB;
+    // Only one intro: turning one on turns the others off
+    await db.batch([db.prepare('UPDATE videos SET on_invite = 0'), ...(on ? [db.prepare('UPDATE videos SET on_invite = 1 WHERE id = ?').bind(id)] : [])]);
+  },
   videoMove: async ({ request, locals, platform }) => {
     guard(locals);
     const f = await request.formData();
