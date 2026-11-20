@@ -14,9 +14,9 @@
       body: "Everything friends recommend lands in one place, with their note about why, and new ones are marked so you see them first. Picks other people added show up on your board too. If you've already seen one, tap Watched it and choose whether you loved it, liked it, or it wasn't for you. Those ratings help everyone else find the great ones."
     },
     {
-      img: 'stack', alt: 'A compact stacked list of TV shows, each with who recommended it',
+      img: 'stack', alt: 'The board in the compact stack view, filtered to show only thrillers, each with who recommended it',
       title: 'Later, when you need something',
-      body: 'Looking for a book for the beach or a show for tonight? Filter by books, movies, TV, restaurants and more, or by who recommended it. It also checks where a show streams and whether your library has the book.'
+      body: 'In the mood for a thriller, or something feel-good? Filter by genre and mood, by books, movies or TV, by a group of friends, or by who recommended it. It also checks where a show streams and whether your library has the book.'
     },
     {
       img: 'watching', alt: 'The Watching tab listing shows with the next episode for each, like S2 E4, and how many are left',
