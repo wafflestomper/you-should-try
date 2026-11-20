@@ -47,7 +47,7 @@
   <ol class="steps">
     {#each steps as s, i}
       <li class="step" class:flip={i % 2 === 1}>
-        <figure class="phone"><img src="/tour/{s.img}.webp?v=2" alt={s.alt} width="600" height="1200" loading={i ? 'lazy' : 'eager'} /></figure>
+        <figure class="phone"><img src="/tour/{s.img}.webp?v=3" alt={s.alt} width="600" height="1200" loading={i ? 'lazy' : 'eager'} /></figure>
         <div class="txt">
           <h3>{s.title}</h3>
           <p>{s.body}</p>
