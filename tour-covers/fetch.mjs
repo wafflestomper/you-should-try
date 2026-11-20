@@ -3,7 +3,8 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 const items = JSON.parse(readFileSync('tour-covers/items.json', 'utf8')).filter((it) => it.kind === 'movie');
 mkdirSync('tour-covers/img', { recursive: true });
-const get = async (u) => { const r = await fetch(u, { headers: { 'user-agent': 'YouShouldTry/0.2 (github.com/wafflestomper/you-should-try)' } }); if (!r.ok) throw new Error(`${r.status} ${u}`); return r; };
+const nap = (ms) => new Promise((r) => setTimeout(r, ms));
+const get = async (u) => { await nap(2500); const r = await fetch(u, { headers: { 'user-agent': 'YouShouldTryScreenshots/1.0 (https://github.com/wafflestomper/you-should-try; one-time cover fetch)' } }); if (!r.ok) throw new Error(`${r.status} ${u}`); return r; };
 async function find(it) {
   const q = encodeURIComponent(it.title);
   if (it.kind === 'tv') {
