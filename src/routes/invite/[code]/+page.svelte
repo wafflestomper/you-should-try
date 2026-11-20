@@ -54,7 +54,7 @@
   .wrapi { max-width: 440px; margin: 0 auto; padding: 18px 4px 40px; display: flex; flex-direction: column; gap: 10px; }
   header { margin-bottom: 30px; }
   h1 { margin: 0; font-size: 30px; line-height: 1.1; font-weight: 800; letter-spacing: -.025em; }
-  .knows { margin: 4px 0 0; font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-size: 22px; }
+  .knows { margin: 0 0 6px; font-style: italic; font-size: 17px; color: var(--ink-2); }
   .lead { margin: 4px 0 10px; color: var(--ink-2); line-height: 1.5; }
   .big { min-height: 52px; width: 100%; font-size: 17px; }
   .join { display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 999px; }

@@ -37,7 +37,7 @@
 <style>
   .pv { max-width: 620px; margin: 0 auto; padding: 18px 4px 48px; color: var(--ink); line-height: 1.55; }
   .home { display: inline-block; margin-bottom: 26px; text-decoration: none; }
-  h1 { font: italic 400 46px/1 "Instrument Serif", Georgia, serif; margin: 0 0 12px; }
+  h1 { margin: 0 0 12px; font-size: 32px; line-height: 1.1; font-weight: 800; letter-spacing: -.025em; }
   .lead { color: var(--ink-2); font-size: 17px; margin: 0 0 8px; }
   h2 { font-size: 18px; font-weight: 800; margin: 26px 0 6px; }
   ul { padding-left: 20px; margin: 0; display: grid; gap: 6px; }
