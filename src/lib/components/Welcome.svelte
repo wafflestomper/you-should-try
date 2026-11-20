@@ -30,7 +30,7 @@
     ['You have a list in your Notes app', 'that you never actually look at.'],
     ['You trust some friends\' taste more than others', 'so knowing who said it matters.'],
     ['You use Libby or a bunch of streaming apps', 'and want to know where something is before you go looking.'],
-    ['It\'s not just shows', 'books, movies, podcasts, restaurants, recipes and places to go all fit.']
+    ['You can track all of it:', 'TV shows, movies, books, audiobooks, podcasts, restaurants, recipes and places to go.']
   ];
 
   const faq = [
