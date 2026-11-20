@@ -1,6 +1,7 @@
 <script>
   import Logo from '$lib/components/Logo.svelte';
   import { KIND } from '$lib/kinds.js';
+  import Welcome from '$lib/components/Welcome.svelte';
   let { data } = $props();
   // Sample cards for the picture only. Well-known titles, no one from the real board.
   const sample = [
@@ -37,7 +38,11 @@
   {:else}
     <p class="note">Google sign-in isn't switched on yet.</p>
   {/if}
-  <p class="note">It's invite only. New here? Open the invite link a friend sent you, or <a href="/request">request an invite</a>. <a href="/about">What is this?</a></p>
+  <p class="note">It's invite only. New here? Open the invite link a friend sent you, or <a href="/request">request an invite</a>. <a href="#how-h">See how it works</a></p>
+  {#if !data.guest}
+    <Welcome />
+    <p class="note end">Want in? Ask the friend who told you about it, or <a href="/request">request an invite</a>. Already invited? <a href="/auth/google">Sign in with Google</a>.</p>
+  {/if}
   <p class="note small"><a href="/privacy">Privacy</a></p>
   {#if data.dev}
     <p class="note">Local testing: <a href="/auth/dev?user=u-z">sign in as Z</a> · <a href="/auth/dev?user=u-sarah">as Sarah</a></p>
@@ -75,6 +80,7 @@
   .note a { color: var(--ink); font-weight: 700; }
   .note.small { font-size: 13px; margin-top: 22px; }
   .note.small a { font-weight: 600; color: var(--ink-2); }
+  .note.end { margin-top: 30px; font-size: 15px; line-height: 1.5; }
   .err { background: #FBE9E7; color: #8C1D18; padding: 12px 14px; border-radius: 12px; margin: 0 0 14px; font-weight: 600; }
   @media (max-width: 360px) { h1 { font-size: 44px; } }
 </style>
