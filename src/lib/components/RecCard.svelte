@@ -331,6 +331,8 @@
   :global(.look-dark) .s[aria-pressed='true'] { color: #F5C518; }
   :global(.look-dark) .g { color: rgba(255,255,255,.75); }
   :global(.look-dark) .close { background: rgba(0,0,0,.35); color: #fff; }
+  /* Dark covers disappear on a dark page: give every cover a white sticker edge */
+  :global(.look-dark) .rc :global(.cover-img), :global(.look-dark) .rc :global(.cover) { outline: 3px solid #fff; outline-offset: -1px; }
   :global(.look-dark) .stacked .ht { padding-left: 0; }
   :global(.look-dark) .stacked .hero { padding-top: 54px; }
 </style>

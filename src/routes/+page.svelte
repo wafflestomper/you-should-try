@@ -297,8 +297,8 @@
       </select>
     </label>
     <label>Sort
-      <select value={data.opts.sort} onchange={(e) => set('sort', e.currentTarget.value === 'best' ? '' : e.currentTarget.value)}>
-        <option value="best">Best for you</option><option value="new">Newest</option><option value="loved">Most loved</option><option value="type">By type</option>
+      <select value={data.opts.sort} onchange={(e) => set('sort', e.currentTarget.value === 'type' ? '' : e.currentTarget.value)}>
+        <option value="type">By type</option><option value="best">Best for you</option><option value="new">Newest</option><option value="loved">Most loved</option>
       </select>
     </label>
   </div>
@@ -424,8 +424,8 @@
     .res .list:not(.stack) :global(.hero .cov .cover) { font-size: 22px !important; padding: 14px !important; }
     .res .list:not(.stack) :global(.hero .cov .cover-img.round), .res .list:not(.stack) :global(.hero .cov .cover.restaurant), .res .list:not(.stack) :global(.hero .cov .cover.recipe) { aspect-ratio: 1; border-radius: 50% !important; }
     .res .list:not(.stack) :global(.ht) { padding: 0 !important; }
-    .res .list:not(.stack) :global(h3) { font-family: "Instrument Serif", Georgia, serif !important; font-weight: 400 !important; font-size: 22px !important; line-height: 1.1; margin: 2px 0 0; letter-spacing: -.005em !important; color: var(--ink) !important; }
-    .res .list:not(.stack) :global(h3 a) { color: inherit; }
+    .res .list:not(.stack) :global(.rc h3) { font-family: "Instrument Serif", Georgia, serif !important; font-weight: 400 !important; font-size: 22px !important; line-height: 1.1; margin: 2px 0 0; letter-spacing: -.005em !important; color: var(--ink) !important; }
+    .res .list:not(.stack) :global(.rc h3 a) { color: inherit; }
     .res .list:not(.stack) :global(.ht .k) { font-size: 10.5px; background: none !important; padding: 0 !important; color: var(--kd) !important; }
     :global(.look-dark) .res .list:not(.stack) :global(.ht .k) { color: var(--kc) !important; }
     .res .list:not(.stack) :global(.ht .k i) { display: inline-block !important; }

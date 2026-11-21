@@ -17,7 +17,7 @@ export async function load({ platform, locals, url }) {
     kind: KINDS[q.get('kind')] ? q.get('kind') : null,
     person: q.get('person') || null,
     days: Number(q.get('days')) || null,
-    sort: ['best', 'new', 'loved', 'type'].includes(q.get('sort')) ? q.get('sort') : 'best'
+    sort: ['best', 'new', 'loved', 'type'].includes(q.get('sort')) ? q.get('sort') : 'type' // the board starts grouped by type
   };
   // A saved filter (?f=<id>) sets several people and types at once
   const [saved, members] = await Promise.all([
