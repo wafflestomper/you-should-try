@@ -6,12 +6,14 @@
   import { onMount } from 'svelte';
   import RecCard from '$lib/components/RecCard.svelte';
   import { toast } from '$lib/toast.svelte.js';
-  import { KIND_INFO } from '$lib/kinds.js';
+  import { KIND_INFO, kindColor } from '$lib/kinds.js';
   import { seen, pinFresh, markSeen } from '$lib/seen.svelte.js';
+  const KIND_PLURAL_UI = { book: 'Books', audiobook: 'Audiobooks', movie: 'Movies', tv: 'TV shows', podcast: 'Podcasts', restaurant: 'Restaurants', recipe: 'Recipes', place: 'Places to go', other: 'Other' };
   let { data, form } = $props();
 
   // New cards stay at the top for this visit (so nothing jumps), then settle into place next time
-  const pinned = $derived(pinFresh(data.cards));
+  // (Not in "by type": pinning new ones to the top would break up the type groups)
+  const pinned = $derived(data.opts.sort === 'type' ? [] : pinFresh(data.cards));
   const cards = $derived.by(() => {
     if (!pinned.length) return data.cards;
     const at = new Map(pinned.map((id, i) => [id, i]));
@@ -272,7 +274,7 @@
 
 <div class="bar">
   <button class="morebtn" aria-expanded={more} onclick={() => (more = !more)}>
-    {personName ? `From ${personName.split(' ')[0]}` : 'Anyone'} · {data.opts.days ? `past ${data.opts.days === 7 ? 'week' : data.opts.days === 30 ? 'month' : '3 months'}` : 'any time'} · {data.opts.sort === 'new' ? 'newest' : data.opts.sort === 'loved' ? 'most loved' : 'best for you'}
+    {personName ? `From ${personName.split(' ')[0]}` : 'Anyone'} · {data.opts.days ? `past ${data.opts.days === 7 ? 'week' : data.opts.days === 30 ? 'month' : '3 months'}` : 'any time'} · {data.opts.sort === 'new' ? 'newest' : data.opts.sort === 'loved' ? 'most loved' : data.opts.sort === 'type' ? 'by type' : 'best for you'}
     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
   </button>
   <div class="vs" role="group" aria-label="Layout">
@@ -295,7 +297,7 @@
     </label>
     <label>Sort
       <select value={data.opts.sort} onchange={(e) => set('sort', e.currentTarget.value === 'best' ? '' : e.currentTarget.value)}>
-        <option value="best">Best for you</option><option value="new">Newest</option><option value="loved">Most loved</option>
+        <option value="best">Best for you</option><option value="new">Newest</option><option value="loved">Most loved</option><option value="type">By type, then best for you</option>
       </select>
     </label>
   </div>
@@ -304,7 +306,7 @@
 {#if freshCount}<p class="newline" class:done={!unseen}>{freshCount} new since you last looked</p>{/if}
 {#if data.cards.length}
   <div class="list" class:stack={view === 'stack'} bind:this={listEl}>
-    {#each cards as card (card.item.id)}<RecCard {card} stacked={view === 'stack'} swipe fresh={card.fresh && !seen.local.has(card.item.id)} />{/each}
+    {#each cards as card, i (card.item.id)}{#if data.opts.sort === 'type' && cards[i - 1]?.item.kind !== card.item.kind}<h3 class="typehead"><span class="dot" style="background:{kindColor(card.item.kind)}"></span>{KIND_PLURAL_UI[card.item.kind] ?? card.item.kind}<span class="tn">{cards.filter((c) => c.item.kind === card.item.kind).length}</span></h3>{/if}<RecCard {card} stacked={view === 'stack'} swipe fresh={card.fresh && !seen.local.has(card.item.id)} />{/each}
   </div>
   <div class="boardhelp"><ShowMe topic="board" label="Show me how the board works" /></div>
 {:else}
@@ -382,6 +384,10 @@
   .filters2 label { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--ink-2); font-weight: 700; }
   .filters2 select { min-height: 36px; border-radius: 10px; padding: 0 8px; font: 14px Manrope, sans-serif; max-width: 190px; border: 1px solid var(--line); }
   .list { display: grid; gap: 14px; padding-top: 6px; }
+  .typehead { display: flex; align-items: center; gap: 8px; margin: 14px 2px 0; font: 800 18px Manrope, sans-serif; color: var(--ink); }
+  .typehead:first-child { margin-top: 0; }
+  .typehead .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .typehead .tn { color: var(--ink-2); font-size: 14px; font-weight: 700; }
   .boardhelp { text-align: center; margin-top: 16px; }
   .newline { margin: 4px 0 2px; font: 800 14px Manrope, sans-serif; color: #E11D48; transition: color .8s; }
   .newline.done { color: var(--ink-2); font-weight: 700; }

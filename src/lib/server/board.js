@@ -192,6 +192,13 @@ export async function getBoard(db, me, opts = {}) {
   // New things go to the very top, newest first
   for (const c of list) c.fresh = isFresh(c);
   list.sort((a, b) => (b.fresh - a.fresh) || (b.fresh && a.fresh ? (b.newest || '').localeCompare(a.newest || '') : 0));
+  // "By type": the type you have the most of first, then the next; inside each, the order above (starred, new, best for you)
+  if (sort === 'type') {
+    const count = {};
+    for (const c of list) count[c.item.kind] = (count[c.item.kind] ?? 0) + 1;
+    const order = Object.keys(KINDS);
+    list.sort((a, b) => (count[b.item.kind] - count[a.item.kind]) || (order.indexOf(a.item.kind) - order.indexOf(b.item.kind)));
+  }
 
   // Trim what goes to the page
   return list.map((c) => ({
