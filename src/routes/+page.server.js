@@ -38,7 +38,16 @@ export async function load({ platform, locals, url }) {
     // A group with nobody else in it yet shows an empty board, not everyone
     active = { id: 'groups', group: true, names: picked, size: ids.size, counted: ids.has(locals.user.id), people: others.length ? others : ['u:-nobody-'], kinds: [], via: false };
   }
-  if (active) Object.assign(opts, { people: active.people, kinds: active.kinds, via: active.via, filter: active.id });
+  // A saved filter can name whole groups ("grp:St. Chris"): expand them to whoever is in the group today
+  const expand = (keys) => {
+    const out = new Set();
+    for (const k of keys) {
+      if (k.startsWith('grp:')) for (const id of groups.get(k.slice(4)) ?? []) { if (id !== locals.user.id) out.add(`u:${id}`); }
+      else out.add(k);
+    }
+    return out.size ? [...out] : keys.some((k) => k.startsWith('grp:')) ? ['u:-nobody-'] : [];
+  };
+  if (active) Object.assign(opts, { people: active.group ? active.people : expand(active.people), kinds: active.kinds, via: active.via, filter: active.id });
   const [allCards, people, facetRows] = await Promise.all([getBoard(db, locals.user.id, opts), boardPeople(db),
     db.prepare('SELECT item_id, type, tag FROM item_facets WHERE item_id IN (SELECT item_id FROM recs UNION SELECT item_id FROM reactions WHERE user_id = ?)').bind(locals.user.id).all()]);
   // Genres and moods: ?t=Thriller&t=Funny. Any picked genre AND any picked mood (when both kinds are picked).
@@ -66,10 +75,10 @@ export async function load({ platform, locals, url }) {
   const invitee = q.get('guest') ? await db.prepare(
     `SELECT g.id, g.name, (SELECT COUNT(*) FROM invites i WHERE i.guest_id = g.id AND i.used_by IS NULL AND i.expires_at > datetime('now')) AS invited
        FROM guests g WHERE g.id = ? AND g.user_id IS NULL`).bind(q.get('guest')).first() : null;
-  return { cards, people, opts, addedTitle: added?.title ?? null, invitee, filters, active, groups: groupList, tagList, tagsOn };
+  return { cards, people, opts, addedTitle: added?.title ?? null, invitee, filters, active, groups: groupList, groupMembers: Object.fromEntries([...groups].map(([g, ids]) => [g, ids.map((id) => `u:${id}`)])), me: `u:${locals.user.id}`, tagList, tagsOn };
 }
 
-const KEYS = /^[ug]:[\w-]{1,60}$/;
+const KEYS = /^(u:[\w-]{1,60}|g:[\w-]{1,60}|grp:[^,\n]{1,40})$/; // people, guests, or a whole group (kept current as it grows)
 const TYPES = new Set(Object.keys(KINDS));
 function readFilter(f) {
   const name = String(f.get('name') || '').trim().slice(0, 40);

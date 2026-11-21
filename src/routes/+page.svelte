@@ -111,15 +111,27 @@
     return p ? p.name.split(' ')[0] : 'Amy';
   })());
   const toggle = (arr, v) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+  // Groups in the editor: who they cover, so "anyone else" only lists people not already in
+  let fGroups = $derived(fPeople.filter((k) => k.startsWith('grp:')).map((k) => k.slice(4)));
+  let covered = $derived(new Set(fGroups.flatMap((g) => data.groupMembers?.[g] ?? [])));
+  let fExtras = $derived(fPeople.filter((k) => !k.startsWith('grp:') && !covered.has(k)));
+  let fCount = $derived(new Set([...[...covered].filter((k) => k !== data.me), ...fExtras]).size);
+  let fPreview = $derived.by(() => {
+    const parts = [...fGroups.map((g) => `everyone in ${g}`), ...fExtras.map(nameOf)];
+    if (!parts.length) return '';
+    return `Picks from ${fCount} ${fCount === 1 ? 'person' : 'people'}: ${parts.length > 1 ? parts.slice(0, -1).join(', ') + ', plus ' + parts.at(-1) : parts[0]}.`;
+  });
   // First name, or the full name when two people share a first name
   const nameOf = (key) => {
+    if (key.startsWith('grp:')) return `everyone in ${key.slice(4)}`;
     const full = data.people.find((p) => p.key === key)?.name ?? 'Someone', first = full.split(' ')[0];
     return data.people.filter((p) => p.name.split(' ')[0] === first).length > 1 ? full : first;
   };
   let activeKinds = $derived(data.active?.kinds?.length ? new Set(data.active.kinds) : null);
   let shownKinds = $derived(activeKinds ? KINDS.filter(([k]) => !k || activeKinds.has(k)) : KINDS);
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   let summary = $derived(data.active ? [
-    data.active.people.length ? data.active.people.map(nameOf).join(', ') : 'Everyone',
+    data.active.people.length ? cap(data.active.people.map(nameOf).join(', ')) : 'Everyone',
     data.active.kinds.length ? data.active.kinds.map((k) => KIND_INFO.find((x) => x.key === k)?.plural ?? k).join(', ') : 'all types'
   ].join(' · ') : '');
   let sumVia = $derived(data.active?.via && data.active.people.length ? ', plus picks they added for others' : '');
@@ -243,9 +255,17 @@
     <ShowMe topic="filter" />
     <label class="fl" for="f-name">Name</label>
     <input id="f-name" name="name" bind:value={fName} maxlength="40" placeholder="Three Amigos" autocomplete="off" />
-    <span class="fl">People</span>
+    {#if data.groups.length}
+      <span class="fl">Start with groups <span class="muted">(people who join later are included too)</span></span>
+      <div class="kk">
+        {#each data.groups as g (g.name)}
+          <label class="chip" class:on={fPeople.includes(`grp:${g.name}`)}><input type="checkbox" name="people" value="grp:{g.name}" checked={fPeople.includes(`grp:${g.name}`)} onchange={() => (fPeople = toggle(fPeople, `grp:${g.name}`))} />{g.name}<span class="pn">{g.size}</span></label>
+        {/each}
+      </div>
+    {/if}
+    <span class="fl">{fGroups.length ? 'Add anyone else' : 'People'}</span>
     <div class="pp">
-      {#each data.people.filter((x) => x.n || fVia || fPeople.includes(x.key)) as p (p.key)}
+      {#each data.people.filter((x) => (x.n || fVia || fPeople.includes(x.key)) && !covered.has(x.key)) as p (p.key)}
         <label class="pc" class:on={fPeople.includes(p.key)}><input type="checkbox" name="people" value={p.key} checked={fPeople.includes(p.key)} onchange={() => (fPeople = toggle(fPeople, p.key))} />
           <span>{p.name}</span><span class="pn">{[p.n ? `${p.n} ${p.n === 1 ? 'pick' : 'picks'}` : '', fVia && p.v ? `added ${p.v} for others` : ''].filter(Boolean).join(' · ')}</span></label>
       {/each}
@@ -258,6 +278,7 @@
         <label class="chip" style="--c:{k.color}" class:on={fKinds.includes(k.key)}><input type="checkbox" name="kinds" value={k.key} checked={fKinds.includes(k.key)} onchange={() => (fKinds = toggle(fKinds, k.key))} /><span class="dot"></span>{k.plural}</label>
       {/each}
     </div>
+    {#if fPreview}<p class="fprev">{fPreview}</p>{/if}
     {#if form?.filterError}<p class="err" role="alert">{form.filterError}</p>{/if}
     <div class="fbtns">
       <button class="btn dark">{editing === 'new' ? 'Save filter' : 'Save changes'}</button>
@@ -351,6 +372,9 @@
   .tchip[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); border-style: solid; color: var(--bg); }
   .tchip[aria-pressed='true'] span { color: var(--bg); opacity: .7; }
   .tl-note { margin: 4px 6px; font-size: 12.5px; color: var(--ink-2); }
+  .pp .pc .pn { margin-left: 8px; }
+  .fprev { margin: 4px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-weight: 700; }
+  .kk .chip .pn { margin-left: 4px; color: var(--ink-2); font-size: 12px; font-weight: 700; }
   .gfoot { display: flex; justify-content: space-between; align-items: center; padding: 6px 4px 2px; }
   .fsum { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-2); }
   .lnk { background: none; border: 0; padding: 0; font: 700 13.5px Manrope, sans-serif; color: var(--ink); text-decoration: underline; cursor: pointer; }
