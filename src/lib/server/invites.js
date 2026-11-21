@@ -1,11 +1,11 @@
 // Invite links: single use, good for 14 days.
 import { randomToken, pickColor } from './auth.js';
 
-export async function createInvite(db, me, { name, email, circle_id, knows_note, guest_id = null }) {
+export async function createInvite(db, me, { name, email, circle_id, knows_note, guest_id = null, groups = null }) {
   const code = randomToken(9);
   await db.prepare(
-    `INSERT INTO invites (code, created_by, circle_id, name, email, knows_note, guest_id, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now', '+14 days'))`)
-    .bind(code, me.id, circle_id || null, name, email || null, knows_note, guest_id || null).run();
+    `INSERT INTO invites (code, created_by, circle_id, name, email, knows_note, guest_id, groups, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+14 days'))`)
+    .bind(code, me.id, circle_id || null, name, email || null, knows_note, guest_id || null, groups || null).run();
   return code;
 }
 
@@ -21,8 +21,9 @@ export async function validInvite(db, code) {
 export async function acceptInvite(db, invite, { name, email = null, google_sub = null }) {
   const id = crypto.randomUUID();
   const stmts = [
-    db.prepare(`INSERT INTO users (id, name, email, google_sub, color, is_guest, invited_by, knows_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-      .bind(id, String(name).trim().slice(0, 60) || 'New friend', email, google_sub, pickColor(), google_sub ? 0 : 1, invite.created_by, invite.knows_note),
+    // They start in the groups the inviter picked (Family, St. Chris…)
+    db.prepare(`INSERT INTO users (id, name, email, google_sub, color, is_guest, invited_by, knows_note, how_known) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(id, String(name).trim().slice(0, 60) || 'New friend', email, google_sub, pickColor(), google_sub ? 0 : 1, invite.created_by, invite.knows_note, invite.groups || null),
     db.prepare(`UPDATE invites SET used_by = ?, used_at = datetime('now') WHERE code = ?`).bind(id, invite.code)
   ];
   if (invite.guest_id) {

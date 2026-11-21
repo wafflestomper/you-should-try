@@ -1,3 +1,4 @@
+import { groupsOf, groupsText } from '$lib/groups.js';
 import { fail } from '@sveltejs/kit';
 import { createInvite } from '$lib/server/invites.js';
 import { tasteMatches, shortNames } from '$lib/server/board.js';
@@ -23,7 +24,10 @@ export async function load({ platform, locals, url }) {
     : null;
   const gid = url.searchParams.get('guest');
   const prefill = gid ? await db.prepare('SELECT id, name, email FROM guests WHERE id = ? AND user_id IS NULL').bind(gid).first() : null;
-  return { people, guests: guests.results, origin: url.origin, myName: locals.user.name, maker: !!locals.realUser?.is_admin, canSend: canSend(platform.env), req, prefill };
+  // Groups people are in, plus ones on my invites that haven't been used yet (so "Rivers family" is there for the second cousin too)
+  const pending = (await db.prepare("SELECT groups FROM invites WHERE created_by = ? AND used_by IS NULL AND groups IS NOT NULL AND expires_at > datetime('now')").bind(me).all()).results;
+  const allGroups = [...new Set([...members.results.flatMap((m) => groupsOf(m.how_known)), ...groupsOf(locals.user.how_known), ...pending.flatMap((r) => groupsOf(r.groups))])].sort((a, b) => a.localeCompare(b));
+  return { allGroups, people, guests: guests.results, origin: url.origin, myName: locals.user.name, maker: !!locals.realUser?.is_admin, canSend: canSend(platform.env), req, prefill };
 }
 
 const text = (f, k, n) => String(f.get(k) || '').trim().slice(0, n);
@@ -41,11 +45,12 @@ export const actions = {
       if (!g) return fail(400, { message: 'That person already joined.', name, knows, email });
       if (email) await platform.env.DB.prepare('UPDATE guests SET email = ? WHERE id = ?').bind(email, guest).run();
     }
-    const code = await createInvite(platform.env.DB, locals.user, { name, email, knows_note: knows, guest_id: guest });
+    const groups = groupsText([...f.getAll('group').map(String), ...String(f.get('newgroup') || '').split(',')]);
+    const code = await createInvite(platform.env.DB, locals.user, { name, email, knows_note: knows, guest_id: guest, groups });
     const req = text(f, 'req', 60);
     if (req && locals.realUser?.is_admin) await platform.env.DB.prepare("UPDATE invite_requests SET status = 'invited' WHERE id = ?").bind(req).run();
     const picks = guest ? (await platform.env.DB.prepare('SELECT COUNT(*) AS n FROM recs WHERE by_guest_id = ?').bind(guest).first()).n : 0;
-    return { code, name, email, picks };
+    return { code, name, email, picks, groups };
   },
 
   send: async ({ request, platform, locals, url }) => {

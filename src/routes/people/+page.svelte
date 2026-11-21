@@ -41,7 +41,7 @@
   <h2>Invite someone</h2>
   <ShowMe topic="invite" />
   {#if link}
-    <p class="sub">Invite for <b>{form.name}</b> is ready. It works once and lasts two weeks.{#if form.picks}{' '}Their {form.picks} picks move to their account when they join.{/if}</p>
+    <p class="sub">Invite for <b>{form.name}</b> is ready. It works once and lasts two weeks.{#if form.groups}{' '}They'll start in <b>{form.groups}</b>.{/if}{#if form.picks}{' '}Their {form.picks} picks move to their account when they join.{/if}</p>
     {#if form.email}<p class="acct">Tell {first} to sign in with Google as <b>{form.email}</b>. The message below already says so.</p>{:else}<p class="acct">No email on this invite. Tell {first} which Google account to use, and to stick with it.</p>{/if}
     {#if data.canSend}
       {#if form?.sent}
@@ -76,6 +76,16 @@
       {#if guest}<p class="hint">Their picks already on the board will move to their account when they join.</p>{/if}
       <label for="inv-email">Their email <span class="opt">(optional)</span></label>
       <input id="inv-email" name="email" type="email" bind:value={email} maxlength="120" autocomplete="off" />
+      <fieldset class="grps">
+        <legend>How do you know them? <span class="opt">(puts them in these groups)</span></legend>
+        {#if data.allGroups.length}
+          <div class="gchips">
+            {#each data.allGroups as g (g)}<label class="gchip"><input type="checkbox" name="group" value={g} /><span>{g}</span></label>{/each}
+          </div>
+        {/if}
+        <input name="newgroup" maxlength="40" placeholder={data.allGroups.length ? 'Or a new group, like Zollinhofer family' : 'A group, like Zollinhofer family or St. Chris'} aria-label="New group" autocomplete="off" />
+        <p class="hint">Everyone on here sees the same groups, so give a family group your last name rather than just "Family".</p>
+      </fieldset>
       {#if form?.message}<p class="err" role="alert">{form.message}</p>{/if}
       <button class="btn dark">Make the invite</button>
     </form>
@@ -137,6 +147,15 @@
   .nw { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: #E11D48; color: #fff; font: 800 11px Manrope, sans-serif; vertical-align: 2px; }
   .ed { display: block; margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--ink-2); text-align: right; }
   .acct { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 14.5px; }
+  .grps { border: 0; padding: 0; margin: 6px 0 4px; display: grid; gap: 8px; }
+  .grps legend { font-weight: 800; font-size: 14px; margin-bottom: 6px; }
+  .grps input[name='newgroup'] { min-height: 44px; border-radius: 12px; border: 1px solid var(--line); padding: 0 12px; font: 16px Manrope, sans-serif; background: var(--surface-2); color: var(--ink); }
+  .gchips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .gchip { display: inline-flex; cursor: pointer; position: relative; }
+  .gchip input { position: absolute; opacity: 0; pointer-events: none; }
+  .gchip span { min-height: 38px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line); font: 700 14px Manrope, sans-serif; color: var(--ink-2); }
+  .gchip input:checked + span { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .gchip input:focus-visible + span { outline: 3px solid #2563EB; outline-offset: 2px; }
   .ppl { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   .ppl li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--surface); border-radius: 14px; }
   .pl { color: var(--ink); text-decoration: none; }
