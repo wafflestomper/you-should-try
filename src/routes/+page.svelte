@@ -172,6 +172,7 @@
 {/if}
 {#if page.url.searchParams.get('removed')}<p class="toast" role="status">Removed from the board.</p>{/if}
 
+<div class="bd"><div class="ctrls">
 <div class="saved" role="group" aria-label="Saved filters">
   <button class="sf" aria-pressed={!data.active} onclick={() => useFilter('')}>Everyone</button>
   {#if data.groups.length}
@@ -278,8 +279,8 @@
     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
   </button>
   <div class="vs" role="group" aria-label="Layout">
-    <button aria-pressed={view === 'cards'} onclick={() => setView('cards')}>Cards</button>
-    <button aria-pressed={view === 'stack'} onclick={() => setView('stack')}>Stack</button>
+    <button aria-pressed={view === 'cards'} onclick={() => setView('cards')}><span class="ph">Cards</span><span class="pc">Covers</span></button>
+    <button aria-pressed={view === 'stack'} onclick={() => setView('stack')}><span class="ph">Stack</span><span class="pc">List</span></button>
   </div>
 </div>
 {#if more}
@@ -303,6 +304,7 @@
   </div>
 {/if}
 
+</div><div class="res">
 {#if freshCount}<p class="newline" class:done={!unseen}>{freshCount} new since you last looked</p>{/if}
 {#if data.cards.length}
   <div class="list" class:stack={view === 'stack'} bind:this={listEl}>
@@ -312,6 +314,7 @@
 {:else}
   <p class="empty">{personName ? `Nothing from ${personName} here yet.` : 'Nothing here yet.'} Heard something good? <a href="/add">Add it</a>.</p>
 {/if}
+</div></div>
 
 <style>
   .hometip { display: grid; gap: 10px; background: var(--surface); border-radius: 16px; padding: 14px; margin: 4px 0 12px; }
@@ -397,4 +400,62 @@
   :global(.look-dark) .list.stack > :global(.rcw.collapsed + .rcw:not(.collapsed)) { margin-top: -12px; }
   :global(.look-light) .list.stack > :global(.rcw.collapsed + .rcw:not(.collapsed)) { margin-top: 44px; }
   .empty { padding: 30px 0; color: var(--ink-2); }
+  .pc { display: none; }
+
+  /* ===== On a computer: covers or a list, with the filters packed into two lines ===== */
+  @media (min-width: 1000px) {
+    :global(.wrap:has(.bd)) { max-width: 1320px; }
+    .ph { display: none; } .pc { display: inline; }
+    .ctrls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 8px; }
+    .ctrls > :global(*) { flex-basis: 100%; }
+    .ctrls > .saved { flex: 0 1 auto; margin: 0; padding: 0; flex-wrap: wrap; overflow: visible; }
+    .ctrls > .bar { flex: 0 0 auto; margin: 0 0 0 auto; order: 1; }
+    .ctrls > .filters { order: 2; margin: 0; padding: 0; flex-wrap: wrap; overflow: visible; }
+    .ctrls > :global(:not(.saved):not(.bar):not(.filters)) { order: 3; }
+
+    /* Covers: a wall of covers, notes on hover */
+    .res .list:not(.stack) { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 28px 22px; align-items: start; }
+    .res .list:not(.stack) :global(.swact) { display: none; }
+    .res .list:not(.stack) :global(.rc:not(.collapsed)) { background: none !important; box-shadow: none !important; padding: 0 !important; margin-top: 0 !important; overflow: visible !important; color: var(--ink) !important; }
+    .res .list:not(.stack) :global(.blur) { display: none !important; }
+    .res .list:not(.stack) :global(.hero) { padding: 0 !important; min-height: 0 !important; display: flex !important; flex-direction: column; align-items: stretch !important; gap: 10px; }
+    .res .list:not(.stack) :global(.hero .cov) { position: relative !important; top: 0 !important; right: auto !important; transform: none !important; order: -1; display: block; }
+    .res .list:not(.stack) :global(.hero .cov > *) { width: 100% !important; height: auto !important; aspect-ratio: 2 / 3; border-radius: 10px !important; box-shadow: 0 10px 24px rgba(0,0,0,.18) !important; }
+    .res .list:not(.stack) :global(.hero .cov .cover) { font-size: 22px !important; padding: 14px !important; }
+    .res .list:not(.stack) :global(.hero .cov .cover-img.round), .res .list:not(.stack) :global(.hero .cov .cover.restaurant), .res .list:not(.stack) :global(.hero .cov .cover.recipe) { aspect-ratio: 1; border-radius: 50% !important; }
+    .res .list:not(.stack) :global(.ht) { padding: 0 !important; }
+    .res .list:not(.stack) :global(h3) { font-family: "Instrument Serif", Georgia, serif !important; font-weight: 400 !important; font-size: 22px !important; line-height: 1.1; margin: 2px 0 0; letter-spacing: -.005em !important; color: var(--ink) !important; }
+    .res .list:not(.stack) :global(h3 a) { color: inherit; }
+    .res .list:not(.stack) :global(.ht .k) { font-size: 10.5px; background: none !important; padding: 0 !important; color: var(--kd) !important; }
+    :global(.look-dark) .res .list:not(.stack) :global(.ht .k) { color: var(--kc) !important; }
+    .res .list:not(.stack) :global(.ht .k i) { display: inline-block !important; }
+    .res .list:not(.stack) :global(.sub), .res .list:not(.stack) :global(.q), .res .list:not(.stack) :global(.lv), .res .list:not(.stack) :global(.match), .res .list:not(.stack) :global(.rlink) { display: none; }
+    .res .list:not(.stack) :global(.body) { margin: 0 !important; padding: 0 !important; background: none !important; border: 0 !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+    .res .list:not(.stack) :global(.meta) { margin-top: 2px; color: var(--ink-2) !important; opacity: 1 !important; }
+    .res .list:not(.stack) :global(.meta b) { color: var(--ink) !important; }
+    .res .list:not(.stack) :global(.acts) { margin-top: 8px; gap: 4px; flex-wrap: nowrap; }
+    .res .list:not(.stack) :global(.acts .p) { min-height: 36px; font-size: 13px; padding: 0 10px; }
+    .res .list:not(.stack) :global(.acts .s) { width: 36px; min-height: 36px; }
+    .res .list:not(.stack) :global(.acts .g) { display: none; }
+    .res .list:not(.stack) :global(.rcw:hover .acts .g), .res .list:not(.stack) :global(.rcw:focus-within .acts .g) { display: block; position: absolute; top: 8px; right: 8px; z-index: 6; background: rgba(255,255,255,.94); color: #3F3F46 !important; border-radius: 10px; font-size: 12.5px; min-height: 30px; padding: 0 10px; }
+    .res .list:not(.stack) :global(.starbadge) { top: 8px !important; left: 8px !important; right: auto !important; }
+    .res .list:not(.stack) :global(.kline .new) { position: absolute; top: 10px; right: 10px; z-index: 4; }
+    .res .list:not(.stack) :global(.rcw:hover .kline .new) { opacity: 0; }
+    /* What friends said, over the cover while you point at it */
+    .res .list:not(.stack) :global(.tip) { position: absolute; left: 8px; right: 8px; top: 46px; z-index: 5; display: block; padding: 12px 12px 10px; border-radius: 12px;
+      background: rgba(255,255,255,.96); color: #111113; box-shadow: 0 12px 30px rgba(0,0,0,.28); opacity: 0; transform: translateY(6px); pointer-events: none; transition: opacity .15s, transform .15s; max-height: 62%; overflow: hidden; }
+    .res .list:not(.stack) :global(.rcw:hover .tip), .res .list:not(.stack) :global(.rcw:focus-within .tip) { opacity: 1; transform: none; }
+    .res .list:not(.stack) :global(.tq) { margin: 0 0 8px; font: italic 400 17px/1.25 "Instrument Serif", Georgia, serif; }
+    .res .list:not(.stack) :global(.tq span) { display: block; margin-top: 2px; font: 700 12px Manrope, sans-serif; font-style: normal; color: #6B6B73; }
+    .res .list:not(.stack) :global(.tl) { margin: 0; font: 700 12.5px Manrope, sans-serif; color: #D21F52; }
+    .res :global(.typehead) { grid-column: 1 / -1; }
+
+    /* List: one tidy row each, two columns, with the first note showing */
+    .res .list.stack { grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 12px 18px; padding-top: 6px; align-items: start; }
+    .res .list.stack > :global(.rcw) { margin-top: 0 !important; }
+    .res .list.stack :global(.strip) { padding-bottom: 14px !important; min-height: 100%; }
+    .res .list.stack :global(.st-note) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin-top: 4px; font: italic 400 16px/1.3 "Instrument Serif", Georgia, serif; opacity: .9; }
+    .res .list.stack :global(.st-note b) { font: 700 11.5px Manrope, sans-serif; font-style: normal; opacity: .7; }
+    .res .list.stack > :global(.rcw:not(.collapsed)) { grid-column: 1 / -1; }
+  }
 </style>

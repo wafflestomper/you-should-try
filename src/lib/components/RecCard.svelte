@@ -95,6 +95,7 @@
   // Clearing a private pick would make it vanish, so it goes back to "just for me" instead
   let backTo = $derived(card.private ? 'wanted' : 'clear');
   let collapsed = $derived(stacked && !open);
+  const firstNote = $derived(card.recs.find((r) => r.note));
 </script>
 
 <div class="rcw" class:collapsed class:gone data-id={card.item.id}><div class="swbox">
@@ -124,7 +125,7 @@
   onpointerdown={down} onpointermove={move} onpointerup={up} onpointercancel={up} onclickcapture={clickCapture} ondragstart={(e) => { if (swipe) e.preventDefault(); }}>
   {#if collapsed}
     <button class="strip" onclick={() => (open = true)} aria-expanded="false" aria-label="{it.title}, {KI[it.kind]?.label}. Open">
-      <span class="st-txt"><span class="k">{KI[it.kind]?.label ?? it.kind}{#if card.fresh}<em class="new" class:out={!fresh}>New</em>{/if}</span><span class="st-title" class:long={it.title.length > 28}>{it.title}</span><span class="st-who">{whoLine}</span></span>
+      <span class="st-txt"><span class="k">{KI[it.kind]?.label ?? it.kind}{#if card.fresh}<em class="new" class:out={!fresh}>New</em>{/if}</span><span class="st-title" class:long={it.title.length > 28}>{it.title}</span><span class="st-who">{whoLine}</span>{#if firstNote}<span class="st-note">“{firstNote.note}” <b>{firstNote.by_name}</b></span>{/if}</span>
       {#if mine?.state === 'wanted'}<span class="star-dot qm" aria-label="Just for you">?</span>{/if}
       {#if mine?.state === 'starred'}<span class="star-dot" aria-label="Starred"><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2.8 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8Z"/></svg></span>{/if}
       <span class="st-cov"><Cover title={it.title} kind={it.kind} image={it.image_url} w={42} /></span>
@@ -144,6 +145,12 @@
       {#if stacked}<button class="close" onclick={() => (open = false)} aria-label="Close {it.title}"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>{/if}
     </div>
 
+    {#if card.recs.some((r) => r.note) || card.loved.length || card.liked.length}
+      <div class="tip" aria-hidden="true">
+        {#each card.recs.filter((r) => r.note).slice(0, 3) as r}<p class="tq">“{r.note}”<span>{r.by_name}</span></p>{/each}
+        {#if card.loved.length || card.liked.length}<p class="tl">♥ {[...card.loved, ...card.liked].join(', ')}</p>{/if}
+      </div>
+    {/if}
     <div class="body">
       {#each card.recs.filter((r) => r.note) as r}<p class="q">“{r.note}” <span class="qby">{r.by_name}</span></p>{/each}
       {#if it.kind === 'recipe'}
@@ -206,6 +213,7 @@
 
 <style>
   .rc { position: relative; border-radius: 22px; isolation: isolate; }
+  .tip, .st-note { display: none; }
   .swbox { position: relative; }
   .rcw.gone { display: none; }
   .rc.swipe :global(img), .rc.swipe a { -webkit-user-drag: none; user-select: none; -webkit-touch-callout: none; }

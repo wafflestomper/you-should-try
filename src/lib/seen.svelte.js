@@ -6,6 +6,8 @@ export const seen = { pinned: null, at: 0, local: new SvelteSet() };
 const HOLD = 20 * 60 * 1000; // a visit: 20 minutes
 
 export function pinFresh(cards) {
+  // On the server this module is shared by everyone's requests: never remember anything there
+  if (typeof window === 'undefined') return cards.filter((c) => c.fresh).map((c) => c.item.id);
   if (seen.pinned && Date.now() - seen.at < HOLD) return seen.pinned;
   seen.pinned = cards.filter((c) => c.fresh).map((c) => c.item.id);
   seen.at = Date.now();

@@ -50,6 +50,7 @@
   .badge { position: absolute; top: 3px; right: 2px; background: #E23A5F; color: #fff; border-radius: 9px; font-size: 11px; font-weight: 800; padding: 0 5px; }
   .mic { width: 44px; height: 44px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; }
   .looktoggle { display: none; border: 0; background: none; cursor: pointer; padding: 0; }
+  @media (min-width: 1000px) { .top { padding-inline: max(28px, calc((100vw - 1320px) / 2 + 28px)); } }
   @media (max-width: 700px) { .links { display: none; } .top { gap: 8px; padding: 10px 12px; } .brand :global(.w) { font-size: 17.5px; }
     .lookset { display: none; } .looktoggle { display: grid; } .right { gap: 2px; } .bell { width: 38px; } .mic { margin-left: 4px; } }
 </style>
