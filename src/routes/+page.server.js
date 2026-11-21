@@ -75,7 +75,10 @@ export async function load({ platform, locals, url }) {
   const invitee = q.get('guest') ? await db.prepare(
     `SELECT g.id, g.name, (SELECT COUNT(*) FROM invites i WHERE i.guest_id = g.id AND i.used_by IS NULL AND i.expires_at > datetime('now')) AS invited
        FROM guests g WHERE g.id = ? AND g.user_id IS NULL`).bind(q.get('guest')).first() : null;
-  return { cards, people, opts, addedTitle: added?.title ?? null, invitee, filters, active, groups: groupList, groupMembers: Object.fromEntries([...groups].map(([g, ids]) => [g, ids.map((id) => `u:${id}`)])), me: `u:${locals.user.id}`, tagList, tagsOn };
+  // How many picks of each type are on the board, so the type chips can go biggest first
+  const kc = (await db.prepare("SELECT i.kind, COUNT(DISTINCT i.id) AS n FROM items i WHERE i.id IN (SELECT item_id FROM recs) GROUP BY i.kind").all()).results;
+  const kindCounts = Object.fromEntries(kc.map((r) => [r.kind, r.n]));
+  return { kindCounts, cards, people, opts, addedTitle: added?.title ?? null, invitee, filters, active, groups: groupList, groupMembers: Object.fromEntries([...groups].map(([g, ids]) => [g, ids.map((id) => `u:${id}`)])), me: `u:${locals.user.id}`, tagList, tagsOn };
 }
 
 const KEYS = /^(u:[\w-]{1,60}|g:[\w-]{1,60}|grp:[^,\n]{1,40})$/; // people, guests, or a whole group (kept current as it grows)
