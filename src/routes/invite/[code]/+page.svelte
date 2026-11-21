@@ -1,6 +1,7 @@
 <script>
   import Logo from '$lib/components/Logo.svelte';
   import Welcome from '$lib/components/Welcome.svelte';
+  import OgTags from '$lib/components/OgTags.svelte';
   import SignedOutHero from '$lib/components/SignedOutHero.svelte';
   import IntroVideo from '$lib/components/IntroVideo.svelte';
   let { data, form } = $props();
@@ -8,6 +9,7 @@
 </script>
 
 <svelte:head><title>You're invited · You Should Try</title></svelte:head>
+<OgTags title={data.invite ? `${data.invite.from} invited you to You Should Try` : 'You Should Try'} description="Keep track of what friends say you should try: shows, books and places, with who said it. Invite only." />
 
 <div class="wrapi">
   <header><Logo size={34} tone={data.look === 'dark' ? 'light' : 'ink'} /></header>

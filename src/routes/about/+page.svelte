@@ -2,11 +2,13 @@
   // Public "what is this?" page, linked from sign-in and the invite request page
   import Logo from '$lib/components/Logo.svelte';
   import Welcome from '$lib/components/Welcome.svelte';
+  import OgTags from '$lib/components/OgTags.svelte';
   import SignedOutHero from '$lib/components/SignedOutHero.svelte';
   import IntroVideo from '$lib/components/IntroVideo.svelte';
   let { data } = $props();
 </script>
 
+<OgTags title="What is You Should Try?" />
 <svelte:head><title>What is You Should Try?</title><meta name="description" content="The shows, books and places friends tell you about, saved in one place with who said it." /></svelte:head>
 
 <div class="look-{data.look ?? 'light'} page">

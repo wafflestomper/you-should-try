@@ -2,10 +2,12 @@
   import Logo from '$lib/components/Logo.svelte';
   import SignedOutHero from '$lib/components/SignedOutHero.svelte';
   import Welcome from '$lib/components/Welcome.svelte';
+  import OgTags from '$lib/components/OgTags.svelte';
   let { data } = $props();
 </script>
 
 <svelte:head><title>Sign in · You Should Try</title></svelte:head>
+<OgTags />
 
 <div class="look-{data.look ?? 'light'} page">
   <header><Logo size={34} tone={data.look === 'dark' ? 'light' : 'ink'} /></header>

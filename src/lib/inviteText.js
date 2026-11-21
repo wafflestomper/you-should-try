@@ -35,6 +35,5 @@ export const inviteBody = (o) => inviteLines(o).join('\n');
 // Short enough for a text, personal enough not to look like spam
 export function inviteText({ toName, fromName, link, email, maker = false }) {
   const site = maker ? 'a little website I made' : "a little website we're using";
-  return `Hey ${firstOf(toName)}, it's ${firstOf(fromName)}! I'd love for you to join ${site} where a group of us save the shows, books and restaurants we recommend to each other. Here's your personal invite (works once). It opens a page that shows more of what this is about: ${link}` +
-    (email ? `\n\nSign in with Google as ${email}.` : '') + `\n\nNo ads, just a small group of friends. Text me if you have questions.`;
+  return `Hey ${firstOf(toName)}, it's ${firstOf(fromName)}! I'd love for you to join ${site} where a group of us save the shows, books and restaurants we recommend to each other.${email ? ` Sign in with Google as ${email}.` : ''}\n\n${link}`;
 }
