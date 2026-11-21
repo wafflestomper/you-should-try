@@ -5,7 +5,8 @@
   import { page } from '$app/state';
   import { onMount } from 'svelte';
   import RecCard from '$lib/components/RecCard.svelte';
-  import { toast } from '$lib/toast.svelte.js';
+  import { toast, showToast, postAction } from '$lib/toast.svelte.js';
+  import { invalidateAll } from '$app/navigation';
   import { KIND_INFO, kindColor } from '$lib/kinds.js';
   import { seen, pinFresh, markSeen } from '$lib/seen.svelte.js';
   const KIND_PLURAL_UI = { book: 'Books', audiobook: 'Audiobooks', movie: 'Movies', tv: 'TV shows', podcast: 'Podcasts', restaurant: 'Restaurants', recipe: 'Recipes', place: 'Places to go', other: 'Other' };
@@ -97,6 +98,40 @@
     goto(u.pathname + u.search, { keepFocus: true, noScroll: true, replaceState: true });
   }
   const hasTags = $derived((data.tagList?.genres.length ?? 0) + (data.tagList?.moods.length ?? 0) > 0);
+  // Saved filters in the menu: swipe one left to reveal Delete (or use the trash button on a computer)
+  let swOpen = $state(null), swId = $state(null), swDx = $state(0), sw0 = null, swClick = false;
+  let goneFilters = $state([]);
+  function fDown(e, id) { sw0 = { x: e.clientX, y: e.clientY, id, moved: false }; }
+  function fMove(e) {
+    if (!sw0) return;
+    const dx = e.clientX - sw0.x, dy = e.clientY - sw0.y;
+    if (!sw0.moved) { if (Math.abs(dx) < 8) return; if (Math.abs(dy) > Math.abs(dx)) { sw0 = null; return; } sw0.moved = true; }
+    swId = sw0.id; swDx = Math.max(-96, Math.min(0, dx + (swOpen === sw0.id ? -96 : 0)));
+  }
+  function fUp() {
+    if (!sw0) return;
+    if (sw0.moved) { swOpen = swDx < -48 ? sw0.id : null; swClick = true; setTimeout(() => (swClick = false), 0); }
+    swId = null; swDx = 0; sw0 = null;
+  }
+  const fShift = (id) => (swId === id ? swDx : swOpen === id ? -96 : 0);
+  async function deleteFilter(f) {
+    swOpen = null;
+    goneFilters = [...goneFilters, f.id];
+    const wasActive = data.active?.id === f.id;
+    if (wasActive) useFilter('');
+    showToast(`Deleted "${f.name}"`, async () => {
+      // Undo: save it again as it was
+      const fd = new FormData();
+      fd.set('name', f.name); fd.set('via', f.via ? '1' : '0');
+      for (const k of f.people) fd.append('people', k);
+      for (const k of f.kinds) fd.append('kinds', k);
+      await fetch('?/saveFilter', { method: 'POST', body: fd, headers: { 'x-sveltekit-action': 'true' } });
+      await invalidateAll();
+      goneFilters = goneFilters.filter((x) => x !== f.id);
+    });
+    await postAction('deleteFilter', { id: f.id });
+    if (!wasActive) invalidateAll();
+  }
   // What the "who" button says: the saved filter's name, the picked groups, or Everyone
   let whoLabel = $derived(data.active && !data.active.group ? data.active.name : picked.length ? picked.join(' + ') : 'Everyone');
   const andList = (xs) => xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`;
@@ -233,11 +268,19 @@
     </button>
     {#if data.filters.length}
       <p class="tl-h">Your filters</p>
-      {#each data.filters as f (f.id)}
-        <button class="gopt one" aria-pressed={data.active?.id === f.id} onclick={() => { useFilter(f.id); groupsOpen = false; }}>
-          <span class="box round" aria-hidden="true">{#if data.active?.id === f.id}<i></i>{/if}</span><span class="gn">{f.name}</span><span></span>
-        </button>
+      {#each data.filters.filter((f) => !goneFilters.includes(f.id)) as f (f.id)}
+        <div class="frow">
+          <button class="fdel" tabindex={swOpen === f.id ? 0 : -1} onclick={() => deleteFilter(f)}>Delete</button>
+          <div class="fslide" class:moving={swId === f.id} style="transform:translateX({fShift(f.id)}px)"
+            onpointerdown={(e) => fDown(e, f.id)} onpointermove={fMove} onpointerup={fUp} onpointercancel={fUp}>
+            <button class="gopt one" aria-pressed={data.active?.id === f.id} onclick={() => { if (swClick) return; if (swOpen === f.id) { swOpen = null; return; } useFilter(f.id); groupsOpen = false; }}>
+              <span class="box round" aria-hidden="true">{#if data.active?.id === f.id}<i></i>{/if}</span><span class="gn">{f.name}</span><span></span>
+            </button>
+            <button class="ftrash" onclick={() => deleteFilter(f)} aria-label="Delete the {f.name} filter" title="Delete"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+        </div>
       {/each}
+      <p class="fhint">Swipe a filter left to delete it.</p>
     {/if}
     {#if data.groups.length}
       <p class="tl-h">Groups <span class="muted">(pick one or more)</span></p>
@@ -374,6 +417,15 @@
   .who { max-width: 62vw; }
   .whol { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .gopt .box.round { border-radius: 50%; }
+  .frow { position: relative; border-radius: 10px; overflow: hidden; }
+  .fdel { position: absolute; inset: 0 0 0 auto; width: 96px; border: 0; background: #D92D20; color: #fff; font: 800 14px Manrope, sans-serif; cursor: pointer; }
+  .fslide { position: relative; display: flex; align-items: center; background: var(--surface); touch-action: pan-y; transition: transform .2s ease; }
+  .fslide.moving { transition: none; }
+  .fslide .gopt { flex: 1; }
+  .ftrash { display: none; border: 0; background: none; color: var(--ink-2); width: 40px; height: 40px; border-radius: 10px; cursor: pointer; place-items: center; }
+  .ftrash:hover { color: #D92D20; background: var(--surface-2); }
+  .fhint { margin: 2px 10px 4px; font-size: 12.5px; color: var(--ink-2); }
+  @media (hover: hover) and (pointer: fine) { .ftrash { display: grid; } .fhint { display: none; } }
   .gopt .box.round i { width: 10px; height: 10px; border-radius: 50%; background: var(--ink); }
   .gopt.one[aria-pressed='true'] .box.round { background: none; border-color: var(--ink); }
   .glist .tl-h .muted { font-weight: 600; }
