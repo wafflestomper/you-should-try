@@ -300,8 +300,8 @@
     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
   </button>
   <div class="vs" role="group" aria-label="Layout">
-    <button aria-pressed={view === 'cards'} onclick={() => setView('cards')}><span class="ph">Cards</span><span class="pc">Covers</span></button>
-    <button aria-pressed={view === 'stack'} onclick={() => setView('stack')}><span class="ph">Stack</span><span class="pc">List</span></button>
+    <button aria-pressed={view === 'cards'} onclick={() => setView('cards')}><span class="v-ph">Cards</span><span class="v-pc">Covers</span></button>
+    <button aria-pressed={view === 'stack'} onclick={() => setView('stack')}><span class="v-ph">Stack</span><span class="v-pc">List</span></button>
   </div>
 </div>
 {#if more}
@@ -424,12 +424,12 @@
   :global(.look-dark) .list.stack > :global(.rcw.collapsed + .rcw:not(.collapsed)) { margin-top: -12px; }
   :global(.look-light) .list.stack > :global(.rcw.collapsed + .rcw:not(.collapsed)) { margin-top: 44px; }
   .empty { padding: 30px 0; color: var(--ink-2); }
-  .pc { display: none; }
+  .v-pc { display: none; }
 
   /* ===== On a computer: covers or a list, with the filters packed into two lines ===== */
   @media (min-width: 1000px) {
     :global(.wrap:has(.bd)) { max-width: 1320px; }
-    .ph { display: none; } .pc { display: inline; }
+    .v-ph { display: none; } .v-pc { display: inline; }
     .ctrls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 8px; }
     .ctrls > :global(*) { flex-basis: 100%; }
     .ctrls > .saved { flex: 0 1 auto; margin: 0; padding: 0; flex-wrap: wrap; overflow: visible; }
