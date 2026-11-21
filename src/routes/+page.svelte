@@ -451,11 +451,11 @@
     .res :global(.typehead) { grid-column: 1 / -1; }
 
     /* List: one tidy row each, two columns, with the first note showing */
-    .res .list.stack { grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 12px 18px; padding-top: 6px; align-items: start; }
+    .res .list.stack { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px 18px; padding-top: 6px; align-items: stretch; }
+    .res .list.stack > :global(.rcw.collapsed), .res .list.stack > :global(.rcw.collapsed .swbox), .res .list.stack > :global(.rcw.collapsed .rc), .res .list.stack > :global(.rcw.collapsed .strip) { height: 100%; }
     .res .list.stack > :global(.rcw) { margin-top: 0 !important; }
     .res .list.stack :global(.strip) { padding-bottom: 14px !important; min-height: 100%; }
     .res .list.stack :global(.st-note) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin-top: 4px; font: italic 400 16px/1.3 "Instrument Serif", Georgia, serif; opacity: .9; }
     .res .list.stack :global(.st-note b) { font: 700 11.5px Manrope, sans-serif; font-style: normal; opacity: .7; }
-    .res .list.stack > :global(.rcw:not(.collapsed)) { grid-column: 1 / -1; }
   }
 </style>
