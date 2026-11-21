@@ -297,7 +297,7 @@
     </label>
     <label>Sort
       <select value={data.opts.sort} onchange={(e) => set('sort', e.currentTarget.value === 'best' ? '' : e.currentTarget.value)}>
-        <option value="best">Best for you</option><option value="new">Newest</option><option value="loved">Most loved</option><option value="type">By type, then best for you</option>
+        <option value="best">Best for you</option><option value="new">Newest</option><option value="loved">Most loved</option><option value="type">By type</option>
       </select>
     </label>
   </div>
